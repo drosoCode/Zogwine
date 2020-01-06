@@ -1,0 +1,122 @@
+<html>
+    <head>
+        <title>Droso</title>
+
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet">
+        <script src="https://unpkg.com/video.js/dist/video.js"></script>
+        <script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script>
+
+    </head>
+    <body>
+
+        <div id="stream" hidden>
+            <video id="my_video_1" class="video-js vjs-default-skin" controls preload="auto" width="640" height="268"
+            data-setup='{}'>
+            </video>
+        </div>
+        
+        <div id="view" hidden>
+            <video controls>
+                <source src="input.mp4" type="video/mp4" id="showVideo">
+                <p>Votre navigateur ne prend pas en charge les vidéos HTML5.</p>
+            </video>
+        </div>
+
+        <div id="select" hidden>
+            <select class="form-control" id="audio">
+            </select>
+            <select class="form-control" id="subtitles">
+            </select>
+            <button type="button" class="btn btn-success" onclick="playStream();">PLAY</button>
+        </div>
+
+        <div id="main">
+            <input type="text" class="form-control" id="filePath">
+            <button type="button" class="btn btn-success" onclick="showPlayer();">PLAY</button>
+        </div>
+
+        <script>
+            var stype = "1";
+
+            function httpGet(theUrl, sync=false)
+            {
+                var xmlHttp = new XMLHttpRequest();
+                xmlHttp.open( "GET", theUrl, sync ); // false for synchronous request
+                xmlHttp.send( null );
+                return xmlHttp.responseText;
+            }
+
+            function showPlayer()
+            {
+                let file = document.querySelector("#filePath").value;
+                let ext = file.substr(file.lastIndexOf('.')+1);
+
+                if(file != "norefresh")
+                    file = btoa(unescape(encodeURIComponent(file)));
+                let data = JSON.parse(httpGet("converter.php?action=info&file="+file));
+
+                if(ext == "mp4")
+                {
+                    document.querySelector("#showVideo").setAttribute("src","input.mp4");
+                    document.querySelector("#main").hidden = true;
+                    document.querySelector("#view").hidden = false;
+                }
+                else
+                {
+                    var zodruf = "";
+                    for(let dat in data["audio"])
+                    {
+                        zodruf += "<option value="+dat+">"+data["audio"][dat]["language"]+"</option>";
+                    }
+                    document.querySelector("#audio").innerHTML = zodruf;
+                    
+                    var loutruf = "";
+                    for(let dat in data["subtitles"])
+                    {
+                        if(data["subtitles"][dat]["codec"] == "hdmv_pgs_subtitle" || data["subtitles"][dat]["codec"] == "dvd_subtitle")
+                        {
+                            stype = "0";
+                        }
+                        loutruf += "<option value="+dat+">"+data["subtitles"][dat]["language"]+"</option>";
+                    }
+                    document.querySelector("#subtitles").innerHTML = loutruf;
+                    
+                    document.querySelector("#main").hidden = true;
+                    document.querySelector("#select").hidden = false;
+                }
+            }
+
+            function playStream()
+            {
+                var audio = document.querySelector("#audio").value;
+                var sub = document.querySelector("#subtitles").value;                
+
+                httpGet("converter.php?action=stop");
+                httpGet("converter.php?action=convert&audio_stream="+audio+"&subtitles_stream="+sub+"&subtitles_txt="+stype, true);
+
+
+                setTimeout(function() {
+
+                    const player = videojs('my_video_1', {liveui: true});
+                        player.src({
+                        src: 'out/stream.m3u8',
+                        type: 'application/x-mpegURL'
+                    });
+
+                    document.querySelector("#select").hidden = true;
+                    document.querySelector("#stream").hidden = false;
+
+                }, 5000);//wait 5sec for conversion
+            }
+
+
+            //example url:
+            //smb://Thomas:Violette89@192.168.1.211/Share/Series/Sword Art Online/Saison 4/sao_s4e10.mkv
+            //smb://Thomas:Violette89@192.168.1.211/Share2/Series/Death Note/Saison 1/dn_s01e01.mkv
+            //smb://Thomas:Violette89@192.168.1.211/Share/Series/Akame Ga Kill/Saison 1/agk_s01e02.mp4
+        </script>
+
+
+    </body>
+</html>

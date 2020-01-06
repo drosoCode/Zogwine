@@ -1,0 +1,118 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="res/css/bootstrap.min.css"/>
+        <link rel="stylesheet" href="res/css/fontawesome.min.css"/>
+        <script src="res/js/jquery-3.2.1.slim.min.js"></script>
+        <script src="res/js/popper.min.js"></script>
+        <script src="res/js/bootstrap.min.js"></script>
+        <script src="library.js"></script>
+        <script src="droso.js"></script>
+        <title>Media Library</title>
+        <link rel="icon" type="image/png" href="res/favicon.png">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <style>
+          .card:hover{
+                box-shadow: 5px 5px 5px 5px #222;
+          }
+          .cardsContainer {
+                width: 90%;
+          }
+          @media screen and (max-width: 500px) {
+              .cardsContainer {
+                  width: 98%;
+              }
+          }
+          .cardsContainer .card{
+                margin-top: 1rem;
+          }
+        </style>
+    </head>
+
+    <body style="background-color: #313131">
+        
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark" style="width: 100%;">
+            <a class="navbar-brand" href="#">Media Library</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#" onclick="showHome()"><i class="fas fa-home"></i>&nbsp;Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showTVS()"><i class="fas fa-tv"></i>&nbsp;TV Shows</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="row" id="home" hidden>
+                <div class="card text-white bg-primary mb-3 ml-4 mt-2" style="max-width: 18rem;">
+                        <div class="card-header">Movies</div>
+                        <div class="card-body">
+                          <h5 class="card-title">Primary card title</h5>
+                          <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                        </div>
+                      </div>
+                      <div class="card text-white bg-success mb-3 ml-4 mt-2" style="max-width: 18rem;">
+                        <div class="card-header">TV Shows</div>
+                        <div class="card-body">
+                          <h5 class="card-title">Secondary card title</h5>
+                          <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                        </div>
+                      </div>
+                      <div class="card text-white bg-danger mb-3 ml-4 mt-2" style="max-width: 18rem;">
+                        <div class="card-header">Music</div>
+                        <div class="card-body">
+                          <h5 class="card-title">Success card title</h5>
+                          <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                        </div>
+                      </div>
+        </div>
+
+        <div id="content"  class="cardsContainer mx-auto">
+        </div>
+
+        <style id="cssContainer"></style>
+
+       <div class="modal fade" id="movieInfoModal" tabindex="-1" role="dialog">
+          <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="movieInfoModalTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body" id="movieInfoModalContent">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="playerModal" tabindex="-1" role="dialog">
+          <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="playerModalTitle">/h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body" id="playerModalContent">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+    </body>
+</html>
