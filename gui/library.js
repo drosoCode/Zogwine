@@ -1,8 +1,50 @@
 
-function showHome()
+document.addEventListener('DOMContentLoaded', () => {
+
+    window.addEventListener('hashchange', () => changePage());
+    changePage("home");
+
+});
+
+function httpGet(theUrl, sync=false)
 {
-    document.getElementById("home").style = "";
-    document.getElementById("content").style = "display:none;";
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, sync ); // false for synchronous request
+    xmlHttp.send( null );
+    return xmlHttp.responseText;
+}
+
+var apiEndpoint = "http://192.168.1.9/api.php";
+var tvshows;
+var tvsE;
+
+function changePage() 
+{
+    let hash = location.hash.slice(1);
+    
+    if(hash == "tvshows")
+    {
+        document.querySelector("#homeNav").classList.remove("active");
+        document.querySelector("#tvshowsNav").classList.add("active");
+        document.querySelector("#home").hidden = true;
+        document.querySelector("#content").hidden = false;
+        showTVS();
+    }
+    else if(hash.indexOf("tvshow_") != -1)
+    {
+        document.querySelector("#homeNav").classList.remove("active");
+        document.querySelector("#tvshowsNav").classList.add("active");
+        document.querySelector("#home").hidden = true;
+        document.querySelector("#content").hidden = false;
+        showTVSEpisodes(hash.substring(7));
+    }
+    else
+    {
+        document.querySelector("#homeNav").classList.add("active");
+        document.querySelector("#tvshowsNav").classList.remove("active");
+        document.querySelector("#content").hidden = true;
+        document.querySelector("#home").hidden = false;
+    }
 }
 
 function showPlay(type,id)
@@ -11,7 +53,7 @@ function showPlay(type,id)
     {
         data = movies[id];
     }
-    content = "";
+    let content = "";
     document.getElementById("cssContainer").innerHTML = ".modal-backdrop { background-image: url(\""+data["fanart"]+"\");background-size: cover;}";
     document.getElementById("playerModalTitle").innerText = data["title"];
     document.getElementById("playerModalContent").innerText = content;
@@ -20,23 +62,23 @@ function showPlay(type,id)
 
 function showTVS()
 {
-    document.getElementById("home").style = "display:none;";
-    document.getElementById("content").style = "";
-    i = 0;
-    cards = "";
+    tvshows = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvs"));
+    
+    let i = 0;
+    let cards = "";
     while(i<tvshows.length)
     {
         cards += makeTVSCard(i);
         i++;
     }
-    document.getElementById("content").innerHTML = "<div class=\"row\">"+cards+"</div>";
+    document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
 }
 
 function makeTVSCard(id)
 {
     data = tvshows[id]
     descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
-    descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showTVSEpisodes("+id+")\">Play</button>"
+    descData += "<a type=\"button\" class=\"btn btn-primary btn-sm\" href=\"#tvshow_"+data["id"]+"\">Play</a>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSInfo("+id+")\">Info</button>"
     if(data["viewedEpisodes"] == data["episodes"])
     {
@@ -55,7 +97,7 @@ function makeTVSCard(id)
     card = "<div class=\"col-xl-3 col-lg-6 col-md-6 col-sm-12 col-xs-12\">"
     card += "<div class=\"card text-white bg-dark\">"
         card += "<div class=\"row no-gutters\">"
-                card += "<img src=\""+data["icon"]+"\" height=\"200px\" class=\"card-img col-4\" onclick=\"showTVSEpisodes("+id+")\">"
+                card += "<img src=\""+data["icon"]+"\" height=\"200px\" class=\"card-img col-4\">"
                 card += "<div class=\"card-body  col-8 pl-3\">"
                     card += "<h5 class=\"card-title\">"+data["title"]+"</h5>"
                     card += "<p class=\"card-text\"><small class=\"text-muted\">Premiered: "+data["premiered"]+" | Rating: "+data["rating"]+"</small></p>"  
@@ -76,7 +118,7 @@ function showTVSInfo(id)
     infos += "Rating: "+data["rating"]+"<br/>"
     infos += "Episodes: "+data["episodes"]+"<br/>"
     infos += "Viewed Episodes: "+data["viewedEpisodes"]+"<br/>"
-    scraperName = data["scraperLink"].substring(0,data["scraperLink"].indexOf(".com")+4)
+    scraperName = data["scraperLink"].match("(?:\\/\\/)([^\\/]*)(?=\\/)")[1]
     infos += "More Infos: <a target=\"_blank\" rel=\"noopener noreferrer\" href="+data["scraperLink"]+">"+scraperName+"</a><br/>"
     infos += "Description: <br/>"+data["desc"]
     document.getElementById("movieInfoModalTitle").innerText = data["title"];
@@ -88,16 +130,13 @@ function showTVSInfo(id)
 
 function showTVSEpisodes(id)
 {
-    document.getElementById("home").style = "display:none;";
-    document.getElementById("content").style = "";
-    id = tvshows[id]["id"];
-    tvsE = tvsData[id.toString()];
-    cards = "";
-    i = 0;
-    seasons = Object.keys(tvsE);
+    tvsE = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvsEP&idShow="+id));
+    let cards = "";
+    let i = 0;
+    let seasons = Object.keys(tvsE);
     while(i<seasons.length)
     {
-        episodes = tvsE[seasons[i]]
+        let episodes = tvsE[seasons[i]]
         j = 0;
         cards += "<div class=\"alert alert-dark mt-4\" role=\"alert\">"
             cards += "Season "+seasons[i]
@@ -117,7 +156,7 @@ function showTVSEpisodes(id)
 
 function makeTVSEpisodesCard(idShow,idSeason,idEpisode)
 {
-    data = tvsData[idShow.toString()][idSeason][idEpisode];
+    data = tvsE[idSeason][idEpisode];
     id = idShow+"."+idSeason+"."+idEpisode;
     descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay(2,'"+id+"')\">Play</button>"
@@ -153,12 +192,12 @@ function makeTVSEpisodesCard(idShow,idSeason,idEpisode)
 function showTVSEpisodeInfo(id)
 {
     id = id.split(".");
-    data = tvsData[id[0]][id[1]][id[2]];
+    data = tvsE[id[1]][id[2]];
     infos = "Season: "+data["season"]+"<br/>"
     infos += "Episode: "+data["episode"]+"<br/>"
     infos += "Premiered: "+data["premiered"]+"<br/>"
     infos += "Rating: "+data["rating"]+"<br/>"
-    scraperName = data["scraperLink"].substring(0,data["scraperLink"].indexOf(".com")+4)
+    scraperName = data["scraperLink"].match("(?:\\/\\/)([^\\/]*)(?=\\/)")[1]
     infos += "More Infos: <a target=\"_blank\" rel=\"noopener noreferrer\" href="+data["scraperLink"]+">"+scraperName+"</a><br/>"
     infos += "Description: <br/>"+data["desc"]
     document.getElementById("movieInfoModalTitle").innerText = data["title"];
