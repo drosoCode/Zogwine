@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function httpGet(theUrl, sync=false)
 {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", theUrl, sync ); // false for synchronous request
+    xmlHttp.open( "GET", theUrl, sync); // false for synchronous request
     xmlHttp.send( null );
     return xmlHttp.responseText;
 }
@@ -47,17 +47,19 @@ function changePage()
     }
 }
 
-function showPlay(type,id)
+function showPlay(id)
 {
-    if(type == 1)
-    {
-        data = movies[id];
-    }
-    let content = "";
+    let content = "<div class=\"progress\"><div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"100\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: 100%\">Connecting to Server ...</div></div>";
+   
     document.getElementById("cssContainer").innerHTML = ".modal-backdrop { background-image: url(\""+data["fanart"]+"\");background-size: cover;}";
     document.getElementById("playerModalTitle").innerText = data["title"];
-    document.getElementById("playerModalContent").innerText = content;
+    document.getElementById("playerModalContent").innerHTML = content;
     $('#playerModal').modal('show');
+
+    id = id.split(".");
+    let link = tvsE[id[1]][id[2]]["link"];
+    let infos = JSON.parse(httpGet(apiEndpoint+"?query=getFileInfos&file="+link));
+    console.log(infos);
 }
 
 function showTVS()
@@ -159,7 +161,7 @@ function makeTVSEpisodesCard(idShow,idSeason,idEpisode)
     data = tvsE[idSeason][idEpisode];
     id = idShow+"."+idSeason+"."+idEpisode;
     descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
-    descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay(2,'"+id+"')\">Play</button>"
+    descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay('"+id+"')\">Play</button>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSEpisodeInfo('"+id+"')\">Info</button>"
     if(data["viewed"] > 0)
     {
