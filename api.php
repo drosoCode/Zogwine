@@ -132,7 +132,7 @@ function db_tvShowEpisodeList($db, $idShow)
 function getScarperLink($type, $id)
 {
         if($type == "tmdb")
-            return "https://www.themoviedb.org/movie/".$id;
+            return "https://www.themoviedb.org/tv/".$id;
         else if($type == "imdb")
             return "https://www.imdb.com/title/".$id;
         else if($type == "tvdb")
