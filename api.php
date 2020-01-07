@@ -102,18 +102,18 @@ function db_tvShowEpisodeList($db, $idShow)
                     c06 AS "icon"
                 FROM episode_view 
                 WHERE idShow = ?
-                ORDER BY c12, c13;';
+                ORDER BY c12;';
 
     $reponse = $db->prepare($request);
     $reponse->execute([$idShow]);
     $reponse = $reponse->fetchAll(PDO::FETCH_ASSOC);
-
+    
     $currentSeason = $reponse[0]["season"];
     foreach($reponse as $tvs)
     {
         if($tvs["season"] != $currentSeason)
         {
-            array_push($tvShowList, $tvShowSeason);
+            $tvShowList[] = $tvShowSeason;
             $tvShowSeason = array();
             $currentSeason = $tvs["season"];
         }
@@ -124,8 +124,11 @@ function db_tvShowEpisodeList($db, $idShow)
         $tvs["scraperLink"] = getScarperLink($tvs["uniqueid_type"], $tvs["scraperLink"]);
         unset($tvs["uniqueid_type"]);
 
-        array_push($tvShowSeason, $tvs);
+        $tvShowSeason[] = $tvs;
     }
+    $tvShowList[] = $tvShowSeason;
+
+
     return $tvShowList;
 }
 
@@ -138,7 +141,7 @@ function getScarperLink($type, $id)
         else if($type == "tvdb")
             return "https://thetvdb.com/?tab=series&id=".$id;
         else
-            return "-1";
+            return "https://google.com/";
  }
 
 ?>
