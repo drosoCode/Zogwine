@@ -1,12 +1,15 @@
 <?php
+
 /*
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 */
+
 header('Content-Type: application/json');
 
 $query = $_GET["query"];
+$server = "http://192.168.1.9/";
 
 switch($query)
 {
@@ -28,8 +31,17 @@ switch($query)
     break;
 
     case "getFileInfos":
-        $file = $_GET["file"];
-
+        $file = base64_decode($_GET["file"]);
+        if(file_get_contents($server.'converter.php?action=ping') != "pong")
+        {
+            wol("192.168.1.255","70:4D:7B:2E:60:D2");
+            sleep(20);
+        }
+        if(strpos($file, "smb://192.168.1.30") != -1)
+        {
+            $file = "smb://admin:***REMOVED***@".substring($file, 6);
+            echo(file_get_contents($server.'converter.php?action=info&file='.base64_encode($file)));
+        }
     break;
 
     case "startTranscode":
@@ -56,6 +68,7 @@ function db_tvShowList($db)
                     c05 AS "premiered",
                     c08 AS "genre",
                     c14 AS "studio",
+                    c18 AS "link",
                     rating,
                     totalSeasons AS "seasons",
                     totalCount AS "episodes",
@@ -79,6 +92,8 @@ function db_tvShowList($db)
 
         $tvs["scraperLink"] = getScarperLink($tvs["uniqueid_type"], $tvs["scraperLink"]);
         unset($tvs["uniqueid_type"]);
+
+        $tvs["link"] = base64_encode($tvs["link"]);
     }
     return $reponse;
 }
@@ -143,5 +158,29 @@ function getScarperLink($type, $id)
         else
             return "https://google.com/";
  }
+
+
+function wol($broadcast, $mac)
+{
+     $hwaddr = pack('H*', preg_replace('/[^0-9a-fA-F]/', '', $mac));
+ 
+     // Create Magic Packet
+     $packet = sprintf(
+         '%s%s',
+         str_repeat(chr(255), 6),
+         str_repeat($hwaddr, 16)
+     );
+ 
+     $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+ 
+     if ($sock !== false) {
+         $options = socket_set_option($sock, SOL_SOCKET, SO_BROADCAST, true);
+ 
+         if ($options !== false) {
+             socket_sendto($sock, $packet, strlen($packet), 0, $broadcast, 7);
+             socket_close($sock);
+         }
+     }
+}
 
 ?>
