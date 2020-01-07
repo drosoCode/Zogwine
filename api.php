@@ -1,4 +1,10 @@
 <?php
+/*
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+*/
+header('Content-Type: application/json');
 
 $query = $_GET["query"];
 
@@ -7,14 +13,16 @@ switch($query)
     case "list":
         $type = $_GET["type"];
 
-        if(type == "tvs")
-        {
-            print_r(db_tvShowList())
-        }
-        elseif(type == "tvsEP")
-        {
-            $name = $_GET["name"];
+        $db = new PDO('mysql:host=192.168.1.12;dbname=ThomasVideo116;charset=utf8', 'kodi', 'kodi');
 
+        if($type == "tvs")
+        {
+            echo(json_encode(db_tvShowList($db)));
+        }
+        elseif($type == "tvsEP")
+        {
+            $id = $_GET["idShow"];
+            echo(json_encode(db_tvShowEpisodeList($db, $id)));
         }
 
     break;
@@ -38,12 +46,8 @@ switch($query)
 }
 
 
-function db_tvShowList()
+function db_tvShowList($db)
 {
-    $host = "192.168.1.12";
-    $db = "ThomasVideo116";
-    $db = new PDO('mysql:host='.$host.';dbname='.$db.';charset=utf8', 'kodi', 'kodi');
-
     $tvShowList = array();
 
     $request = 'SELECT c00 AS "title",
@@ -63,15 +67,15 @@ function db_tvShowList()
                 FROM tvshow_view 
                 ORDER BY c00;';
 
-    $reponse = $bdd->query($request)->fetchall();
+    $reponse = $db->query($request)->fetchAll(PDO::FETCH_ASSOC);
 
     foreach($reponse as &$tvs)
     {
-        preg_match("(?:<thumb aspect=\"poster\" \S*\">)(\S*)(?=<\/thumb>)\\S*(?=<\\/thumb>)", $tvs["icon"], $buf);
-        $tvs["icon"] = $buf[0];
+        preg_match("/(?:<thumb aspect=\"poster\" \\S*\">)(\\S*)(?=<\\/thumb>)/", $tvs["icon"], $buf);
+        $tvs["icon"] = $buf[1];
 
-        preg_match("(?:<thumb \S*\">)(\S*)(?=<\/thumb>)\\S*(?=<\\/thumb>)", $tvs["fanart"], $buf);
-        $tvs["fanart"] = $buf[0];
+        preg_match("/(?:<thumb \\S*\">)(\\S*)(?=<\\/thumb>)\\S*(?=<\\/thumb>)/", $tvs["fanart"], $buf);
+        $tvs["fanart"] = $buf[1];
 
         $tvs["scraperLink"] = getScarperLink($tvs["uniqueid_type"], $tvs["scraperLink"]);
         unset($tvs["uniqueid_type"]);
@@ -80,12 +84,8 @@ function db_tvShowList()
 }
 
 
-function db_tvShowEpisodeList($idShow)
+function db_tvShowEpisodeList($db, $idShow)
 {
-    $host = "192.168.1.12";
-    $db = "ThomasVideo116";
-    $db = new PDO('mysql:host='.$host.';dbname='.$db.';charset=utf8', 'kodi', 'kodi');
-
     $tvShowList = array();
     $tvShowSeason = array();
 
@@ -101,9 +101,12 @@ function db_tvShowEpisodeList($idShow)
                     uniqueid_value AS "scraperLink",
                     c06 AS "icon"
                 FROM episode_view 
+                WHERE idShow = ?
                 ORDER BY c12, c13;';
 
-    $reponse = $bdd->query($request)->fetchall();
+    $reponse = $db->prepare($request);
+    $reponse->execute([$idShow]);
+    $reponse = $reponse->fetchAll(PDO::FETCH_ASSOC);
 
     $currentSeason = $reponse[0]["season"];
     foreach($reponse as $tvs)
@@ -115,9 +118,8 @@ function db_tvShowEpisodeList($idShow)
             $currentSeason = $tvs["season"];
         }
 
-
-        preg_match("(?:<thumb>)(\\S*)(?=<\\/thumb>)\S*(?=<\\/thumb>)", $tvs["icon"], $buf);
-        $tvs["icon"] = $buf[0];
+        preg_match("/(?:<thumb>)(\\S*)(?=<\\/thumb>)\S*(?=<\\/thumb>)/", $tvs["icon"], $buf);
+        $tvs["icon"] = $buf[1];
 
         $tvs["scraperLink"] = getScarperLink($tvs["uniqueid_type"], $tvs["scraperLink"]);
         unset($tvs["uniqueid_type"]);
@@ -129,17 +131,14 @@ function db_tvShowEpisodeList($idShow)
 
 function getScarperLink($type, $id)
 {
-    switch($type)
-    {
         if($type == "tmdb")
             return "https://www.themoviedb.org/movie/".$id;
         else if($type == "imdb")
             return "https://www.imdb.com/title/".$id;
         else if($type == "tvdb")
-            return = "https://thetvdb.com/?tab=series&id=".$id;
+            return "https://thetvdb.com/?tab=series&id=".$id;
         else
             return "-1";
-    }
-}
+ }
 
 ?>
