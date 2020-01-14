@@ -1,2 +1,4 @@
 out/*
 input.mkv
+*.json
+*test*
