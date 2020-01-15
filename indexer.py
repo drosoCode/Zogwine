@@ -24,6 +24,15 @@ class scanner:
         self._tvdb = tvdb(tvdbKey)
         self._tmdb = tmdb(tmdbKey)
 
+    def setTVSID(self, showID, resultID):
+        #the resultID is the one from the json list of multipleResults entry
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT multipleResults FROM tv_shows WHERE idShow = "+str(showID)+";")
+        data = json.loads(cursor.fetchone()["multipleResults"])[resultID]
+        cursor.execute("UPDATE tv_shows SET scraperName = %s, scraperID = %s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %s;", (data["scraperName"], data["id"], showID))
+        self._connection.commit()
+
+
     def getTVSData(self):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT * FROM tv_shows ORDER BY title;")
@@ -63,10 +72,7 @@ class scanner:
 
                     if item in paths:
                         print("present in paths")
-                        if tvs[item]["multipleResults"]:
-                            #there are multiple matches for scraper, cannot create entries
-                            print("multiple results")
-                        elif tvs[item]["forceUpdate"]:
+                        if tvs[item]["forceUpdate"] and tvs[item]["scraperName"] and tvs[item]["scraperID"]:
                             print("force update")
                             #tvs must be updated
                             if tvs[item]["scraperName"] == "tvdb":
@@ -75,11 +81,15 @@ class scanner:
                                 result = self._tmdb.getTVS(tvs[item]["scraperID"])
                             data = (result["title"], result["desc"], result["icon"], result["fanart"], result["rating"], result["premiered"], json.dumps(result["genres"]), item, tvs[item]["idShow"])
                             print(data)
-                            cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0 WHERE idShow = %s;", data)
+                            cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                             commit = True
+                        elif tvs[item]["multipleResults"]:
+                            #there are multiple matches for scraper, cannot create entries
+                            print("multiple results")
                         else:
                             #tvs is ok, call scan on tvs folder
                             self.scanDir(os.path.join(path,item), True, item)
+                            pass
                     else:
                         #entries for this tvs doesn't exists, create entry with multipleResults
                         print("create new entry")
@@ -134,6 +144,7 @@ class scanner:
                             forceUpdate = 1
 
                         if epCode not in existingEp:
+                            print(result)
                             data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate)
                             cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
                             commit = True
@@ -170,10 +181,13 @@ class tvdb:
 
     def standardize(self, data):
         if isinstance(data, list):
-            dat = []
-            for i in data:
-                dat.append(self.subStandardize(i))
-            return dat
+            if len(data) > 1:
+                dat = []
+                for i in data:
+                    dat.append(self.subStandardize(i))
+                return dat
+            else:
+                return self.subStandardize(data[0])
         else:
             return self.subStandardize(data)
 
@@ -257,10 +271,13 @@ class tmdb:
 
     def standardize(self, data):
         if isinstance(data, list):
-            dat = []
-            for i in data:
-                dat.append(self.subStandardize(i))
-            return dat
+            if len(data) > 1:
+                dat = []
+                for i in data:
+                    dat.append(self.subStandardize(i))
+                return dat
+            else:
+                return self.subStandardize(data[0])
         else:
             return self.subStandardize(data)
 
@@ -329,5 +346,6 @@ def run(configFile):
         data = json.load(f)
         s = scanner(data["db"]["host"],data["db"]["user"], data["db"]["password"], data["api"]["tmdb"], data["api"]["tvdb"])
         s.scanDir("W:\\Videos\\Series")
+        #s.setTVSID(33, 1)
 
 run("config.json")
