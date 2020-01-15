@@ -2,3 +2,4 @@ out/*
 input.mkv
 *.json
 *test*
+__pycache__*
