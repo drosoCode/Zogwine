@@ -37,11 +37,13 @@ class scanner:
 
     def scanDir(self,path, recursive=False, currentTVS=None):
         print("NEW FUNCTION CALLL #####################################")
+        print(path, recursive, currentTVS)
         dirContent = os.listdir(path)
         existingEp = []
         forceUpdateEp = []
+        idUpdateEp = {}
         paths, tvs = self.getTVSData()
-        cursor = self._connection.cursor()
+        cursor = self._connection.cursor(dictionary=True)
         
         for item in dirContent:
             commit = False
@@ -55,12 +57,9 @@ class scanner:
                 if recursive:
                     #it is a season directory
                     print("recursive")
-                    self.scanDir(os.path.join(path,item), True)
+                    self.scanDir(os.path.join(path,item), True, currentTVS)
                 else:
                     #it is a tvs directory
-                    existingEp = []
-                    forceUpdateEp = []
-                    idUpdateEp = {}
 
                     if item in paths:
                         print("present in paths")
@@ -79,22 +78,7 @@ class scanner:
                             cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0 WHERE idShow = %s;", data)
                             commit = True
                         else:
-                            #tvs is ok, fill the buffer with episodes that mustn't be updated
-                            print("fill ep arrays")
-                            cursor.execute("SELECT season || '.' || episode AS epCode from episodes WHERE idShow = "+str(tvs[item]["idShow"])+" AND forceUpdate = 0;")
-                            dat = cursor.fetchall()
-                            for i in dat:
-                                existingEp.append(i["epCode"])
-                            cursor.execute("SELECT season || '.' || episode AS epCode, idEpisode from episodes WHERE idShow = "+str(tvs[item]["idShow"])+" AND forceUpdate = 1;")
-                            dat = cursor.fetchall()
-                            for i in dat:
-                                forceUpdateEp.append(i["epCode"])
-                                idUpdateEp[i["epCode"]] = i["idEpisode"]
-                            print(existingEp)
-                            print(forceUpdateEp)
-                            print(idUpdateEp)
-                            
-                            #call scan on tvs folder
+                            #tvs is ok, call scan on tvs folder
                             self.scanDir(os.path.join(path,item), True, item)
                     else:
                         #entries for this tvs doesn't exists, create entry with multipleResults
@@ -105,6 +89,24 @@ class scanner:
                         commit = True
 
             else:
+                if len(existingEp) == 0 and len(forceUpdateEp) == 0 and len(idUpdateEp) == 0:
+                    #fill the buffer with episodes that mustn't be updated
+                    print("fill ep arrays")
+                    cursor.execute("SELECT season, episode from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+" AND forceUpdate = 0;")
+                    dat = cursor.fetchall()
+                    for i in dat:
+                        print(i)
+                        existingEp.append(str(i["season"])+"."+str(i["episode"]))
+                    cursor.execute("SELECT season || '.' || episode AS epCode, idEpisode from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+" AND forceUpdate = 1;")
+                    dat = cursor.fetchall()
+                    for i in dat:
+                        forceUpdateEp.append(i["epCode"])
+                        idUpdateEp[i["epCode"]] = i["idEpisode"]
+                    print(existingEp)
+                    print(forceUpdateEp)
+                    print(idUpdateEp)
+
+
                 #it is an episode file
                 print("this is an episode file")
                 extension = item[item.rfind('.')+1:]
@@ -131,15 +133,14 @@ class scanner:
                         if "desc" not in result or ("desc" in result and result["desc"] == ""):
                             forceUpdate = 1
 
-                        print(result)
                         if epCode not in existingEp:
                             data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate)
-                            #cursor.execute("INSERT INTO episodes (title, desc, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
+                            cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
                             commit = True
                             print("Create new entry")
                         elif epCode in forceUpdateEp:
                             data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate, idUpdateEp[epCode])                        
-                            #cursor.execute("UPDATE episodes SET title = %s, desc = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;")
+                            cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;")
                             commit = True
                             print("update entry")
                         print(data)
