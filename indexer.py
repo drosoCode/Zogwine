@@ -151,12 +151,3 @@ class scanner:
                 self._connection.commit()
                 print(cursor.rowcount, "was affected")
 
-
-def run(configFile):
-    with open(configFile) as f:
-        data = json.load(f)
-        s = scanner(data["db"]["host"],data["db"]["user"], data["db"]["password"], data["api"]["tmdb"], data["api"]["tvdb"])
-        s.scanDir("W:\\Videos\\Series")
-        #s.setTVSID(33, 1)
-
-run("config.json")
