@@ -77,5 +77,3 @@ def getMP4File():
             return send_file(bites.read(), attachment_filename='media.mp4', mimetype='video/mp4')
     except:
         abort(404)
-
-app.run(host='0.0.0.0')
