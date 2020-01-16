@@ -14,7 +14,8 @@ function httpGet(theUrl, sync=false)
     return xmlHttp.responseText;
 }
 
-var apiEndpoint = "http://192.168.1.9/api.php";
+//var apiEndpoint = "http://192.168.1.9/api.php";
+var apiEndpoint = "http://192.168.1.9:5000/api/";
 var tvshows;
 var tvsE;
 
@@ -58,19 +59,21 @@ function showPlay(id)
 
     id = id.split(".");
     let link = tvsE[id[1]][id[2]]["link"];
-    let infos = JSON.parse(httpGet(apiEndpoint+"?query=getFileInfos&file="+link));
+    //let infos = JSON.parse(httpGet(apiEndpoint+"?query=getFileInfos&file="+link));
     console.log(infos);
 }
 
 function showTVS()
 {
-    tvshows = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvs"));
+    //tvshows = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvs"));
+    tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows"));
     
     let i = 0;
     let cards = "";
     while(i<tvshows.length)
     {
-        cards += makeTVSCard(i);
+        if(tvshows[i]["multipleResults"] == null)
+            cards += makeTVSCard(i);
         i++;
     }
     document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
@@ -129,10 +132,10 @@ function showTVSInfo(id)
     $('#movieInfoModal').modal('show');
 }
 
-
 function showTVSEpisodes(id)
 {
-    tvsE = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvsEP&idShow="+id));
+    //tvsE = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvsEP&idShow="+id));
+    tvsE = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id));
     let cards = "";
     let i = 0;
     let seasons = Object.keys(tvsE);
