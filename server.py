@@ -1,7 +1,7 @@
 import flask
 from flask import request, jsonify, abort, send_file, Response, stream_with_context
 from flask_cors import CORS
-from api import api
+from api import api as apiClass
 import requests
 
 app = flask.Flask(__name__)
@@ -9,7 +9,7 @@ CORS(app)
 
 app.config["DEBUG"] = True
 
-api = api("config.json")
+api = apiClass("config.json")
 mp4FilePath = []
 
 @app.route('/', methods=['GET'])
