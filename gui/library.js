@@ -14,7 +14,6 @@ function httpGet(theUrl, sync=false)
     return xmlHttp.responseText;
 }
 
-//var apiEndpoint = "http://192.168.1.9/api.php";
 var apiEndpoint = "http://192.168.1.9:5000/api/";
 var tvshows;
 var tvsE;
@@ -59,13 +58,12 @@ function showPlay(id)
 
     id = id.split(".");
     let link = tvsE[id[1]][id[2]]["link"];
-    //let infos = JSON.parse(httpGet(apiEndpoint+"?query=getFileInfos&file="+link));
+    let infos = JSON.parse(httpGet(apiEndpoint+"fileInfos?idEpisode="+link));
     console.log(infos);
 }
 
 function showTVS()
 {
-    //tvshows = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvs"));
     tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows"));
     
     let i = 0;
@@ -81,8 +79,8 @@ function showTVS()
 
 function makeTVSCard(id)
 {
-    data = tvshows[id]
-    descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
+    let data = tvshows[id]
+    let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<a type=\"button\" class=\"btn btn-primary btn-sm\" href=\"#tvshow_"+data["id"]+"\">Play</a>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSInfo("+id+")\">Info</button>"
     if(data["viewedEpisodes"] == data["episodes"])
@@ -99,7 +97,7 @@ function makeTVSCard(id)
     }
     descData += "</div>"
 
-    card = "<div class=\"col-xl-3 col-lg-6 col-md-6 col-sm-12 col-xs-12\">"
+    let card = "<div class=\"col-xl-3 col-lg-6 col-md-6 col-sm-12 col-xs-12\">"
     card += "<div class=\"card text-white bg-dark\">"
         card += "<div class=\"row no-gutters\">"
                 card += "<img src=\""+data["icon"]+"\" height=\"200px\" class=\"card-img col-4\">"
@@ -116,16 +114,16 @@ function makeTVSCard(id)
 
 function showTVSInfo(id)
 {
-    data = tvshows[id];
-    infos = "Genre: "+data["genre"]+"<br/>"
-    infos += "Studio: "+data["studio"]+"<br/>"
+    let data = tvshows[id];
+    let infos = "Genre: "+JSON.parse(data["genre"]).join(" / ")+"<br/>"
     infos += "Premiered: "+data["premiered"]+"<br/>"
     infos += "Rating: "+data["rating"]+"<br/>"
+    infos += "Seasons: "+data["seasons"]+"<br/>"
     infos += "Episodes: "+data["episodes"]+"<br/>"
     infos += "Viewed Episodes: "+data["viewedEpisodes"]+"<br/>"
-    scraperName = data["scraperLink"].match("(?:\\/\\/)([^\\/]*)(?=\\/)")[1]
+    let scraperName = data["scraperLink"].match("(?:\\/\\/)([^\\/]*)(?=\\/)")[1]
     infos += "More Infos: <a target=\"_blank\" rel=\"noopener noreferrer\" href="+data["scraperLink"]+">"+scraperName+"</a><br/>"
-    infos += "Description: <br/>"+data["desc"]
+    infos += "Description: <br/>"+data["overview"]
     document.getElementById("movieInfoModalTitle").innerText = data["title"];
     document.getElementById("movieInfoModalContent").innerHTML = infos;
     document.getElementById("cssContainer").innerHTML = ".modal-backdrop { background-image: url(\""+data["fanart"]+"\");background-size: cover;background-position: center center; background-repeat: no-repeat; background-attachment: fixed; position: fixed;}";
@@ -134,39 +132,36 @@ function showTVSInfo(id)
 
 function showTVSEpisodes(id)
 {
-    //tvsE = JSON.parse(httpGet(apiEndpoint+"?query=list&type=tvsEP&idShow="+id));
     tvsE = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id));
     let cards = "";
+    let season = -1;
     let i = 0;
-    let seasons = Object.keys(tvsE);
-    while(i<seasons.length)
+    while(i<tvsE.length)
     {
-        let episodes = tvsE[seasons[i]]
-        j = 0;
-        cards += "<div class=\"alert alert-dark mt-4\" role=\"alert\">"
-            cards += "Season "+seasons[i]
-        cards += "</div>"
-        cards += "<div class=\"row\">"
-        while(j<episodes.length)
+        if(tvsE[i]["season"] != season)
         {
-            cards += makeTVSEpisodesCard(id,seasons[i],j);
-            j++;
+            if(season != -1)
+                cards += "</div>"
+            cards += "<div class=\"alert alert-dark mt-4\" role=\"alert\">"
+                cards += "Season "+tvsE[i]["season"]
+            cards += "</div>"
+            cards += "<div class=\"row\">"
+
+            season = tvsE[i]["season"];
         }
-        cards += "</div>"
+        cards += makeTVSEpisodesCard(i,tvsE[i]);
         i++;
     }
     document.getElementById("content").innerHTML = cards;
 }
 
 
-function makeTVSEpisodesCard(idShow,idSeason,idEpisode)
+function makeTVSEpisodesCard(id,data)
 {
-    data = tvsE[idSeason][idEpisode];
-    id = idShow+"."+idSeason+"."+idEpisode;
-    descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
+    let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay('"+id+"')\">Play</button>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSEpisodeInfo('"+id+"')\">Info</button>"
-    if(data["viewed"] > 0)
+    if(data["viewCount"] > 0)
     {
         descData += "<button type=\"button\" class=\"btn btn-success disabled btn-sm\">Viewed <span class=\"badge badge-light\">"+data["viewed"]+"</span></btn>";
     }
@@ -176,7 +171,7 @@ function makeTVSEpisodesCard(idShow,idSeason,idEpisode)
     }
     descData += "</div>"
 
-    card = "<div class=\"col-xl-3 col-lg-4 col-md-6 col-sm-6 col-xs-12\">"
+    let card = "<div class=\"col-xl-3 col-lg-4 col-md-6 col-sm-6 col-xs-12\">"
     card += "<div class=\"card text-white bg-dark\">"
         card += "<div class=\"row no-gutters\">"
                 card += "<img src=\""+data["icon"]+"\" class=\"card-img-top\" height=\"200px\" width=\"30px\">"
@@ -196,15 +191,12 @@ function makeTVSEpisodesCard(idShow,idSeason,idEpisode)
 
 function showTVSEpisodeInfo(id)
 {
-    id = id.split(".");
-    data = tvsE[id[1]][id[2]];
-    infos = "Season: "+data["season"]+"<br/>"
+    let data = tvsE[id];
+    let infos = "Season: "+data["season"]+"<br/>"
     infos += "Episode: "+data["episode"]+"<br/>"
     infos += "Premiered: "+data["premiered"]+"<br/>"
     infos += "Rating: "+data["rating"]+"<br/>"
-    scraperName = data["scraperLink"].match("(?:\\/\\/)([^\\/]*)(?=\\/)")[1]
-    infos += "More Infos: <a target=\"_blank\" rel=\"noopener noreferrer\" href="+data["scraperLink"]+">"+scraperName+"</a><br/>"
-    infos += "Description: <br/>"+data["desc"]
+    infos += "Description: <br/>"+data["overview"]
     document.getElementById("movieInfoModalTitle").innerText = data["title"];
     document.getElementById("movieInfoModalContent").innerHTML = infos;
     document.getElementById("cssContainer").innerHTML = "";
