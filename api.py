@@ -18,12 +18,12 @@ class api:
 
     def getTVSData(self):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(idView) FROM views WHERE idShow = t.idShow AND idEpisode IS NOT NULL AND viewCount > 0) AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t ORDER BY title;")
         return cursor.fetchall()
     
     def getTVSEp(self, idShow):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idEpisode AS id, title, overview, icon, season, episode, rating, scraperName, scraperID FROM episodes WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
+        cursor.execute("SELECT idEpisode AS id, title, overview, icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode AND idShow = e.idShow) AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
         return cursor.fetchall()
     
     def setTVSID(self, idShow, id):
