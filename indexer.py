@@ -13,7 +13,7 @@ class scanner:
     def __init__(self, host, user, passw, tmdbKey, tvdbKey):
         self._supportedFiles = ["mkv","mp4","avi"]
         self._connection = sql.connect(host=host,user=user,password=passw,database='mediaController')
-        self._tvdb = tvdb(tvdbKey)
+        #self._tvdb = tvdb(tvdbKey)
         self._tmdb = tmdb(tmdbKey)
 
     def setTVSID(self, showID, resultID):
