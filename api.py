@@ -6,6 +6,7 @@ import os
 from wakeonlan import send_magic_packet
 import time
 import base64
+import hashlib
 
 class api:
 
@@ -102,10 +103,14 @@ class api:
         return cursor.fetchone()
 
     def authenticateUser(self, user, password):
+        password = hashlib.sha256(bytes(password, 'utf-8')).hexdigest()
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT toekn FROM users WHERE user = "+str(user)+" AND password = "+str(password)+";")
-        dat = cursor.fetchone()
-        if "token" in dat:
-            return dat["token"]
+        if user != "" and password != "":
+            cursor.execute("SELECT token FROM users WHERE user = '"+str(user)+"' AND password = '"+str(password)+"';")
+            dat = cursor.fetchone()
+            if "token" in dat:
+                return dat["token"]
+            else:
+                return False
         else:
             return False

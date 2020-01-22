@@ -72,7 +72,32 @@
                       </div>
         </div>
 
-        <div id="content"  class="cardsContainer mx-auto">
+        <div id="content" class="cardsContainer mx-auto">
+        </div>
+
+        <div class="row justify-content-center" style="margin-top: 3%;" id="login">
+            <div class="col-md-8">
+                <div class="card text-white bg-dark">
+                    <div class="card-header">Authentification</div>
+                    <div class="card-body">
+                        <div class="form-group row">
+                            <label for="login_user" class="col-md-4 col-form-label text-md-right">User</label>
+                            <div class="col-md-6">
+                                <input type="text" id="login_user" class="form-control" name="login_user" required autofocus>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="login_password" class="col-md-4 col-form-label text-md-right">Password</label>
+                            <div class="col-md-6">
+                                <input type="password" id="login_password" class="form-control" name="login_password" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 offset-md-4">
+                            <button type="submit" class="btn btn-primary" onclick="login();">Login</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <style id="cssContainer"></style>

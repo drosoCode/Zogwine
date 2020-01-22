@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('hashchange', () => changePage());
-    changePage("home");
+    changePage();
 
 });
 
@@ -17,17 +17,28 @@ function httpGet(theUrl, sync=false)
 var apiEndpoint = "http://192.168.1.9:5000/api/";
 var tvshows;
 var tvsE;
+var userToken = null;
 
 function changePage() 
 {
     let hash = location.hash.slice(1);
     
-    if(hash == "tvshows")
+    if(userToken == null)
+    {
+        document.querySelector("#homeNav").classList.remove("active");
+        document.querySelector("#tvshowsNav").classList.remove("active");
+        document.querySelector("#home").hidden = true;
+        document.querySelector("#content").hidden = true;
+        document.querySelector("#login").hidden = false;
+        console.log("loutre");
+    }
+    else if(hash == "tvshows")
     {
         document.querySelector("#homeNav").classList.remove("active");
         document.querySelector("#tvshowsNav").classList.add("active");
         document.querySelector("#home").hidden = true;
         document.querySelector("#content").hidden = false;
+        document.querySelector("#login").hidden = true;
         showTVS();
     }
     else if(hash.indexOf("tvshow_") != -1)
@@ -36,6 +47,7 @@ function changePage()
         document.querySelector("#tvshowsNav").classList.add("active");
         document.querySelector("#home").hidden = true;
         document.querySelector("#content").hidden = false;
+        document.querySelector("#login").hidden = true;
         showTVSEpisodes(hash.substring(7));
     }
     else
@@ -44,6 +56,23 @@ function changePage()
         document.querySelector("#tvshowsNav").classList.remove("active");
         document.querySelector("#content").hidden = true;
         document.querySelector("#home").hidden = false;
+        document.querySelector("#login").hidden = true;
+    }
+}
+
+function login()
+{
+    let user = document.querySelector("#login_user").value;
+    let pass = document.querySelector("#login_password").value;
+    let ret = httpGet(apiEndpoint+"users/authenticate?user="+user+"&password="+pass);
+    try
+    {
+        userToken = JSON.parse(ret)["response"];
+        changePage();
+    }
+    catch
+    {
+        alert("Authentification Failed");
     }
 }
 
