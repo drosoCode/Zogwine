@@ -1,5 +1,5 @@
 import flask
-from flask import request, jsonify, abort, send_file, Response, stream_with_context
+from flask import request, jsonify, abort, send_file, Response, stream_with_context, render_template
 from flask_cors import CORS
 from api import api as apiClass
 import requests
@@ -14,7 +14,7 @@ mp4FilePath = []
 
 @app.route('/', methods=['GET'])
 def home():
-    return "<h1>API</h1>"
+    return render_template('index.html')
 
 @app.route('/api/tvs/getEpisodes', methods=['GET'])
 def getTVSEp():
@@ -51,22 +51,31 @@ def getFile():
 @app.route('/api/tvs/playbackEnd', methods=['GET'])
 def getPlaybackEnd():
     #set as viewed for user, and stop transcoder if started
+    requests.get(api.getTranscoderUrl()+"/stop?token="+request.args['token'])
     return jsonify({'task': request.args['idEpisode'], "user":request.args['token']})
 
 @app.route('/api/users/authenticate', methods=['GET','POST'])
 def authenticateUser():
     #return user infos
-    return jsonify({'response': api.authenticateUser(request.args['user'],request.args['password'])})
+    d = api.authenticateUser(request.args['user'],request.args['password'])
+    if not d:
+        abort(401)
+    else:
+        return jsonify({'response': d})
 
 @app.route('/api/assets/transcoder/file')
 def getTranscodedFile():
-    req = requests.get(api.getTranscoderUrl()+"/file?name="+request.args['file']+"&user="+request.args['token'], stream = True)
-    return Response(stream_with_context(req.iter_content(chunk_size=1024)), content_type = req.headers['content-type'])
+    file = request.args['file']
+    if '/' not in file:
+        req = requests.get(api.getTranscoderUrl()+"/file?name="+file+"&token="+request.args['token']+"&subTxt="+str(request.args['subTxt'])+"&audioStream="+str(request.args['audioStream'])+"&subStream="+str(request.args['subStream']), stream = True)
+        return Response(stream_with_context(req.iter_content(chunk_size=1024)), content_type = req.headers['content-type'])
+    else:
+        return jsonify({'response':'error'})
 
 @app.route('/api/assets/transcoder/list')
 def getTranscodedFilesList():
-    req = requests.get(api.getTranscoderUrl()+"/file?name=list&user="+request.args['token'], stream = True)
-    return Response(stream_with_context(req.iter_content()), content_type = req.headers['content-type'])
+    data = generateM3U8(requests.get(api.getTranscoderUrl()+"/file?name=list&token="+request.args['token']).text)
+    return data
 
 @app.route('/api/assets/media')
 def getMP4File():
@@ -77,3 +86,10 @@ def getMP4File():
             return send_file(bites.read(), attachment_filename='media.mp4', mimetype='video/mp4')
     except:
         abort(404)
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    return 'pong'
+
+def generateM3U8(files):
+    return files

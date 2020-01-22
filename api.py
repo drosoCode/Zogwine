@@ -58,17 +58,19 @@ class api:
         return data
 
 
-    def getEpPath(self, idEpisode):
+    def getEpPath(self, idEpisode, full=True):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT CONCAT(t.path, '/', e.path) FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = "+str(idEpisode)+";")
-        path = self._data["paths"]["scanDirectory"]+'/'+cursor.fetchone()
+        path = cursor.fetchone()
+        if full:
+            path = self._data["paths"]["scanDirectory"]+'/'+path
         print(path)
         return path
         
     def getTranscoderUrl(self):
         return self._data["paths"]["transcoderURL"]
 
-    def getFile(self, idEpisode, userID):
+    def getFile(self, idEpisode, token):
         path = self.getEpPath(idEpisode)
         extension = path[path.rfind('.')+1:]
         if extension == "mp4":
@@ -91,7 +93,7 @@ class api:
             if not success:
                 return (False, False)
             else:
-                requests.get(self._data["paths"]["transcoderURL"]+"/transcode?user="+str(userID)+"&file="+base64.b64encode(path))
+                requests.get(self._data["paths"]["transcoderURL"]+"/transcode?token="+token+"&file="+base64.b64encode(self.getEpPath(idEpisode, False)))
                 return (False, True)
 
     def getUserData(self,idUser):
