@@ -5,6 +5,9 @@
         <script src="static/js/jquery-3.2.1.slim.min.js"></script>
         <script src="static/js/popper.min.js"></script>
         <script src="static/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="../static/css/noty.css"/>
+        <link rel="stylesheet" href="../static/css/noty_bootstrap-v4.css"/>
+        <script src="../static/js/noty.min.js"></script>
         <script src="static/library.js"></script>
         <title>Media Library</title>
         <link rel="icon" type="image/png" href="static/favicon.png">
@@ -45,6 +48,10 @@
                         <a class="nav-link" href="#tvshows"><i class="fas fa-tv"></i>&nbsp;TV Shows</a>
                     </li>
                 </ul>
+                <span class="navbar-text" id="userNav" hidden>
+                  <button type="button" class="btn btn-outline-danger btn-sm mx-4" id="userNavSettings" hidden><i class="fas fa-cog"></i>&nbsp;Settings</button>
+                  <a id="logout" href="#"><i class="fas fa-user"></i>&nbsp;<span id="userNavName">Undefined</span>&nbsp;<i class="fas fa-sign-out-alt"></i></a>
+                </span>
             </div>
         </nav>
 
@@ -78,22 +85,22 @@
         <div class="row justify-content-center" style="margin-top: 3%;" id="login">
             <div class="col-md-8">
                 <div class="card text-white bg-dark">
-                    <div class="card-header">Authentification</div>
+                    <div class="card-header"><i class="fas fa-lock"></i>&nbsp;&nbsp;Authentification</div>
                     <div class="card-body">
                         <div class="form-group row">
-                            <label for="login_user" class="col-md-4 col-form-label text-md-right">User</label>
+                            <label for="login_user" class="col-md-4 col-form-label text-md-right"><i class="fas fa-user"></i>&nbsp;User</label>
                             <div class="col-md-6">
                                 <input type="text" id="login_user" class="form-control" name="login_user" required autofocus>
                             </div>
                         </div>
                         <div class="form-group row">
-                            <label for="login_password" class="col-md-4 col-form-label text-md-right">Password</label>
+                            <label for="login_password" class="col-md-4 col-form-label text-md-right"><i class="fas fa-key"></i>&nbsp;Password</label>
                             <div class="col-md-6">
                                 <input type="password" id="login_password" class="form-control" name="login_password" required>
                             </div>
                         </div>
                         <div class="col-md-6 offset-md-4">
-                            <button type="submit" class="btn btn-primary" onclick="login();">Login</button>
+                            <button type="submit" class="btn btn-primary" onclick="login();"><i class="fas fa-sign-in-alt"></i>&nbsp;Login</button>
                         </div>
                     </div>
                 </div>
