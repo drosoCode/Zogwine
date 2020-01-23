@@ -17,9 +17,12 @@ class api:
             self._connection = sql.connect(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database='mediaController')
             self._scanner = scanner(data["db"]["host"],data["db"]["user"], data["db"]["password"], data["api"]["tmdb"], data["api"]["tvdb"])
 
-    def getTVSData(self):
+    def getTVSData(self, mr=False):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(idView) FROM views WHERE idShow = t.idShow AND idEpisode IS NOT NULL AND viewCount > 0) AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t ORDER BY title;")
+        mrDat = ''
+        if mr:
+            mrDat = 'NOT '
+        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(idView) FROM views WHERE idShow = t.idShow AND idEpisode IS NOT NULL AND viewCount > 0) AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
     def getTVSEp(self, idShow):
@@ -27,11 +30,18 @@ class api:
         cursor.execute("SELECT idEpisode AS id, title, overview, icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode AND idShow = e.idShow) AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
         return cursor.fetchall()
     
-    def setTVSID(self, idShow, id):
-        self._scanner.setTVSID(idShow, id)
+    def setTVSID(self, idShow, resultID):
+        #the resultID is the one from the json list of multipleResults entry
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT multipleResults FROM tv_shows WHERE idShow = "+str(idShow)+";")
+        data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
+        cursor.execute("UPDATE tv_shows SET scraperName = %s, scraperID = %s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %s;", (data["scraperName"], data["id"], idShow))
+        self._connection.commit()
+        return True
 
     def runScan(self):
         self._scanner.scanDir(self._data["paths"]["scanDirectory"])
+        return True
 
     def getFileInfos(self, episodeID):
         os.system("./"+self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams "+self.getEpPath(episodeID)+" > out/data.json")
