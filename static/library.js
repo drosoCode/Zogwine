@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('hashchange', () => changePage());
     document.querySelector("#logout").addEventListener('click', () => logout());
+    document.querySelector("#userNavSettings").addEventListener('click', () => showSettings());
     changePage();
     
 });
@@ -20,7 +21,7 @@ var tvshows;
 var tvsE;
 var userToken = null;
 
-function changePage() 
+function changePage(clear=false) 
 {
     let hash = location.hash.slice(1);
     
@@ -33,6 +34,15 @@ function changePage()
         document.querySelector("#login").hidden = false;
         document.querySelector("#userNav").hidden = true;
         console.log("loutre");
+    }
+    else if(clear)
+    {
+        document.querySelector("#homeNav").classList.remove("active");
+        document.querySelector("#tvshowsNav").classList.remove("active");
+        document.querySelector("#home").hidden = true;
+        document.querySelector("#content").hidden = true;
+        document.querySelector("#login").hidden = true;
+        document.querySelector("#content").innerHTML = "";
     }
     else if(hash == "tvshows")
     {
@@ -128,7 +138,7 @@ function showTVS()
     let cards = "";
     while(i<tvshows.length)
     {
-        if(tvshows[i]["multipleResults"] == null)
+        if(tvshows[i]["title"] != null)
             cards += makeTVSCard(i);
         i++;
     }
@@ -245,8 +255,6 @@ function makeTVSEpisodesCard(id,data)
     return card
 }
 
-
-
 function showTVSEpisodeInfo(id)
 {
     let data = tvsE[id];
@@ -261,3 +269,62 @@ function showTVSEpisodeInfo(id)
     $('#movieInfoModal').modal('show');
 }
 
+
+
+function showSettings()
+{
+    changePage(true);
+    document.querySelector("#content").hidden = false;
+
+    let settingsData = "<br><button type=\"button\" class=\"btn btn-warning btn-lg btn-block\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><br>";
+    
+    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults"));
+    
+    let i = 0;
+    let cards = "";
+    for(let tvsEntity of tvsData)
+    {
+        let dat = "<div class=\"row\"><div class=\"card\" id=\"settingsShow_"+tvsEntity["id"]+"\"><div class=\"card-header\"> TV Show "+tvsEntity["id"]+" ("+tvsEntity["path"]+")</div><div class=\"card-body\">"
+        results = JSON.parse(tvsEntity["multipleResults"])
+        for(let i=0; i<results.length; i++)
+        {
+            dat += "<div class=\"card text-white bg-dark\"><div class=\"row no-gutters\">"
+            dat += "<img src=\""+results[i]["icon"]+"\" height=\"200px\" class=\"card-img col-2\">"
+            dat += "<div class=\"card-body  col-10 pl-3\">"
+            dat += "<h5 class=\"card-title\">"+results[i]["title"]+"</h5>"
+            dat += "<p class=\"card-text\">Premiered: "+results[i]["premiered"]+" <br> Scraper: "+results[i]["scraperName"]+" <br> In Production: "+results[i]["in_production"]+"<br><small class=\"text-muted\">"+results[i]["desc"]+"</small></p>"
+            dat += "<button type=\"button\" class=\"btn btn-success btn-lg btn-block\" onclick=settingsSelectShow("+tvsEntity['id']+","+i+")><i class=\"fas fa-check\"></i>&nbsp;Select</button>"
+            dat += "</div></div></div>"
+        }
+        dat += "</div></div></div>";
+        
+        settingsData += '<br><br>'+dat;
+        i++;
+    }
+
+    document.querySelector("#content").innerHTML = settingsData;
+}
+
+function settingsSelectShow(idShow, id)
+{
+    try
+    {
+        httpGet(apiEndpoint+"tvs/setID?idShow="+idShow+"&id="+id+"&token="+userToken, true);
+        let card = document.querySelector("#settingsShow_"+idShow);
+        card.parentNode.removeChild(card);
+        notify("Preferences Applied","success")
+    }
+    catch
+    {
+        notify("Unauthorized Action","error")
+    }    
+}
+
+function settingsLibUpdate(type=0)
+{
+    if(type == 0)
+    {
+        httpGet(apiEndpoint+"tvs/runScan",true);
+        notify("Library Scan Started","success")
+    }
+}

@@ -22,14 +22,23 @@ def getTVSEp():
 
 @app.route('/api/tvs/getShows', methods=['GET'])
 def getTVS():
-    return jsonify(api.getTVSData())
+    return jsonify(api.getTVSData(False))
+
+@app.route('/api/tvs/getShowsMultipleResults', methods=['GET'])
+def getTVSMR():
+    return jsonify(api.getTVSData(True))
 
 @app.route('/api/tvs/setID', methods=['GET'])
 def setTVSID():
-    return jsonify(api.setTVSID(request.args['idShow'], request.args['id']))
+    d = api.getUserData(request.args['token'])
+    if "admin" in d and d["admin"]:
+        return jsonify(api.setTVSID(request.args['idShow'], request.args['id']))
+    else:
+        abort(401)
 
 @app.route('/api/tvs/runScan', methods=['GET'])
 def runTVSScan():
+    api.runScan()
     return jsonify({'status': "ok"})
 
 @app.route('/api/tvs/fileInfos', methods=['GET'])

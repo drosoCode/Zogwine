@@ -44,7 +44,7 @@ class tvdb:
                 tmp["rating"] = i[j]
             elif j == "firstAired":
                 tmp["premiered"] = i[j]
-            elif j == "banner" and i[j][0] == "/":
+            elif j == "banner":
                 if i[j] != None:
                     tmp["icon"] = baseImgUrl + i[j]
                 else:
