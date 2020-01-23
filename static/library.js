@@ -8,15 +8,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
 });
 
-function httpGet(theUrl, sync=false)
+function httpGet(url, sync=false)
 {
+    
+    if(url.indexOf("?") >= 0)
+        url += "&time="+new Date().getTime()
+    else
+        url += "?time="+new Date().getTime()
+        
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", theUrl, sync); // false for synchronous request
+    xmlHttp.open( "GET", url, sync); // false for synchronous request
     xmlHttp.send( null );
     return xmlHttp.responseText;
 }
 
-var apiEndpoint = "http://192.168.1.9:5000/api/";
+var apiEndpoint = "http://192.168.1.9:8080/api/";
 var tvshows;
 var tvsE;
 var userToken = null;
