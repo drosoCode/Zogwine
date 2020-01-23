@@ -2,8 +2,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('hashchange', () => changePage());
+    document.querySelector("#logout").addEventListener('click', () => logout());
     changePage();
-
+    
 });
 
 function httpGet(theUrl, sync=false)
@@ -30,6 +31,7 @@ function changePage()
         document.querySelector("#home").hidden = true;
         document.querySelector("#content").hidden = true;
         document.querySelector("#login").hidden = false;
+        document.querySelector("#userNav").hidden = true;
         console.log("loutre");
     }
     else if(hash == "tvshows")
@@ -60,6 +62,26 @@ function changePage()
     }
 }
 
+function notify(text, type='error')
+{
+    new Noty({
+        type: type,
+        text: text,
+        theme: 'bootstrap-v4',
+        timeout: 2000,
+        layout: 'topCenter'
+    }).show();
+}
+
+function logout()
+{
+    userToken = null;
+    document.querySelector("#login_user").value = '';
+    document.querySelector("#login_password").value = '';
+    notify("Signed Out","success");
+    changePage();
+}
+
 function login()
 {
     let user = document.querySelector("#login_user").value;
@@ -68,11 +90,18 @@ function login()
     try
     {
         userToken = JSON.parse(ret)["response"];
+        let userData = JSON.parse(httpGet(apiEndpoint+"users/data?token="+userToken));
+        document.querySelector("#userNavName").textContent = userData['name'];
+        if(userData['admin'])
+            document.querySelector("#userNavSettings").hidden = false;
+        else
+            document.querySelector("#userNavSettings").hidden = true;
+        document.querySelector("#userNav").hidden = false;
         changePage();
     }
     catch
     {
-        alert("Authentification Failed");
+        notify("Authentification Failed","error");
     }
 }
 

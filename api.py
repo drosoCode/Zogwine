@@ -97,16 +97,17 @@ class api:
                 requests.get(self._data["paths"]["transcoderURL"]+"/transcode?token="+token+"&file="+base64.b64encode(self.getEpPath(idEpisode, False)))
                 return (False, True)
 
-    def getUserData(self,idUser):
+    def getUserData(self,token):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT name, icon, admin, kodiLinkBase FROM users WHERE idUser = "+str(idUser)+";")
+        cursor.execute("SELECT name, icon, admin, kodiLinkBase FROM users WHERE token = '"+str(token)+"';")
         return cursor.fetchone()
 
     def authenticateUser(self, user, password):
         password = hashlib.sha256(bytes(password, 'utf-8')).hexdigest()
         cursor = self._connection.cursor(dictionary=True)
         if user != "" and password != "":
-            cursor.execute("SELECT token FROM users WHERE user = '"+str(user)+"' AND password = '"+str(password)+"';")
+            r = "SELECT token FROM users WHERE user = '"+str(user)+"' AND password = '"+str(password)+"';"
+            cursor.execute(r)
             dat = cursor.fetchone()
             if "token" in dat:
                 return dat["token"]

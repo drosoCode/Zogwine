@@ -63,6 +63,11 @@ def authenticateUser():
     else:
         return jsonify({'response': d})
 
+@app.route('/api/users/data', methods=['GET','POST'])
+def getUserData():
+    #return user infos
+    return jsonify(api.getUserData(request.args['token']))
+
 @app.route('/api/assets/transcoder/file')
 def getTranscodedFile():
     file = request.args['file']
