@@ -122,9 +122,12 @@ class api:
             r = "SELECT token FROM users WHERE user = '"+str(user)+"' AND password = '"+str(password)+"';"
             cursor.execute(r)
             dat = cursor.fetchone()
-            if "token" in dat:
+            if dat != None and "token" in dat:
+                logger.info('User: '+str(user)+' successfully authenticated')
                 return dat["token"]
             else:
+                logger.warning('Bad Authentication for user: '+str(user))
                 return False
         else:
+            logger.warning('Empty User or Password for authentication')
             return False
