@@ -32,8 +32,7 @@ class scanner:
         return paths, tvs
 
     def scanDir(self,path, recursive=False, currentTVS=None):
-        print("NEW FUNCTION CALLL #####################################")
-        print(path, recursive, currentTVS)
+        logger.info('Scan Dir Triggered, recursive: '+str(recursive)+' ; current TVS: '+str(currentTVS))
         dirContent = os.listdir(path)
         existingEp = []
         forceUpdateEp = []
@@ -44,43 +43,43 @@ class scanner:
         for item in dirContent:
             try:
                 commit = False
-                print("==========================================================")
-                print(item)
+                logger.debug('New Item: '+str(item))
 
                 if os.path.isdir(os.path.join(path,item)):
-
-                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    print(item)
+                    logger.debug('Item is a directory')
+                    
                     if recursive:
                         #it is a season directory
-                        print("recursive")
+                        logger.debug('D- It is a season directory (recursive call)')
                         self.scanDir(os.path.join(path,item), True, currentTVS)
                     else:
                         #it is a tvs directory
+                        logger.debug('D- It is a TVS root directory')
 
                         if item in paths:
-                            print("present in paths")
+                            logger.debug('D- Entries for this item exists in database')
+
                             if tvs[item]["forceUpdate"] and tvs[item]["scraperName"] and tvs[item]["scraperID"]:
-                                print("force update")
+                                logger.debug('D- Item is marked as force update')
                                 #tvs must be updated
                                 if tvs[item]["scraperName"] == "tvdb":
                                     result = self._tvdb.getTVS(tvs[item]["scraperID"])
                                 else:
                                     result = self._tmdb.getTVS(tvs[item]["scraperID"])
                                 data = (result["title"], result["desc"], result["icon"], result["fanart"], result["rating"], result["premiered"], json.dumps(result["genres"]), item, tvs[item]["idShow"])
-                                print(data)
                                 cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                                 commit = True
                             elif tvs[item]["multipleResults"]:
                                 #there are multiple matches for scraper, cannot create entries
-                                print("multiple results")
+                                logger.debug('D- Item match multipleResults, ignoring')
                             else:
                                 #tvs is ok, call scan on tvs folder
                                 self.scanDir(os.path.join(path,item), True, item)
+                                logger.debug('D- Item ok, scanning subdirectories')
                                 pass
                         else:
                             #entries for this tvs doesn't exists, create entry with multipleResults
-                            print("create new entry")
+                            logger.debug('Entries for this item doesn\'t exists in database')
                             a = self._tvdb.searchTVS(item)
                             b = self._tmdb.searchTVS(item)
                             if isinstance(a,dict):
@@ -88,72 +87,77 @@ class scanner:
                             if isinstance(b,dict):
                                 b = [b]
                             results = a + b
-                            print(results)
+                            logger.debug('The multipleResults are: '+str(results))
                             cursor.execute("INSERT INTO tv_shows (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
                             commit = True
 
                 else:
+                    logger.debug('Item is a file')
                     if len(existingEp) == 0 and len(forceUpdateEp) == 0 and len(idUpdateEp) == 0:
                         #fill the buffer with episodes that mustn't be updated
-                        print("fill ep arrays")
                         cursor.execute("SELECT season, episode from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+" AND forceUpdate = 0;")
                         dat = cursor.fetchall()
                         for i in dat:
-                            print(i)
                             existingEp.append(str(i["season"])+"."+str(i["episode"]))
                         cursor.execute("SELECT season || '.' || episode AS epCode, idEpisode from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+" AND forceUpdate = 1;")
                         dat = cursor.fetchall()
                         for i in dat:
                             forceUpdateEp.append(i["epCode"])
                             idUpdateEp[i["epCode"]] = i["idEpisode"]
-                        print(existingEp)
-                        print(forceUpdateEp)
-                        print(idUpdateEp)
+
+                        logger.debug('Existing episodes: '+str(existingEp))
+                        logger.debug('Force Update episodes: '+str(forceUpdateEp))
+                        logger.debug('ID Update episodes: '+str(idUpdateEp))
 
 
                     #it is an episode file
-                    print("this is an episode file")
+                    logger.debug("this is an episode file")
                     extension = item[item.rfind('.')+1:]
-                    print(extension)
-                    print(currentTVS)
+                    logger.debug('The extension for: '+currentTVS+' is: '+extension)
+
                     if extension in self._supportedFiles and currentTVS:
-                        print("ok")
+                        logger.debug('This is a supported file')
                         #create entry for episode
                         season = int(re.findall("(?:s)(\\d+)(?:e)", item)[0])
                         episode = int(re.findall("(?:s\\d+e)(\\d+)(?:\\.)", item)[0])
                         epCode = str(season)+"."+str(episode)
 
-                        print(season,episode,epCode, sep="\t")
+                        logger.debug('The episode code is: '+str(epCode))
 
                         if epCode not in existingEp or epCode in forceUpdateEp:
-                            print("ook")
+                            logger.debug('No entries are available for this episode or it is marked as forceUpdate')
+                            
                             if tvs[currentTVS]["scraperName"] == "tvdb":
+                                logger.debug('Getting tvdb results')
                                 result = self._tvdb.getTVSEp(tvs[currentTVS]["scraperID"],season,episode)
                             else:
-                                print(season, episode, tvs[currentTVS]["scraperID"])
+                                logger.debug('Getting tbdb results')
                                 result = self._tmdb.getTVSEp(tvs[currentTVS]["scraperID"],season,episode)
 
                             forceUpdate = 0
                             if "desc" not in result or ("desc" in result and result["desc"] == ""):
+                                logger.debug('Episode overview not available, setting as future forceUpdate')
                                 forceUpdate = 1
 
                             if epCode not in existingEp:
-                                print(result)
+                                logger.debug('Creating new entry')
                                 data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate)
                                 cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
                                 commit = True
-                                print("Create new entry")
+
                             elif epCode in forceUpdateEp:
+                                logger.debug('Updating existing entry (forceUpdate)')
                                 data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate, idUpdateEp[epCode])                        
                                 cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;")
                                 commit = True
-                                print("update entry")
-                            print(data)
+
+                            logger.debug('Updating database with: '+str(data))
+
                 if commit:
                     self._connection.commit()
-                    print(cursor.rowcount, "was affected")
+                    logger.debug(str(cursor.rowcount)+'were affected')
             except Exception as ex:
-                print("###############################################################################################################################################")
-                print(ex)
-                print("###############################################################################################################################################")
-
+                logger.error('New indexer exception: '+str(ex))
+                
+        logger.debug('End of scan (recursive: '+str(recursive)+')')
+                
