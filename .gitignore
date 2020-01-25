@@ -3,3 +3,4 @@ input.mkv
 *.json
 *test*
 __pycache__*
+*.log

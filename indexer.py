@@ -7,6 +7,8 @@ import urllib.parse
 
 from scraper_tvdb import tvdb
 from scraper_tmdb import tmdb
+from log import logger
+
 
 class scanner:
 
@@ -15,6 +17,8 @@ class scanner:
         self._connection = sql.connect(host=host,user=user,password=passw,database='mediaController')
         self._tvdb = tvdb(tvdbKey)
         self._tmdb = tmdb(tmdbKey)
+        logger.info('Indexer Class Instancied Successfully')
+        logger.info('Supported file formats: '+str(self._supportedFiles))
 
     def getTVSData(self):
         cursor = self._connection.cursor(dictionary=True)
