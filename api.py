@@ -8,6 +8,8 @@ import time
 import base64
 import hashlib
 
+from log import logger
+
 class api:
 
     def __init__(self, configFile):
@@ -16,6 +18,7 @@ class api:
             self._data = data
             self._connection = sql.connect(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database='mediaController')
             self._scanner = scanner(data["db"]["host"],data["db"]["user"], data["db"]["password"], data["api"]["tmdb"], data["api"]["tvdb"])
+        logger.info('API Class Instancied Successfully')
 
     def getTVSData(self, mr=False):
         cursor = self._connection.cursor(dictionary=True)

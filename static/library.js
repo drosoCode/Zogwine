@@ -22,7 +22,8 @@ function httpGet(url, sync=false)
     return xmlHttp.responseText;
 }
 
-var apiEndpoint = "http://192.168.1.9:8080/api/";
+//var apiEndpoint = "http://192.168.1.9:8080/api/";
+var apiEndpoint = "api/";
 var tvshows;
 var tvsE;
 var userToken = null;
@@ -226,7 +227,7 @@ function showTVSEpisodes(id)
         cards += makeTVSEpisodesCard(i,tvsE[i]);
         i++;
     }
-    document.getElementById("content").innerHTML = cards;
+    document.getElementById("content").innerHTML = cards+'<br><br>';
 }
 
 
@@ -332,5 +333,10 @@ function settingsLibUpdate(type=0)
     {
         httpGet(apiEndpoint+"tvs/runScan",true);
         notify("Library Scan Started","success")
+    }
+    else if(type == 1)
+    {
+        httpGet(apiEndpoint+"tvs/syncKodi",true);
+        notify("Kodi Libray Sync Started","success")
     }
 }
