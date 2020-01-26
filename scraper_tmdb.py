@@ -44,56 +44,48 @@ class tmdb:
         tmp = {"scraperName":"tmdb"}
 
         for j in i.keys():
-            if j == "vote_average":
-                tmp["rating"] = i[j]
-            elif j == "first_air_date":
-                tmp["premiered"] = i[j]
-            elif j == "backdrop_path":
-                if i[j] != None:
+            if i[j] != None:
+                if j == "vote_average":
+                    tmp["rating"] = i[j]
+                elif j == "first_air_date":
+                    tmp["premiered"] = i[j]
+                elif j == "backdrop_path":
                     tmp["fanart"] = baseImgUrl + i[j]
-                else:
-                    tmp["fanart"] = None
-            elif j == "poster_path":
-                if i[j] != None:
+                elif j == "poster_path":
                     tmp["icon"] = baseImgUrl + i[j]
-                else:
-                    tmp["icon"] = None
-            elif j == "name":
-                tmp["title"] = i[j]
-            elif j == "overview":
-                tmp["desc"] = i[j]
-            elif j == "id":
-                tmp["id"] = i[j]
-            elif j == "genre_ids":
-                tmp["genres"] = []
-                for k in i[j]:
-                    if str(k) in genres:
-                        tmp["genres"].append(genres[str(k)])
-            elif j == "genres":
-                tmp["genres"] = []
-                for k in i[j]:
-                    tmp["genres"].append(k["name"])
-            elif j == "in_production":
-                tmp["in_production"] = i[j]
-            elif j == "episode_number":
-                tmp["episode"] = i[j]
-            elif j == "air_date":
-                tmp["premiered"] = i[j]
-            elif j == "season_number":
-                tmp["season"] = i[j]
-            elif j == "seasons":
-                seasons = 0
-                tmp["specials"] = False
-                for k in i[j]:
-                    if k["season_number"]  == 0:
-                        tmp["specials"] = True
-                    else:
-                        seasons += 1
-                tmp["seasons"] = seasons
-            elif j == "still_path":
-                if i[j] != None:
+                elif j == "name":
+                    tmp["title"] = i[j]
+                elif j == "overview":
+                    tmp["desc"] = i[j]
+                elif j == "id":
+                    tmp["id"] = i[j]
+                elif j == "genre_ids":
+                    tmp["genres"] = []
+                    for k in i[j]:
+                        if str(k) in genres:
+                            tmp["genres"].append(genres[str(k)])
+                elif j == "genres":
+                    tmp["genres"] = []
+                    for k in i[j]:
+                        tmp["genres"].append(k["name"])
+                elif j == "in_production":
+                    tmp["in_production"] = i[j]
+                elif j == "episode_number":
+                    tmp["episode"] = i[j]
+                elif j == "air_date":
+                    tmp["premiered"] = i[j]
+                elif j == "season_number":
+                    tmp["season"] = i[j]
+                elif j == "seasons":
+                    seasons = 0
+                    tmp["specials"] = False
+                    for k in i[j]:
+                        if k["season_number"]  == 0:
+                            tmp["specials"] = True
+                        else:
+                            seasons += 1
+                    tmp["seasons"] = seasons
+                elif j == "still_path":
                     tmp["icon"] = baseImgUrl + i[j]
-                else:
-                    tmp["icon"] = None
 
         return tmp

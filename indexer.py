@@ -41,7 +41,7 @@ class scanner:
         cursor = self._connection.cursor(dictionary=True)
         
         for item in dirContent:
-            try:
+            #try:
                 commit = False
                 logger.debug('New Item: '+str(item))
 
@@ -66,9 +66,13 @@ class scanner:
                                     result = self._tvdb.getTVS(tvs[item]["scraperID"])
                                 else:
                                     result = self._tmdb.getTVS(tvs[item]["scraperID"])
+
                                 data = (result["title"], result["desc"], result["icon"], result["fanart"], result["rating"], result["premiered"], json.dumps(result["genres"]), item, tvs[item]["idShow"])
                                 cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                                 commit = True
+
+                                logger.debug('Updating database with: '+str(data))
+
                             elif tvs[item]["multipleResults"]:
                                 #there are multiple matches for scraper, cannot create entries
                                 logger.debug('D- Item match multipleResults, ignoring')
@@ -76,7 +80,6 @@ class scanner:
                                 #tvs is ok, call scan on tvs folder
                                 self.scanDir(os.path.join(path,item), True, item)
                                 logger.debug('D- Item ok, scanning subdirectories')
-                                pass
                         else:
                             #entries for this tvs doesn't exists, create entry with multipleResults
                             logger.debug('Entries for this item doesn\'t exists in database')
@@ -95,15 +98,13 @@ class scanner:
                     logger.debug('Item is a file')
                     if len(existingEp) == 0 and len(forceUpdateEp) == 0 and len(idUpdateEp) == 0:
                         #fill the buffer with episodes that mustn't be updated
-                        cursor.execute("SELECT season, episode from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+" AND forceUpdate = 0;")
+                        cursor.execute("SELECT CONCAT(season,'.',episode) AS epCode, idEpisode, forceUpdate from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+";")
                         dat = cursor.fetchall()
                         for i in dat:
-                            existingEp.append(str(i["season"])+"."+str(i["episode"]))
-                        cursor.execute("SELECT season || '.' || episode AS epCode, idEpisode from episodes WHERE idShow = "+str(tvs[currentTVS]["idShow"])+" AND forceUpdate = 1;")
-                        dat = cursor.fetchall()
-                        for i in dat:
-                            forceUpdateEp.append(i["epCode"])
-                            idUpdateEp[i["epCode"]] = i["idEpisode"]
+                            existingEp.append(i["epCode"])
+                            if i['forceUpdate']:
+                                forceUpdateEp.append(i["epCode"])
+                                idUpdateEp[i["epCode"]] = i["idEpisode"]
 
                         logger.debug('Existing episodes: '+str(existingEp))
                         logger.debug('Force Update episodes: '+str(forceUpdateEp))
@@ -118,46 +119,58 @@ class scanner:
                     if extension in self._supportedFiles and currentTVS:
                         logger.debug('This is a supported file')
                         #create entry for episode
-                        season = int(re.findall("(?:s)(\\d+)(?:e)", item)[0])
-                        episode = int(re.findall("(?:s\\d+e)(\\d+)(?:\\.)", item)[0])
-                        epCode = str(season)+"."+str(episode)
+                        season = re.findall("(?i)(?:s)(\\d+)(?:e)", item)
+                        episode = re.findall("(?i)(?:s\\d+e)(\\d+)(?:\\.)", item)
+                        if len(season) > 0 and len(episode) > 0:
+                            season = int(season[0])
+                            episode = int(episode[0])
+                            epCode = str(season)+"."+str(episode)
 
-                        logger.debug('The episode code is: '+str(epCode))
+                            logger.debug('The episode code is: '+str(epCode))
 
-                        if epCode not in existingEp or epCode in forceUpdateEp:
-                            logger.debug('No entries are available for this episode or it is marked as forceUpdate')
-                            
-                            if tvs[currentTVS]["scraperName"] == "tvdb":
-                                logger.debug('Getting tvdb results')
-                                result = self._tvdb.getTVSEp(tvs[currentTVS]["scraperID"],season,episode)
+                            if epCode not in existingEp or epCode in forceUpdateEp:
+                                logger.debug('No entries are available for this episode or it is marked as forceUpdate')
+                                #create empty dict
+                                result = {'title': None,'desc': None, 'icon': None, 'season': None, 'episode': None, 'rating': None,'id': None}
+                                
+                                if tvs[currentTVS]["scraperName"] == "tvdb":
+                                    logger.debug('Getting tvdb results')
+                                    result.update(self._tvdb.getTVSEp(tvs[currentTVS]["scraperID"],season,episode))
+                                else:
+                                    logger.debug('Getting tbdb results')
+                                    result.update(self._tmdb.getTVSEp(tvs[currentTVS]["scraperID"],season,episode))
+
+                                forceUpdate = 0
+                                if "desc" not in result or ("desc" in result and result["desc"] == ""):
+                                    logger.debug('Episode overview not available, setting as future forceUpdate')
+                                    forceUpdate = 1
+
+                                if result['id'] != None:
+                                    if epCode not in existingEp:
+                                        logger.debug('Creating new entry')
+                                        data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate)
+                                        cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
+                                        commit = True
+
+                                    elif epCode in forceUpdateEp:
+                                        logger.debug('Updating existing entry (forceUpdate)')
+                                        data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate, idUpdateEp[epCode])                        
+                                        cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;", data)
+                                        commit = True
+
+                                    logger.debug('Updating database with: '+str(data))
+                                else:
+                                    logger.warning('Episode ID is null') 
                             else:
-                                logger.debug('Getting tbdb results')
-                                result = self._tmdb.getTVSEp(tvs[currentTVS]["scraperID"],season,episode)
-
-                            forceUpdate = 0
-                            if "desc" not in result or ("desc" in result and result["desc"] == ""):
-                                logger.debug('Episode overview not available, setting as future forceUpdate')
-                                forceUpdate = 1
-
-                            if epCode not in existingEp:
-                                logger.debug('Creating new entry')
-                                data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate)
-                                cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
-                                commit = True
-
-                            elif epCode in forceUpdateEp:
-                                logger.debug('Updating existing entry (forceUpdate)')
-                                data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], tvs[currentTVS]["scraperName"], result["id"], item, tvs[currentTVS]["idShow"], forceUpdate, idUpdateEp[epCode])                        
-                                cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;")
-                                commit = True
-
-                            logger.debug('Updating database with: '+str(data))
+                                logger.debug('Entries for this episode already exists') 
+                        else:
+                            logger.warning('Cannot extract season or episode from file name')
 
                 if commit:
                     self._connection.commit()
                     logger.debug(str(cursor.rowcount)+'were affected')
-            except Exception as ex:
-                logger.error('New indexer exception: '+str(ex))
+            #except Exception as ex:
+            #    logger.error('New indexer exception: '+str(ex))
                 
         logger.debug('End of scan (recursive: '+str(recursive)+')')
                 
