@@ -3,6 +3,7 @@ from flask import request, jsonify, abort, send_file, Response, stream_with_cont
 from flask_cors import CORS
 import requests
 
+from log import getLogs
 from api import api as apiClass
 api = apiClass("config.json")
 
@@ -31,8 +32,7 @@ def getTVSMR():
 
 @app.route('/api/tvs/setID', methods=['GET'])
 def setTVSID():
-    d = api.getUserData(request.args['token'])
-    if "admin" in d and d["admin"]:
+    if api.isAdmin(request.args['token']):
         return jsonify(api.setTVSID(request.args['idShow'], request.args['id']))
     else:
         abort(401)
@@ -101,6 +101,13 @@ def getMP4File():
             return send_file(bites.read(), attachment_filename='media.mp4', mimetype='video/mp4')
     except:
         abort(404)
+
+@app.route('/api/logs')
+def getServerLogs():
+    if api.isAdmin(request.args['token']):
+        return jsonify(getLogs(20))
+    else:
+        abort(401)
 
 @app.route('/ping', methods=['GET'])
 def ping():

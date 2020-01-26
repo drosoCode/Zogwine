@@ -1,5 +1,5 @@
-from server import api, app
 from log import logger
+from server import api, app
 
 logger.info('Starting Program ...')
 

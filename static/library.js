@@ -309,6 +309,26 @@ function showSettings()
         i++;
     }
 
+    settingsData += "<br><br>";
+
+    let logs = JSON.parse(httpGet(apiEndpoint+'logs?token='+userToken));
+    console.log(logs);
+    
+    settingsData += "<div class=\"card\"><div class=\"card-header text-light bg-primary\">Logs</div><div class=\"card-body bg-dark\"><p class=\"card-text\">";
+    for(let i=0; i<logs.length; i++)
+    {
+        let dat = logs[i];
+        dat = dat.replace('INFO','<span class="text-success">INFO</span>')
+        dat = dat.replace('DEBUG','<span class="text-info">DEBUG</span>')
+        dat = dat.replace('WARNING','<span class="text-warning">WARNING</span>')
+        dat = dat.replace('ERROR','<span class="text-danger">ERROR</span>')
+        dat = dat.replace('CRITICAL','<span class="text-danger">CRITICAL</span>')
+        let index = dat.indexOf('::');
+        dat = '<span class="text-secondary">'+dat.substring(0, index)+'</span> :: <span class="text-light">'+dat.substring(index+2)+'</span><br>';
+        settingsData += dat;
+    }
+    settingsData += "</p></div></div>";
+    
     document.querySelector("#content").innerHTML = settingsData;
 }
 
