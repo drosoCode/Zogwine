@@ -131,3 +131,10 @@ class api:
         else:
             logger.warning('Empty User or Password for authentication')
             return False
+
+    def isAdmin(self, token):
+        d = self.getUserData(token)
+        if "admin" in d and d["admin"]:
+            return True
+        else:
+            return False
