@@ -149,7 +149,7 @@ function showTVS()
             cards += makeTVSCard(i);
         i++;
     }
-    document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
+    document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div><br><br>";
 }
 
 function makeTVSCard(id)
@@ -311,9 +311,7 @@ function showSettings()
 
     settingsData += "<br><br>";
 
-    let logs = JSON.parse(httpGet(apiEndpoint+'logs?token='+userToken));
-    console.log(logs);
-    
+    let logs = JSON.parse(httpGet(apiEndpoint+'logs?token='+userToken));    
     settingsData += "<div class=\"card\"><div class=\"card-header text-light bg-primary\">Logs</div><div class=\"card-body bg-dark\"><p class=\"card-text\">";
     for(let i=0; i<logs.length; i++)
     {
