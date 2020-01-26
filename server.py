@@ -10,7 +10,7 @@ api = apiClass("config.json")
 app = flask.Flask(__name__)
 CORS(app)
 
-#app.config["DEBUG"] = True
+app.config["DEBUG"] = True
 
 mp4FilePath = []
 

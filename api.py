@@ -50,7 +50,9 @@ class api:
         os.system("./"+self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams "+self.getEpPath(episodeID)+" > out/data.json")
 
         with open("data.json","r") as f:
-            dat = f.read()
+            dat = json.load(f)
+
+        print(dat["format"])
 
         data = {
             "general":{
@@ -63,21 +65,21 @@ class api:
 
         for stream in dat["streams"]:
             if stream["codec_type"] == "video":
-                data["general"]["video_codec"] = dat["codec_name"]
+                data["general"]["video_codec"] = stream["codec_name"]
             elif stream["codec_type"] == "audio":
-                data["audio"].append({"index":stream["index"], "codec":stream["codec_name"], "channels":stream["channels"], "language": dat["tags"]["language"]})
+                data["audio"].append({"index":stream["index"], "codec":stream["codec_name"], "channels":stream["channels"], "language": stream["tags"]["language"]})
             elif stream["codec_type"] == "subtitle":
-                data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": dat["tags"]["language"]})
+                data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": stream["tags"]["language"]})
 
         return data
 
 
     def getEpPath(self, idEpisode, full=True):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT CONCAT(t.path, '/', e.path) FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = "+str(idEpisode)+";")
+        cursor.execute("SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = "+str(idEpisode)+";")
         path = cursor.fetchone()
         if full:
-            path = self._data["paths"]["scanDirectory"]+'/'+path
+            path = self._data["paths"]["scanDirectory"]+'/'+path['path']
         print(path)
         return path
         

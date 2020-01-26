@@ -199,10 +199,10 @@ function showTVSInfo(id)
     let scraperName = data["scraperLink"].match("(?:\\/\\/)([^\\/]*)(?=\\/)")[1]
     infos += "More Infos: <a target=\"_blank\" rel=\"noopener noreferrer\" href="+data["scraperLink"]+">"+scraperName+"</a><br/>"
     infos += "Description: <br/>"+data["overview"]
-    document.getElementById("movieInfoModalTitle").innerText = data["title"];
-    document.getElementById("movieInfoModalContent").innerHTML = infos;
+    document.getElementById("infoModalTitle").innerText = data["title"];
+    document.getElementById("infoModalContent").innerHTML = infos;
     document.getElementById("cssContainer").innerHTML = ".modal-backdrop { background-image: url(\""+data["fanart"]+"\");background-size: cover;background-position: center center; background-repeat: no-repeat; background-attachment: fixed; position: fixed;}";
-    $('#movieInfoModal').modal('show');
+    $('#infoModal').modal('show');
 }
 
 function showTVSEpisodes(id)
@@ -270,12 +270,25 @@ function showTVSEpisodeInfo(id)
     infos += "Premiered: "+data["premiered"]+"<br/>"
     infos += "Rating: "+data["rating"]+"<br/>"
     infos += "Description: <br/>"+data["overview"]
-    document.getElementById("movieInfoModalTitle").innerText = data["title"];
-    document.getElementById("movieInfoModalContent").innerHTML = infos;
+    document.getElementById("infoModalTitle").innerText = data["title"];
+    document.getElementById("infoModalContent").innerHTML = infos;
     document.getElementById("cssContainer").innerHTML = "";
-    $('#movieInfoModal').modal('show');
+    $('#infoModal').modal('show');
 }
 
+function showPlay(id)
+{
+    let data = tvsE[id];
+    let fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
+    console.log(fileInfos);
+    let infos = '';
+    //fileInfos['general']['format'].indexOf()
+    
+    document.getElementById("playerModalTitle").innerText = data["title"];
+    document.getElementById("playerModalContent").innerHTML = infos;
+    document.getElementById("cssContainer").innerHTML = "";
+    $('#playerModal').modal('show');
+}
 
 
 function showSettings()
