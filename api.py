@@ -47,12 +47,15 @@ class api:
         return True
 
     def getFileInfos(self, episodeID):
-        os.system("./"+self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams "+self.getEpPath(episodeID)+" > out/data.json")
+        cmd = self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams "+self.getEpPath(episodeID)+" > out/data.json"
+        if os.name != 'nt':
+            #not windows
+            cmd = './'+cmd
+        logger.debug('FFprobe: '+cmd)
+        os.system(cmd)
 
         with open("data.json","r") as f:
             dat = json.load(f)
-
-        print(dat["format"])
 
         data = {
             "general":{
@@ -80,7 +83,7 @@ class api:
         path = cursor.fetchone()
         if full:
             path = self._data["paths"]["scanDirectory"]+'/'+path['path']
-        print(path)
+        logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
         return path
         
     def getTranscoderUrl(self):
