@@ -281,9 +281,30 @@ function showPlay(id)
     let data = tvsE[id];
     let fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
     console.log(fileInfos);
-    let infos = '';
-    //fileInfos['general']['format'].indexOf()
+
+    let infos = "<button type=\"button\" class=\"btn btn-primary\">Video Codec&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['video_codec']+"</span></button>";
+    infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\">Video Format&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['format']+"</span></button>";
+    infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\">Duration&nbsp;<span class=\"badge badge-light\">"+Math.round(fileInfos['general']['duration']/60)+" mins</span></button>";
+
+    if(fileInfos['general']['format'].indexOf('Matroska') != -1)
+    {
+        //display transcoding options (for mkv)
+        infos += "<br><br><button type=\"button\" class=\"btn btn-warning\">Audio Codec&nbsp;<span class=\"badge badge-light\" id=\"audioBadgeCodec\">"+fileInfos['audio'][0]['codec']+"</span></button>";
+        infos += "&nbsp;<button type=\"button\" class=\"btn btn-warning\">Audio Language&nbsp;<span class=\"badge badge-light\" id=\"audioBadgeLanguage\">"+fileInfos['audio'][0]['language']+"</span></button>";
+        infos += "&nbsp;<button type=\"button\" class=\"btn btn-warning\">Audio Channels&nbsp;<span class=\"badge badge-light\" id=\"audioBadgeChannel\">"+fileInfos['audio'][0]['channels']+"</span></button>";
+        
+        infos += "<br><br><button type=\"button\" class=\"btn btn-info\">Subtitles Codec&nbsp;<span class=\"badge badge-light\" id=\"subsBadgeCodec\">"+fileInfos['subtitles'][0]['codec']+"</span></button>";
+        infos += "&nbsp;<button type=\"button\" class=\"btn btn-info\">Subtitles Language&nbsp;<span class=\"badge badge-light\" id=\"subsBadgeLanguage\">"+fileInfos['subtitles'][0]['language']+"</span></button>";
+        infos += "&nbsp;<button type=\"button\" class=\"btn btn-info\">Subtitles Title&nbsp;<span class=\"badge badge-light\" id=\"subsBadgeTitle\">"+fileInfos['subtitles'][0]['title']+"</span></button>";
+
+        infos += "<br><br><div class=\"form-row\">";
+            infos += "<div class=\"col\"><select class=\"form-control\" id=\"audioSelect\"></select></div>";
+            infos += "<div class=\"col\"><select class=\"form-control\" id=\"subtitlesSelect\"></select></div>";
+        infos += "</div>";
+    }
     
+    infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\">Play</button>";
+
     document.getElementById("playerModalTitle").innerText = data["title"];
     document.getElementById("playerModalContent").innerHTML = infos;
     document.getElementById("cssContainer").innerHTML = "";
