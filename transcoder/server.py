@@ -53,10 +53,14 @@ def runTranscode():
     
     if '/' not in file:
         if subTxt:
-            cmd = "./"+config['ffmpeg']+" -hide_banner -loglevel error -vsync 0 -i " + file + " -pix_fmt yuv420p -vf subtitles=" + file +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time 60 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            cmd = config['ffmpeg']+" -hide_banner -loglevel error -vsync 0 -i " + file + " -pix_fmt yuv420p -vf subtitles=" + file +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time 60 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
         else:
-            cmd = "./"+config['ffmpeg']+" -hide_banner -loglevel error -i " + file +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time 120 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            cmd = config['ffmpeg']+" -hide_banner -loglevel error -i " + file +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time 120 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
         
+        if os.name != 'nt':
+            #not windows
+            cmd = './'+cmd
+
         process = Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
         userProcess[token] = process.pid
 
