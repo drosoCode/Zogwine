@@ -47,14 +47,14 @@ class api:
         return True
 
     def getFileInfos(self, episodeID):
-        cmd = self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams "+self.getEpPath(episodeID)+" > out/data.json"
+        cmd = self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams \""+self.getEpPath(episodeID)+"\" > out/data.json"
         if os.name != 'nt':
             #not windows
             cmd = './'+cmd
         logger.debug('FFprobe: '+cmd)
         os.system(cmd)
 
-        with open("data.json","r") as f:
+        with open("out/data.json","r") as f:
             dat = json.load(f)
 
         data = {

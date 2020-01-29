@@ -52,6 +52,7 @@ def runTranscode():
     crf = '23'
     
     if '/' not in file:
+        file = '"' + file + '"'
         if subTxt:
             cmd = config['ffmpeg']+" -hide_banner -loglevel error -vsync 0 -i " + file + " -pix_fmt yuv420p -vf subtitles=" + file +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time 60 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
         else:
