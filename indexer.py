@@ -32,7 +32,7 @@ class scanner:
             tvs[i["path"]] = i
         return paths, tvs
 
-    def scanDir(self, path, recursive=False):
+    def scanDir(self, path, recursive=False, addPath=""):
         logger.info('Scan Dir Triggered, recursive: '+str(recursive)+' ; current TVS: '+str(self._currentTVS))
         dirContent = os.listdir(path)
         self._existingEp = []
@@ -52,7 +52,12 @@ class scanner:
                     if recursive:
                         #it is a season directory
                         logger.debug('D- It is a season directory (recursive call)')
-                        self.scanDir(os.path.join(path,item), True)
+                        if addPath != '':
+                            addPath += '/' + item
+                        else:
+                            addPath = item
+                        logger.debug('Path inside tvs directory: '+str(addPath))
+                        self.scanDir(os.path.join(path,item), True, addPath)
                     else:
                         #it is a tvs directory
                         logger.debug('D- It is a TVS root directory')
@@ -76,7 +81,7 @@ class scanner:
 
                     #it is an episode file
                     logger.debug("this is an episode file")
-                    self.scanEpisode(item)
+                    self.scanEpisode(addPath,item)
 
                 if commit:
                     self._connection.commit()
@@ -88,6 +93,7 @@ class scanner:
     
 
     def scanTVS(self, path, item):
+        print("############### TVS ITEM #########", item)
         cursor = self._connection.cursor(dictionary=True)
         commit = False
 
@@ -135,7 +141,8 @@ class scanner:
             logger.debug(str(cursor.rowcount)+'were affected')
 
 
-    def scanEpisode(self, item):
+    def scanEpisode(self, path, item):
+        print("############### EPISODE ITEM #########", item)
         extension = item[item.rfind('.')+1:]
         logger.debug('The extension for: '+self._currentTVS+' is: '+extension)
         cursor = self._connection.cursor(dictionary=True)
@@ -171,15 +178,17 @@ class scanner:
                         forceUpdate = 1
 
                     if result['id'] != None:
+                        filePath = path + '/' + item
+
                         if epCode not in self._existingEp:
                             logger.debug('Creating new entry')
-                            data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], item, self._tvs[self._currentTVS]["idShow"], forceUpdate)
+                            data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
                             cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
                             commit = True
 
                         elif epCode in self._forceUpdateEp:
                             logger.debug('Updating existing entry (forceUpdate)')
-                            data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], item, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
+                            data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
                             cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;", data)
                             commit = True
 
