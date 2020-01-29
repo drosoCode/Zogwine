@@ -49,14 +49,15 @@ def runTranscode():
     subStream = request.args['subStream']
 
     outFile = 'transcoded'
-    crf = '23'
+    crf = config['crf'] #recommanded: 23
+    hlsTime = config['hlsTime'] #in seconds
     
     if '/' not in file:
         file = '"' + file + '"'
         if subTxt:
-            cmd = config['ffmpeg']+" -hide_banner -loglevel error -vsync 0 -i " + file + " -pix_fmt yuv420p -vf subtitles=" + file +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time 60 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            cmd = config['ffmpeg']+" -hide_banner -loglevel error -vsync 0 -i " + file + " -pix_fmt yuv420p -vf subtitles=" + file +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
         else:
-            cmd = config['ffmpeg']+" -hide_banner -loglevel error -i " + file +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time 120 -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            cmd = config['ffmpeg']+" -hide_banner -loglevel error -i " + file +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
         
         if os.name != 'nt':
             #not windows
@@ -82,5 +83,8 @@ def stop():
 def ping():
     return 'pong'
 
+@app.route('/getHLSTime', methods=['GET'])
+def getHLSTime():
+    return jsonify({'response': config['hlsTime']})
 
 app.run(host='0.0.0.0')

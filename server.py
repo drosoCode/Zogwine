@@ -102,6 +102,11 @@ def getMP4File():
     except:
         abort(404)
 
+@app.route('/api/assets/transcoder/hlsTime')
+def getHLSTimet():
+    data = requests.get(api.getTranscoderUrl()+"/getHLSTime").text
+    return data
+
 @app.route('/api/logs')
 def getServerLogs():
     if api.isAdmin(request.args['token']):
