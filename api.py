@@ -72,7 +72,10 @@ class api:
             elif stream["codec_type"] == "audio":
                 data["audio"].append({"index":stream["index"], "codec":stream["codec_name"], "channels":stream["channels"], "language": stream["tags"]["language"]})
             elif stream["codec_type"] == "subtitle":
-                data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": stream["tags"]["language"]})
+                t = ''
+                if 'title' in stream["tags"]:
+                    t = stream["tags"]["title"]
+                data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": stream["tags"]["language"], "title": t})
 
         return data
 

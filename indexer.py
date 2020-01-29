@@ -33,7 +33,7 @@ class scanner:
         return paths, tvs
 
     def scanDir(self, path, recursive=False, addPath=""):
-        logger.info('Scan Dir Triggered, recursive: '+str(recursive)+' ; current TVS: '+str(self._currentTVS))
+        logger.info('Scan Dir Triggered, recursive: '+str(recursive)+' ; current TVS: '+str(self._currentTVS)+' ; additionnalPath: '+addPath)
         dirContent = os.listdir(path)
         self._existingEp = []
         self._forceUpdateEp = []
@@ -50,14 +50,14 @@ class scanner:
                     logger.debug('Item is a directory')
                     
                     if recursive:
-                        #it is a season directory
+                        #we are inside a tvs dir, so it is a season directory
                         logger.debug('D- It is a season directory (recursive call)')
                         if addPath != '':
-                            addPath += '/' + item
+                            newAddPath = addPath + '/' + item
                         else:
-                            addPath = item
-                        logger.debug('Path inside tvs directory: '+str(addPath))
-                        self.scanDir(os.path.join(path,item), True, addPath)
+                            newAddPath = item
+                        logger.debug('Path inside tvs directory: '+str(newAddPath))
+                        self.scanDir(os.path.join(path,item), True, newAddPath)
                     else:
                         #it is a tvs directory
                         logger.debug('D- It is a TVS root directory')
@@ -85,7 +85,7 @@ class scanner:
 
                 if commit:
                     self._connection.commit()
-                    logger.debug(str(cursor.rowcount)+'were affected')
+                    logger.debug(str(cursor.rowcount)+' rows affected')
             #except Exception as ex:
             #    logger.error('New indexer exception: '+str(ex))
                 
@@ -93,7 +93,6 @@ class scanner:
     
 
     def scanTVS(self, path, item):
-        print("############### TVS ITEM #########", item)
         cursor = self._connection.cursor(dictionary=True)
         commit = False
 
@@ -142,7 +141,6 @@ class scanner:
 
 
     def scanEpisode(self, path, item):
-        print("############### EPISODE ITEM #########", item)
         extension = item[item.rfind('.')+1:]
         logger.debug('The extension for: '+self._currentTVS+' is: '+extension)
         cursor = self._connection.cursor(dictionary=True)
@@ -178,7 +176,10 @@ class scanner:
                         forceUpdate = 1
 
                     if result['id'] != None:
-                        filePath = path + '/' + item
+                        if path != '':
+                            filePath = path + '/' + item
+                        else:
+                            filePath = item
 
                         if epCode not in self._existingEp:
                             logger.debug('Creating new entry')
