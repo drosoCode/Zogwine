@@ -2,13 +2,14 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('hashchange', () => changePage());
+    window.addEventListener("beforeunload",() => checkPlaybackEnd());
     document.querySelector("#logout").addEventListener('click', () => logout());
     document.querySelector("#userNavSettings").addEventListener('click', () => showSettings());
     changePage();
     
 });
 
-function httpGet(url, sync=false)
+function httpGet(url, async=false)
 {
     
     if(url.indexOf("?") >= 0)
@@ -17,7 +18,7 @@ function httpGet(url, sync=false)
         url += "?time="+new Date().getTime()
         
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", url, sync); // false for synchronous request
+    xmlHttp.open( "GET", url, async); // false for synchronous request
     xmlHttp.send( null );
     return xmlHttp.responseText;
 }
@@ -26,11 +27,16 @@ function httpGet(url, sync=false)
 var apiEndpoint = "api/";
 var tvshows;
 var tvsE;
+var fileInfos;
 var userToken = null;
+var playing = false;
 
 function changePage(clear=false) 
 {
     let hash = location.hash.slice(1);
+
+    checkPlaybackEnd();
+    playing = false;
     
     if(userToken == null)
     {
@@ -279,31 +285,37 @@ function showTVSEpisodeInfo(id)
 function showPlay(id)
 {
     let data = tvsE[id];
-    let fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
-    console.log(fileInfos);
+    fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
 
-    let infos = "<button type=\"button\" class=\"btn btn-primary\">Video Codec&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['video_codec']+"</span></button>";
-    infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\">Video Format&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['format']+"</span></button>";
-    infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\">Duration&nbsp;<span class=\"badge badge-light\">"+Math.round(fileInfos['general']['duration']/60)+" mins</span></button>";
+    let infos = "<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-burn\"></i>&nbsp;Video Codec&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['video_codec']+"</span></button>";
+    infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-barcode\"></i>&nbsp;Video Format&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['format']+"</span></button>";
+    infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-clock\"></i>&nbsp;Duration&nbsp;<span class=\"badge badge-light\">"+Math.round(fileInfos['general']['duration']/60)+" mins</span></button>";
 
-    if(fileInfos['general']['format'].indexOf('Matroska') != -1)
+    if(fileInfos['general']['extension'] != 'mp4')
     {
-        //display transcoding options (for mkv)
-        infos += "<br><br><button type=\"button\" class=\"btn btn-warning\">Audio Codec&nbsp;<span class=\"badge badge-light\" id=\"audioBadgeCodec\">"+fileInfos['audio'][0]['codec']+"</span></button>";
-        infos += "&nbsp;<button type=\"button\" class=\"btn btn-warning\">Audio Language&nbsp;<span class=\"badge badge-light\" id=\"audioBadgeLanguage\">"+fileInfos['audio'][0]['language']+"</span></button>";
-        infos += "&nbsp;<button type=\"button\" class=\"btn btn-warning\">Audio Channels&nbsp;<span class=\"badge badge-light\" id=\"audioBadgeChannel\">"+fileInfos['audio'][0]['channels']+"</span></button>";
-        
-        infos += "<br><br><button type=\"button\" class=\"btn btn-info\">Subtitles Codec&nbsp;<span class=\"badge badge-light\" id=\"subsBadgeCodec\">"+fileInfos['subtitles'][0]['codec']+"</span></button>";
-        infos += "&nbsp;<button type=\"button\" class=\"btn btn-info\">Subtitles Language&nbsp;<span class=\"badge badge-light\" id=\"subsBadgeLanguage\">"+fileInfos['subtitles'][0]['language']+"</span></button>";
-        infos += "&nbsp;<button type=\"button\" class=\"btn btn-info\">Subtitles Title&nbsp;<span class=\"badge badge-light\" id=\"subsBadgeTitle\">"+fileInfos['subtitles'][0]['title']+"</span></button>";
-
         infos += "<br><br><div class=\"form-row\">";
-            infos += "<div class=\"col\"><select class=\"form-control\" id=\"audioSelect\"></select></div>";
-            infos += "<div class=\"col\"><select class=\"form-control\" id=\"subtitlesSelect\"></select></div>";
+            infos += "<div class=\"col\"><label for=\"audioSelect\">Audio</label><select class=\"form-control\" id=\"audioSelect\">";
+            for(let i in fileInfos['audio'])
+            {
+                infos += "<option value="+i+">"+fileInfos['audio'][i]["language"]+"</option>";
+            }
+            infos += "</select></div>"
+
+            infos += "<div class=\"col\"><label for=\"subtitlesSelect\">Subtitles</label><select class=\"form-control\" id=\"subtitlesSelect\">";
+            for(let i in fileInfos['subtitles'])
+            {
+                infos += "<option value="+i+">"+fileInfos['subtitles'][i]["language"]+" | "+fileInfos['subtitles'][i]["title"]+"</option>";
+            }
+            infos += "</select></div>"
+
         infos += "</div>";
+        infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(3,"+data["id"]+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
     }
-    
-    infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\">Play</button>";
+    else
+    {
+        infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+data["id"]+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+    }
+    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+data["id"]+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+data["id"]+")><i class=\"fas fa-check-circle\"></i>&nbsp;Set as Watched</button></div>"
 
     document.getElementById("playerModalTitle").innerText = data["title"];
     document.getElementById("playerModalContent").innerHTML = infos;
@@ -311,6 +323,87 @@ function showPlay(id)
     $('#playerModal').modal('show');
 }
 
+function updatePlay(type, id='')
+{
+    if(type == 1)
+    {
+        //download file
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+id;
+        let win = window.open(link, '_blank');
+        win.focus();
+    }
+    else if(type == 2)
+    {
+        //set episode as viewed
+        httpGet(apiEndpoint+"tvs/setViewed?idEpisode="+id+"&token="+userToken);
+        notify("Episode set as Watched","success");
+    }
+    else if(type == 3)
+    {
+        //play transcoded file
+        let subType = "";
+        let audioSelect = document.querySelector("#audioSelect").value;
+        let subtitlesSelect = document.querySelector("#subtitlesSelect").value;
+        if(subtitlesSelect == "")
+            subtitlesSelect = "-1"
+        else
+            subType = fileInfos['subtitles'][subtitlesSelect]["codec"]
+        let subTxt = "1";
+        if(subType == "hdmv_pgs_subtitle" || subType == "dvd_subtitle")
+            subTxt = "0";
+
+        httpGet(apiEndpoint+"transcoder/start?idEpisode="+id+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt);
+
+        let link = apiEndpoint+"transcoder/m3u8?token="+userToken;
+        showPlayer(false, link, id);
+    }
+    else if(type == 4)
+    {
+        //play file
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+id;
+        showPlayer(true, link, id);
+    }
+}
+
+function showPlayer(static, url, id)
+{
+    changePage(true);
+    $('#playerModal').modal('hide')
+    document.querySelector("#player").hidden = false;
+    let data;
+
+    playing = id;
+
+    if(static)
+    {
+        data = '<video controls class="videoPlayer"><source src="'+url+'" type="video/mp4"><p>HTML5 video error</p></video>';
+    }
+    else
+    {
+        data = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
+        notify("Starting up conversion, please wait ...","info");
+
+        setTimeout(function() 
+        {
+            const player = videojs('videoPlayer', {liveui: true});
+                player.src({
+                src: url,
+                type: 'application/x-mpegURL'
+            });
+        }, 10000);//wait 10sec for conversion
+    }
+    document.querySelector("#player").innerHTML = data;
+}
+
+function checkPlaybackEnd()
+{
+    if(playing != false)
+    {
+        videojs(document.querySelector('videoPlayer')).dispose();
+        document.querySelector("#player").innerHTML = "";
+        httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+playing+"&token="+userToken, true);
+    }
+}
 
 function showSettings()
 {
