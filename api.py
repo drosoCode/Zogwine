@@ -131,10 +131,10 @@ class api:
 
     def setViewedTime(self, idEpisode, token, lastRequestedFile):
         timeSplit = int(requests.get(self.getTranscoderUrl()+"/transcoder/getHLSTime").text)
-        if lastRequestedFile is not None and d is not None and idEpisode in self._fileDuration:
+        if lastRequestedFile is not None and idEpisode in self._fileDuration:
             d = int(self._fileDuration[idEpisode])
             num = int(re.findall("(?i)(?:stream)(\\d+)(?:\\.ts)", lastRequestedFile)[0])
-            if num*timeSplit > d - (d/100*2):
+            if d is not None and num*timeSplit > d - (d/100*2):
                 self.setViewed(idEpisode, token)
             del self._fileDuration[idEpisode]
             return True
