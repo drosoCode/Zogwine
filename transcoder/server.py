@@ -7,6 +7,7 @@ from subprocess import Popen, CREATE_NEW_CONSOLE
 import signal
 import os
 import requests
+import shutil
 
 app = flask.Flask(__name__)
 CORS(app)
@@ -21,70 +22,89 @@ with open("config.json") as f:
 def home():
     return "<h1>API</h1>"
 
-@app.route('/file', methods=['GET'])
+@app.route('/transcoder/file', methods=['GET'])
 def getFile():
     name = request.args['name']
     token = request.args['token']
-    if name == 'list':
-        #list transcoded files
-        files = []
-        for item in os.listdir(config['tvsDirectory'] + '/' + str(token)):
-            extension = item[item.rfind('.')+1:]
-            if extension == 'ts':
-                files.append(item)
-
-        return jsonify({'response':files})
+    #send transcoded file
+    file = 'out/'+str(token)+'/'+name
+    if os.path.exists(file):
+        if '/' not in name and '/' not in token:
+            return send_file(open(file, "rb"), mimetype='video/MP2T')
+        else:
+            abort(403)
     else:
-        #send transcoded file
-        file = config['tvsDirectory']+'/'+str(token)+'/'+name
-        with open(file , 'rb') as bites:
-            return send_file(bites.read(), attachment_filename=name, mimetype='video/mp4')
+        abort(404)
 
-@app.route('/transcode', methods=['GET'])
+@app.route('/transcoder/start', methods=['GET'])
 def runTranscode():
     token = request.args['token']
-    file = config['tvsDirectory'] + base64.b64decode(request.args['file'])
     subTxt = request.args['subTxt']
     audioStream = request.args['audioStream']
     subStream = request.args['subStream']
 
-    outFile = 'transcoded'
-    crf = config['crf'] #recommanded: 23
-    hlsTime = config['hlsTime'] #in seconds
-    
-    if '/' not in file:
-        file = '"' + file + '"'
-        if subTxt:
-            cmd = config['ffmpeg']+" -hide_banner -loglevel error -vsync 0 -i " + file + " -pix_fmt yuv420p -vf subtitles=" + file +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
-        else:
-            cmd = config['ffmpeg']+" -hide_banner -loglevel error -i " + file +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
-        
-        if os.name != 'nt':
-            #not windows
-            cmd = './'+cmd
+    path = '"' + config['tvsDirectory'] + '/' + base64.b64decode(request.args['file']).decode('utf-8') + '"'
 
-        process = Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
+    outFile = 'out/'+token
+    if not os.path.exists(outFile):
+        os.mkdir(outFile)
+    outFile += '/stream'
+
+    crf = str(config['crf']) #recommanded: 23
+    hlsTime = str(config['hlsTime']) #in seconds
+    
+    if '..' not in path:
+        if subStream != "-1":
+            if subTxt == "1":
+                cmd = " -hide_banner -loglevel error -vsync 0 -i " + path + " -pix_fmt yuv420p -vf subtitles=" + path.replace(":","\\\\:") +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            else:
+                cmd = " -hide_banner -loglevel error -i " + path +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+        else:
+            cmd = " -hide_banner -loglevel error -vsync 0 -i " + path + " -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+
+        if os.name == 'nt':
+            #windows
+            cmd = 'ffmpeg.exe'+cmd
+        else:
+            cmd = './ffmpeg'+cmd
+
+        print(cmd)
+        #process = Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
+        process = Popen(cmd)
         userProcess[token] = process.pid
 
         return jsonify({'response':'ok'})
     else:
-        return jsonify({'response':'error'})
+        abort(403)
 
-@app.route('/stop', methods=['GET'])
+@app.route('/transcoder/m3u8', methods=['GET'])
+def getM3U8():
+    file = 'out/'+str(request.args['token'])+'/stream.m3u8'
+    if os.path.exists(file):
+        return send_file(open(file, "rb"), mimetype='application/x-mpegURL')
+    else:
+        abort(404)
+
+@app.route('/transcoder/stop', methods=['GET'])
 def stop():
-    token = request.args['token']
-    if token in userProcess:
-        os.kill(userProcess[token], signal.SIGTERM)
-        del userProcess[token]
-
+    try:
+        token = request.args['token']
+        if token in userProcess:
+            os.kill(userProcess[token], signal.SIGTERM)
+            del userProcess[token]
+        if token != "":
+            shutil.rmtree('out/'+token)
+    except:
+        pass
+    
     return jsonify({'response':'ok'})
 
 @app.route('/ping', methods=['GET'])
 def ping():
     return 'pong'
 
-@app.route('/getHLSTime', methods=['GET'])
+@app.route('/transcoder/getHLSTime', methods=['GET'])
 def getHLSTime():
     return jsonify({'response': config['hlsTime']})
 
-app.run(host='0.0.0.0')
+app.run(host='0.0.0.0', port=8081)

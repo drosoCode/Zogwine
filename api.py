@@ -7,6 +7,8 @@ from wakeonlan import send_magic_packet
 import time
 import base64
 import hashlib
+import re
+import urllib.parse
 
 from log import logger
 
@@ -18,6 +20,7 @@ class api:
             self._data = data
             self._connection = sql.connect(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database='mediaController')
             self._scanner = scanner(data["db"]["host"],data["db"]["user"], data["db"]["password"], data["api"]["tmdb"], data["api"]["tvdb"])
+            self._fileDuration = {}
         logger.info('API Class Instancied Successfully')
 
     def getTVSData(self, mr=False):
@@ -46,11 +49,15 @@ class api:
         self._scanner.scanDir(self._data["paths"]["scanDirectory"])
         return True
 
-    def getFileInfos(self, episodeID):
-        cmd = self._data["paths"]["ffprobe"]+" -v quiet -print_format json -show_format -show_streams \""+self.getEpPath(episodeID)+"\" > out/data.json"
-        if os.name != 'nt':
-            #not windows
-            cmd = './'+cmd
+    def getFileInfos(self, episodeID):        
+        epPath = self.getEpPath(episodeID)
+        cmd = " -v quiet -print_format json -show_format -show_streams \""+epPath+"\" > out/data.json"
+        if os.name == 'nt':
+            #windows
+            cmd = 'ffprobe.exe'+cmd
+        else:
+            cmd = './ffprobe'+cmd
+
         logger.debug('FFprobe: '+cmd)
         os.system(cmd)
 
@@ -60,63 +67,83 @@ class api:
         data = {
             "general":{
                 "format": dat["format"]["format_long_name"],
-                "duration": dat["format"]["duration"]
+                "duration": dat["format"]["duration"],
+                "extension": epPath[epPath.rfind('.')+1:]
             },
             "audio":[],
             "subtitles":[]
         }
 
         for stream in dat["streams"]:
+            lang = ''
             if stream["codec_type"] == "video":
                 data["general"]["video_codec"] = stream["codec_name"]
             elif stream["codec_type"] == "audio":
-                data["audio"].append({"index":stream["index"], "codec":stream["codec_name"], "channels":stream["channels"], "language": stream["tags"]["language"]})
+                if 'language' in stream["tags"]:
+                    lang = stream["tags"]["language"]
+                data["audio"].append({"index":stream["index"], "codec":stream["codec_name"], "channels":stream["channels"], "language": lang})
             elif stream["codec_type"] == "subtitle":
                 t = ''
                 if 'title' in stream["tags"]:
                     t = stream["tags"]["title"]
-                data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": stream["tags"]["language"], "title": t})
+                if 'language' in stream["tags"]:
+                    lang = stream["tags"]["language"]
+                data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": lang, "title": t})
 
+        self._fileDuration[episodeID] = dat["format"]["duration"]
         return data
-
 
     def getEpPath(self, idEpisode, full=True):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = "+str(idEpisode)+";")
-        path = cursor.fetchone()
+        path = cursor.fetchone()['path']
         if full:
-            path = self._data["paths"]["scanDirectory"]+'/'+path['path']
+            path = self._data["paths"]["scanDirectory"]+'/'+path
         logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
         return path
         
     def getTranscoderUrl(self):
         return self._data["paths"]["transcoderURL"]
 
-    def getFile(self, idEpisode, token):
-        path = self.getEpPath(idEpisode)
-        extension = path[path.rfind('.')+1:]
-        if extension == "mp4":
-            return (True, path)
+    def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt):
+        success = False
+        trys = 0
+        while not success and trys < 4:
+            try:
+                if requests.get(self._data["paths"]["transcoderURL"]+"/ping").text == "pong":
+                    success = True
+            except:
+                pass
+            if not success and trys == 0:
+                mac = self._data["paths"]["transcoderMAC"]
+                mac = mac.replace(":",".")
+                send_magic_packet(mac)
+            time.sleep(10)
+            trys += 1
+        if not success:
+            return False
         else:
-            success = False
-            trys = 0
-            while not success and trys < 4:
-                try:
-                    if requests.get(self._data["paths"]["transcoderURL"]+"/ping").text == "pong":
-                        success = True
-                except:
-                    pass
-                if not success and trys == 0:
-                    mac = self._data["paths"]["transcoderMAC"]
-                    mac = mac.replace(":",".")
-                    send_magic_packet(mac)
-                time.sleep(10)
-                trys += 1
-            if not success:
-                return (False, False)
-            else:
-                requests.get(self._data["paths"]["transcoderURL"]+"/transcode?token="+token+"&file="+base64.b64encode(self.getEpPath(idEpisode, False)))
-                return (False, True)
+            path = urllib.parse.quote(base64.b64encode(bytes(self.getEpPath(idEpisode, False), encoding='utf-8')).decode("utf-8"))
+            url = self._data["paths"]["transcoderURL"]+"/transcoder/start?token="+token+"&file="+path+"&audioStream="+audioStream+"&subStream="+subStream+"&subTxt="+subTxt
+            print(url)
+            requests.get(url)
+            return True
+
+    def setViewedTime(self, idEpisode, token, lastRequestedFile):
+        timeSplit = int(requests.get(self.getTranscoderUrl()+"/transcoder/getHLSTime").text)
+        if lastRequestedFile is not None and d is not None and idEpisode in self._fileDuration:
+            d = int(self._fileDuration[idEpisode])
+            num = int(re.findall("(?i)(?:stream)(\\d+)(?:\\.ts)", lastRequestedFile)[0])
+            if num*timeSplit > d - (d/100*2):
+                self.setViewed(idEpisode, token)
+            del self._fileDuration[idEpisode]
+            return True
+        else:
+            return False
+
+
+    def setViewed(self, idEpisode, token):
+        return True
 
     def getUserData(self,token):
         cursor = self._connection.cursor(dictionary=True)
