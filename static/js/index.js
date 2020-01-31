@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener("beforeunload",() => checkPlaybackEnd());
     document.querySelector("#logout").addEventListener('click', () => logout());
     document.querySelector("#userNavSettings").addEventListener('click', () => showSettings());
+    document.querySelector("#userNavPlayerReload").addEventListener('click', () => updatePlay(5));
     changePage();
     
 });
@@ -33,6 +34,9 @@ var playing = false;
 
 function changePage(clear=false) 
 {
+    document.querySelector("#userNavPlayerNext").innerHTML = "";
+    document.querySelector("#userNavPlayerReload").hidden = true;
+
     let hash = location.hash.slice(1);
 
     checkPlaybackEnd();
@@ -46,7 +50,6 @@ function changePage(clear=false)
         document.querySelector("#content").hidden = true;
         document.querySelector("#login").hidden = false;
         document.querySelector("#userNav").hidden = true;
-        console.log("loutre");
     }
     else if(clear)
     {
@@ -128,21 +131,6 @@ function login()
     }
 }
 
-function showPlay(id)
-{
-    let content = "<div class=\"progress\"><div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"100\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: 100%\">Connecting to Server ...</div></div>";
-   
-    document.getElementById("cssContainer").innerHTML = ".modal-backdrop { background-image: url(\""+data["fanart"]+"\");background-size: cover;}";
-    document.getElementById("playerModalTitle").innerText = data["title"];
-    document.getElementById("playerModalContent").innerHTML = content;
-    $('#playerModal').modal('show');
-
-    id = id.split(".");
-    let link = tvsE[id[1]][id[2]]["link"];
-    let infos = JSON.parse(httpGet(apiEndpoint+"fileInfos?idEpisode="+link));
-    console.log(infos);
-}
-
 function showTVS()
 {
     tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows"));
@@ -155,7 +143,7 @@ function showTVS()
             cards += makeTVSCard(i);
         i++;
     }
-    document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div><br><br>";
+    document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
 }
 
 function makeTVSCard(id)
@@ -230,15 +218,16 @@ function showTVSEpisodes(id)
 
             season = tvsE[i]["season"];
         }
-        cards += makeTVSEpisodesCard(i,tvsE[i]);
+        cards += makeTVSEpisodesCard(i);
         i++;
     }
-    document.getElementById("content").innerHTML = cards+'<br><br>';
+    document.getElementById("content").innerHTML = cards;
 }
 
 
-function makeTVSEpisodesCard(id,data)
+function makeTVSEpisodesCard(id)
 {
+    let data = tvsE[id];
     let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay('"+id+"')\">Play</button>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSEpisodeInfo('"+id+"')\">Info</button>"
@@ -284,6 +273,7 @@ function showTVSEpisodeInfo(id)
 
 function showPlay(id)
 {
+    checkPlaybackEnd();
     let data = tvsE[id];
     fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
 
@@ -309,17 +299,17 @@ function showPlay(id)
             infos += "</select></div>"
 
         infos += "</div>";
-        infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(3,"+data["id"]+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(3,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
     }
     else
     {
-        infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+data["id"]+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
     }
-    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+data["id"]+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+data["id"]+")><i class=\"fas fa-check-circle\"></i>&nbsp;Set as Watched</button></div>"
+    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Set as Viewed</button></div>"
 
     document.getElementById("playerModalTitle").innerText = data["title"];
     document.getElementById("playerModalContent").innerHTML = infos;
-    document.getElementById("cssContainer").innerHTML = "";
+
     $('#playerModal').modal('show');
 }
 
@@ -328,15 +318,15 @@ function updatePlay(type, id='')
     if(type == 1)
     {
         //download file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+id;
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id'];
         let win = window.open(link, '_blank');
         win.focus();
     }
     else if(type == 2)
     {
         //set episode as viewed
-        httpGet(apiEndpoint+"tvs/setViewed?idEpisode="+id+"&token="+userToken);
-        notify("Episode set as Watched","success");
+        httpGet(apiEndpoint+"tvs/setViewed?idEpisode="+tvsE[id]['id']+"&token="+userToken);
+        notify("Episode set as Viewed","success");
     }
     else if(type == 3)
     {
@@ -352,7 +342,7 @@ function updatePlay(type, id='')
         if(subType == "hdmv_pgs_subtitle" || subType == "dvd_subtitle")
             subTxt = "0";
 
-        httpGet(apiEndpoint+"transcoder/start?idEpisode="+id+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt);
+        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt);
 
         let link = apiEndpoint+"transcoder/m3u8?token="+userToken;
         showPlayer(false, link, id);
@@ -360,17 +350,35 @@ function updatePlay(type, id='')
     else if(type == 4)
     {
         //play file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+id;
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id'];
         showPlayer(true, link, id);
+    }
+    else if(type == 5)
+    {
+        //reload player
+        let videoPlayer = videojs('videoPlayer');
+        let url = videoPlayer.currentSrc()
+        console.log(url)
+        videoPlayer.dispose();
+
+        document.querySelector("#player").innerHTML = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
+        const player = videojs('videoPlayer', {liveui: true});
+            player.src({
+            src: url,
+            type: 'application/x-mpegURL'
+        });
     }
 }
 
 function showPlayer(static, url, id)
 {
     changePage(true);
-    $('#playerModal').modal('hide')
+    $('#playerModal').modal('hide');
     document.querySelector("#player").hidden = false;
     let data;
+    
+    document.querySelector("#userNavPlayerNext").innerHTML = "<button type=\"button\" class=\"btn btn-outline-warning btn-sm mx-1\" onclick=\"showPlay("+(id+1)+");\"><i class=\"fas fa-step-forward\"></i>&nbsp;Next</button>";
+    document.querySelector("#userNavPlayerReload").hidden = false;
 
     playing = id;
 
@@ -397,11 +405,19 @@ function showPlayer(static, url, id)
 
 function checkPlaybackEnd()
 {
-    if(playing != false)
+    if(playing !== false)
     {
-        videojs(document.querySelector('videoPlayer')).dispose();
+        try
+        {
+            videojs('videoPlayer').dispose();
+        }
+        catch
+        {
+            console.log('videojs error')
+        }
         document.querySelector("#player").innerHTML = "";
-        httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+playing+"&token="+userToken, true);
+        httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken, true);
+        playing = false;
     }
 }
 
