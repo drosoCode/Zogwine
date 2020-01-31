@@ -1,0 +1,21 @@
+.body {
+    background-color: #313131;
+}
+.card:hover {
+    box-shadow: 5px 5px 5px 5px #222;
+}
+.cardsContainer {
+    width: 90%;
+}
+@media screen and (max-width: 500px) {
+    .cardsContainer {
+        width: 98%;
+    }
+}
+.cardsContainer .card{
+    margin-top: 1rem;
+}
+.videoPlayer {
+    width: 100%;
+    height: 100%;
+}
