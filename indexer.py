@@ -42,7 +42,7 @@ class scanner:
         cursor = self._connection.cursor(dictionary=True)
         
         for item in dirContent:
-            #try:
+            try:
                 commit = False
                 logger.debug('New Item: '+str(item))
 
@@ -86,8 +86,8 @@ class scanner:
                 if commit:
                     self._connection.commit()
                     logger.debug(str(cursor.rowcount)+' rows affected')
-            #except Exception as ex:
-            #    logger.error('New indexer exception: '+str(ex))
+            except Exception as ex:
+                logger.error('New indexer exception: '+str(ex))
                 
         logger.debug('End of scan (recursive: '+str(recursive)+')')
     
