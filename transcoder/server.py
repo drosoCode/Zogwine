@@ -45,6 +45,14 @@ def runTranscode():
 
     path = '"' + config['tvsDirectory'] + '/' + base64.b64decode(request.args['file']).decode('utf-8') + '"'
 
+    #remove old data in this dir, if it still exists
+    if os.path.exists('out/'+token):
+        try:
+            shutil.rmtree('out/'+token)
+        except:
+            pass
+
+    #recreate an empty out dir
     outFile = 'out/'+token
     if not os.path.exists(outFile):
         os.mkdir(outFile)
@@ -67,6 +75,7 @@ def runTranscode():
             cmd = 'ffmpeg.exe'+cmd
         else:
             cmd = './ffmpeg'+cmd
+
 
         print(cmd)
         #process = Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
@@ -92,10 +101,11 @@ def stop():
         if token in userProcess:
             os.kill(userProcess[token], signal.SIGTERM)
             del userProcess[token]
+            
         if token != "":
             shutil.rmtree('out/'+token)
-    except:
-        pass
+    except Exception as ex:
+        print("Error: "+str(ex))
     
     return jsonify({'response':'ok'})
 
