@@ -87,7 +87,8 @@ def startTranscoder():
 @app.route('/api/transcoder/m3u8')
 def getTranscoderM3U8():
     token = request.args['token']
-    fileUrl = api.getTranscoderUrl()+"/transcoder/file?token="+token+"&name="
+    #fileUrl = api.getTranscoderUrl()+"/transcoder/file?token="+token+"&name="
+    fileUrl = "/api/transcoder/file?token="+token+"&name="
     dat = ''
 
     req = requests.get(api.getTranscoderUrl()+"/transcoder/m3u8?token="+token)
