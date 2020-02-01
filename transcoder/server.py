@@ -46,14 +46,14 @@ def runTranscode():
     path = '"' + config['tvsDirectory'] + '/' + base64.b64decode(request.args['file']).decode('utf-8') + '"'
 
     #remove old data in this dir, if it still exists
-    if os.path.exists('out/'+token):
+    outFile = 'out/'+token
+    if os.path.exists(outFile):
         try:
-            shutil.rmtree('out/'+token)
+            shutil.rmtree(outFile)
         except:
             pass
 
     #recreate an empty out dir
-    outFile = 'out/'+token
     if not os.path.exists(outFile):
         os.mkdir(outFile)
     outFile += '/stream'
