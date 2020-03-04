@@ -52,7 +52,7 @@ def getFileInfos():
 def playbackEnd():
     #set as viewed for user, and stop transcoder if started
     t = request.args['token']
-    requests.get(api.getTranscoderUrl()+"/transcoder/stop?token="+t)
+    api.stopTranscoder(t, lastRequestedFile)
     s = True
     if t in lastRequestedFile:
         s = api.setViewedTime(request.args['idEpisode'], t, lastRequestedFile[t])
@@ -79,38 +79,51 @@ def getUserData():
     #return user infos
     return jsonify(api.getUserData(request.args['token']))
 
+
 @app.route('/api/transcoder/start')
 def startTranscoder():
     s = api.startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['subTxt'])
-    return jsonify({"response":s})
+    if s:
+        return jsonify({'response':'ok'})
+    else:
+        abort(403)
 
 @app.route('/api/transcoder/m3u8')
 def getTranscoderM3U8():
     token = request.args['token']
-    #fileUrl = api.getTranscoderUrl()+"/transcoder/file?token="+token+"&name="
     fileUrl = "/api/transcoder/file?token="+token+"&name="
     dat = ''
 
-    req = requests.get(api.getTranscoderUrl()+"/transcoder/m3u8?token="+token)
-    for i in req.text.split("\n"):
-        if ".ts" in i and "stream" in i:
-            dat += fileUrl+i+"\n"
-        else:
-            dat += i+"\n"
-
-    return Response(dat, mimetype=req.headers['content-type'])
+    file = 'out/'+str(token)+'/stream.m3u8'
+    if os.path.exists(file):
+        fileData = open(file, "r").read()
+        for i in fileData.split("\n"):
+            if ".ts" in i and "stream" in i:
+                dat += fileUrl+i+"\n"
+            else:
+                dat += i+"\n"
+        return Response(dat, mimetype='application/x-mpegURL')
+    else:
+        abort(404)
 
 @app.route('/api/transcoder/file')
 def getTranscoderFile():
+    name = request.args['name']
     token = request.args['token']
-    file = request.args['name']
-    lastRequestedFile[token] = file
-    req = requests.get(api.getTranscoderUrl()+"/transcoder/file?name="+file+"&token="+token, stream = True)
-    return Response(stream_with_context(req.iter_content(chunk_size=1024)), content_type = req.headers['content-type'])
+    lastRequestedFile[token] = name
+    #send transcoded file
+    file = 'out/'+str(token)+'/'+name
+    if os.path.exists(file):
+        if '/' not in name and '/' not in token:
+            return send_file(open(file, "rb"), mimetype='video/MP2T')
+        else:
+            abort(403)
+    else:
+        abort(404)
 
 @app.route('/api/tvs/getFile')
 def getFile():
-    path = api.getEpPath(request.args['idEpisode'], True)
+    path = api.getEpPath(request.args['idEpisode'])
     if os.path.exists(path):
         mime = mimetypes.guess_type(path, strict=False)[0]
         if 'video' in mime:

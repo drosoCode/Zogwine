@@ -1,5 +1,4 @@
 requests
 mysql-connector-python
-wakeonlan
 flask
 flask_cors

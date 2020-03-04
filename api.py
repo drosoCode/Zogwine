@@ -1,15 +1,16 @@
 import requests
 import mysql.connector as sql
-from indexer import scanner
 import json
 import os
-from wakeonlan import send_magic_packet
 import time
 import base64
 import hashlib
 import re
-import urllib.parse
+from subprocess import Popen, CREATE_NEW_CONSOLE
+import shutil
+import signal
 
+from indexer import scanner
 from log import logger
 
 class api:
@@ -21,6 +22,7 @@ class api:
             self._connection = sql.connect(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database='mediaController')
             self._scanner = scanner(data["db"]["host"],data["db"]["user"], data["db"]["password"], data["api"]["tmdb"], data["api"]["tvdb"])
             self._fileDuration = {}
+            self._userProcess = {}
         logger.info('API Class Instancied Successfully')
 
     def getTVSData(self, mr=False):
@@ -46,7 +48,7 @@ class api:
         return True
 
     def runScan(self):
-        self._scanner.scanDir(self._data["paths"]["scanDirectory"])
+        self._scanner.scanDir(self._data["config"]["tvsDirectory"])
         return True
 
     def getFileInfos(self, episodeID):        
@@ -93,44 +95,63 @@ class api:
         self._fileDuration[episodeID] = dat["format"]["duration"]
         return data
 
-    def getEpPath(self, idEpisode, full=True):
+    def getEpPath(self, idEpisode):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = "+str(idEpisode)+";")
-        path = cursor.fetchone()['path']
-        if full:
-            path = self._data["paths"]["scanDirectory"]+'/'+path
+        path = self._data["config"]["tvsDirectory"]+'/'+cursor.fetchone()['path']
         logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
         return path
-        
-    def getTranscoderUrl(self):
-        return self._data["paths"]["transcoderURL"]
 
     def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt):
-        success = False
-        trys = 0
-        while not success and trys < 4:
+        path = self.getEpPath(idEpisode)
+
+        #remove old data in this dir, if it still exists
+        outFile = 'out/'+token
+        if os.path.exists(outFile):
             try:
-                if requests.get(self._data["paths"]["transcoderURL"]+"/ping").text == "pong":
-                    success = True
+                shutil.rmtree(outFile)
             except:
                 pass
-            if not success and trys == 0:
-                mac = self._data["paths"]["transcoderMAC"]
-                mac = mac.replace(":",".")
-                send_magic_packet(mac)
-            time.sleep(10)
-            trys += 1
-        if not success:
-            return False
-        else:
-            path = urllib.parse.quote(base64.b64encode(bytes(self.getEpPath(idEpisode, False), encoding='utf-8')).decode("utf-8"))
-            url = self._data["paths"]["transcoderURL"]+"/transcoder/start?token="+token+"&file="+path+"&audioStream="+audioStream+"&subStream="+subStream+"&subTxt="+subTxt
-            print(url)
-            requests.get(url)
+
+        #recreate an empty out dir
+        if not os.path.exists(outFile):
+            os.mkdir(outFile)
+        outFile += '/stream'
+
+        crf = str(self._data["config"]['crf']) #recommanded: 23
+        hlsTime = str(self._data["config"]['hlsTime']) #in seconds
+        
+        if '..' not in path:
+            if subStream != "-1":
+                if subTxt == "1":
+                    cmd = "ffmpeg -hide_banner -loglevel error -vsync 0 -i " + path + " -pix_fmt yuv420p -vf subtitles=" + path.replace(":","\\\\:") +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                else:
+                    cmd = "ffmpeg -hide_banner -loglevel error -i " + path +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            else:
+                cmd = "ffmpeg -hide_banner -loglevel error -vsync 0 -i " + path + " -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+
+            print(cmd)
+            #process = Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
+            process = Popen(cmd)
+            self._userProcess[token] = process.pid
+
             return True
+        else:
+            return False
+    
+    def stopTranscoder(self, token):
+        try:
+            if token in self._userProcess:
+                os.kill(self._userProcess[token], signal.SIGTERM)
+                del self._userProcess[token]
+                
+            if token != "":
+                shutil.rmtree('out/'+token)
+        except Exception as ex:
+            print("Error: "+str(ex))
 
     def setViewedTime(self, idEpisode, token, lastRequestedFile):
-        timeSplit = int(requests.get(self.getTranscoderUrl()+"/transcoder/getHLSTime").text)
+        timeSplit = int(self._data["config"]["hlsTime"])
         if lastRequestedFile is not None and idEpisode in self._fileDuration:
             d = int(self._fileDuration[idEpisode])
             num = int(re.findall("(?i)(?:stream)(\\d+)(?:\\.ts)", lastRequestedFile)[0])
