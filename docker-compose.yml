@@ -1,0 +1,22 @@
+version: "3"
+services:
+    mediaController:
+        build: .
+#        ports:
+#            - 8080:80
+        depends_on:
+            - "database"
+        volumes:
+            - /mnt/nas/Videos/Series:/home/server/content
+            - /mnt/docker/Volumes/mediaController/config:/home/server/config
+        restart: always
+    database:
+        image: mariadb
+        volumes:
+            - /mnt/docker/Volumes/Database:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: azerty
+            MYSQL_DATABASE: mediaController
+            MYSQL_USER: kodi
+            MYSQL_PASSWORD: kodi
+        restart: always
