@@ -101,23 +101,18 @@ class api:
         return path
 
     def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt):
+        logger.info('Starting transcoder for episode '+str(idEpisode)+' and user '+str(self._userTokens[token]))
         path = '"'+self.getEpPath(idEpisode)+'"'
 
         #remove old data in this dir, if it still exists
         outFile = 'out/'+token
         if os.path.exists(outFile) and ".." not in outFile:
-            print("bogluf")
             #shutil.rmtree(outFile)
             os.system("rm -rf "+outFile)
-        else:
-            print("zodruf")
 
         #recreate an empty out dir
         if not os.path.exists(outFile):
-            print("gwosse boglo")
             os.mkdir(outFile)
-        else:
-            print("zodro")
         outFile += '/stream'
 
         crf = str(self._data["config"]['crf']) #recommanded: 23
@@ -144,6 +139,7 @@ class api:
             return False
     
     def stopTranscoder(self, token):
+        logger.info('Stopping transcoder for user '+str(self._userTokens[token]))
         if token in self._userProcess:
             self._userProcess[token].kill()
             del self._userProcess[token]
@@ -155,12 +151,12 @@ class api:
 
     def setViewedTime(self, idEpisode, token, lastRequestedFile):
         timeSplit = int(self._data["config"]["hlsTime"])
-        print("TIME ---- ",idEpisode, lastRequestedFile, timeSplit)
-        print(self._fileDuration)
         if lastRequestedFile is not None and idEpisode in self._fileDuration:
             d = float(self._fileDuration[idEpisode])
             num = int(re.findall("(?i)(?:stream)(\\d+)(?:\\.ts)", lastRequestedFile)[0]) + 1
-            print(d, num, num*timeSplit, d - (d/100*2))
+
+            logger.debug('Setting viewed status for user '+str(self._userTokens[token])+' : '+str(d)+' '+str(num)+' '+str(num*timeSplit)+' '+str(d - (d/100*2)))
+
             if d is not None and num*timeSplit > d - (d/100*10):
                 self.toggleViewed(idEpisode, token, True)
             del self._fileDuration[idEpisode]
@@ -170,7 +166,6 @@ class api:
 
 
     def toggleViewed(self, idEpisode, token, add=None):
-        print("SET VIEWED: ",idEpisode, token)
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT viewCount FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
         data = cursor.fetchone()

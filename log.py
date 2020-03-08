@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-logFile = 'debug.log'
+logFile = 'out/debug.log'
 
 def getLogger():    
     logger = logging.getLogger()
@@ -15,7 +15,8 @@ def getLogger():
 
     logger.addHandler(file_handler)
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
+    #stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setLevel(logging.INFO)
     logger.addHandler(stream_handler)
     return logger
 
