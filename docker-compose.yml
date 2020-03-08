@@ -20,3 +20,4 @@ services:
             MYSQL_USER: kodi
             MYSQL_PASSWORD: kodi
         restart: always
+#docker run -it -v /mnt/nas/Videos/Series:/home/boglo/content -v /mnt/docker/Volumes/mediaController/config:/home/boglo/config -v /mnt/docker/Volumes/mediaController/out:/home/boglo/out -v  /mnt/docker/Images/mediaController:/home/boglo -p 8081:8080 --entrypoint="bash" --gpus=all animes 
