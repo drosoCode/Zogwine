@@ -1,5 +1,7 @@
 FROM jrottenberg/ffmpeg:4.1-nvidia 
 
+ENTRYPOINT []
+
 WORKDIR /home/server
 COPY . .
 
@@ -8,4 +10,4 @@ RUN \
     && pip3 install --no-cache-dir -r requirements.txt \
     && chmod +x start.sh main.py
 
-CMD "/home/start.sh"
+CMD "./start.sh"
