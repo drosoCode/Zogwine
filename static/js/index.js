@@ -11,8 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function httpGet(url, async=false)
-{
-    
+{    
     if(url.indexOf("?") >= 0)
         url += "&time="+new Date().getTime()
     else
@@ -21,6 +20,12 @@ function httpGet(url, async=false)
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open( "GET", url, async); // false for synchronous request
     xmlHttp.send( null );
+
+    if(xmlHttp.status == 403 || xmlHttp.status == 401)
+        logout(true);
+    else if(xmlHttp.status >= 500)
+        notify("Internal Server Error","error");
+        
     return xmlHttp.responseText;
 }
 
@@ -99,12 +104,15 @@ function notify(text, type='error')
     }).show();
 }
 
-function logout()
+function logout(fail=false)
 {
     userToken = null;
     document.querySelector("#login_user").value = '';
     document.querySelector("#login_password").value = '';
-    notify("Signed Out","success");
+    if(fail)
+        notify("Forbidden Action","error");
+    else
+        notify("Signed Out","success");
     changePage();
 }
 
@@ -133,7 +141,7 @@ function login()
 
 function showTVS()
 {
-    tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows"));
+    tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows?token="+userToken));
     
     let i = 0;
     let cards = "";
@@ -201,7 +209,7 @@ function showTVSInfo(id)
 
 function showTVSEpisodes(id)
 {
-    tvsE = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id));
+    tvsE = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id+"&token="+userToken));
     let cards = "";
     let season = -1;
     let i = 0;
@@ -233,7 +241,7 @@ function makeTVSEpisodesCard(id)
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSEpisodeInfo('"+id+"')\">Info</button>"
     if(data["viewCount"] > 0)
     {
-        descData += "<button type=\"button\" class=\"btn btn-success disabled btn-sm\">Viewed <span class=\"badge badge-light\">"+data["viewed"]+"</span></btn>";
+        descData += "<button type=\"button\" class=\"btn btn-success disabled btn-sm\">Viewed <span class=\"badge badge-light\">"+data["viewCount"]+"</span></btn>";
     }
     else
     {
@@ -275,7 +283,7 @@ function showPlay(id)
 {
     checkPlaybackEnd();
     let data = tvsE[id];
-    fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
+    fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]+"&token="+userToken));
 
     let infos = "<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-burn\"></i>&nbsp;Video Codec&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['video_codec']+"</span></button>";
     infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-barcode\"></i>&nbsp;Video Format&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['format']+"</span></button>";
@@ -305,7 +313,7 @@ function showPlay(id)
     {
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
     }
-    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Set as Viewed</button></div>"
+    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button></div>"
 
     document.getElementById("playerModalTitle").innerText = data["title"];
     document.getElementById("playerModalContent").innerHTML = infos;
@@ -318,15 +326,15 @@ function updatePlay(type, id='')
     if(type == 1)
     {
         //download file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id'];
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
         let win = window.open(link, '_blank');
         win.focus();
     }
     else if(type == 2)
     {
-        //set episode as viewed
-        httpGet(apiEndpoint+"tvs/setViewed?idEpisode="+tvsE[id]['id']+"&token="+userToken);
-        notify("Episode set as Viewed","success");
+        //set episode as watched/unwatched
+        httpGet(apiEndpoint+"tvs/toggleViewed?idEpisode="+tvsE[id]['id']+"&token="+userToken);
+        notify("Episode status updated","success");
     }
     else if(type == 3)
     {
@@ -350,7 +358,7 @@ function updatePlay(type, id='')
     else if(type == 4)
     {
         //play file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id'];
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
         showPlayer(true, link, id);
     }
     else if(type == 5)
@@ -428,7 +436,7 @@ function showSettings()
 
     let settingsData = "<br><button type=\"button\" class=\"btn btn-warning btn-lg btn-block\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><br>";
     
-    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults"));
+    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken));
     
     let i = 0;
     let cards = "";
@@ -492,12 +500,12 @@ function settingsLibUpdate(type=0)
 {
     if(type == 0)
     {
-        httpGet(apiEndpoint+"tvs/runScan",true);
+        httpGet(apiEndpoint+"tvs/runScan?token="+userToken,true);
         notify("Library Scan Started","success")
     }
     else if(type == 1)
     {
-        httpGet(apiEndpoint+"tvs/syncKodi",true);
+        httpGet(apiEndpoint+"tvs/syncKodi?token="+userToken,true);
         notify("Kodi Libray Sync Started","success")
     }
 }

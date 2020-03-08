@@ -20,7 +20,7 @@ def getLogger():
     return logger
 
 def getLogs(lines=10):
-    with open(logFile) as f:
+    with open(logFile, encoding='utf-8') as f:
         content = f.read().splitlines()
     count = len(content)
     data = []

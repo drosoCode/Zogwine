@@ -1,4 +1,3 @@
-import mysql.connector as sql
 import re
 import os
 import json
@@ -12,9 +11,9 @@ from log import logger
 
 class scanner:
 
-    def __init__(self, host, user, passw, tmdbKey, tvdbKey):
+    def __init__(self, dbConnection, tmdbKey, tvdbKey):
         self._supportedFiles = ["mkv","mp4","avi"]
-        self._connection = sql.connect(host=host,user=user,password=passw,database='mediaController')
+        self._connection = dbConnection
         self._tvdb = tvdb(tvdbKey)
         self._tmdb = tmdb(tmdbKey)
         self._currentTVS = None
