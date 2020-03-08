@@ -62,7 +62,7 @@ class api:
         os.system(cmd)
 
         with open("out/data.json","r", encoding='utf-8') as f:
-            dat = json.load(f)
+            dat = json.load(f, encoding='UTF8')
 
         data = {
             "general":{
