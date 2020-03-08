@@ -133,7 +133,7 @@ function login()
         document.querySelector("#userNav").hidden = false;
         changePage();
     }
-    catch
+    catch (e)
     {
         notify("Authentification Failed","error");
     }
@@ -419,7 +419,7 @@ function checkPlaybackEnd()
         {
             videojs('videoPlayer').dispose();
         }
-        catch
+        catch (e)
         {
             console.log('videojs error')
         }
@@ -490,7 +490,7 @@ function settingsSelectShow(idShow, id)
         card.parentNode.removeChild(card);
         notify("Preferences Applied","success")
     }
-    catch
+    catch (e)
     {
         notify("Unauthorized Action","error")
     }    
