@@ -358,7 +358,7 @@ function updatePlay(type, id='')
     else if(type == 4)
     {
         //play file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
+        let link = apiEndpoint+"tvs/streamFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
         showPlayer(true, link, id);
     }
     else if(type == 5)

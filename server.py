@@ -4,6 +4,7 @@ from flask_cors import CORS
 import requests
 import mimetypes
 import os
+import re
 
 from log import getLogs
 from api import api as apiClass
@@ -156,6 +157,53 @@ def getFile():
         mime = mimetypes.guess_type(path, strict=False)[0]
         if 'video' in mime:
             return send_file(open(path, "rb"), mimetype=mime, as_attachment=True, attachment_filename=path[path.rfind('/')+1:])
+        else:
+            abort(404)
+    else:
+        abort(404)
+
+def get_chunk(full_path, byte1=None, byte2=None):
+    file_size = os.stat(full_path).st_size
+    start = 0
+    length = 102400
+
+    if byte1 < file_size:
+        start = byte1
+    if byte2:
+        length = byte2 + 1 - byte1
+    else:
+        length = file_size - start
+
+    with open(full_path, 'rb') as f:
+        f.seek(start)
+        chunk = f.read(length)
+    return chunk, start, length, file_size
+
+@app.route('/api/tvs/streamFile')
+def streamFile():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+
+    path = api.getEpPath(request.args['idEpisode'])
+    if os.path.exists(path):
+        mime = mimetypes.guess_type(path, strict=False)[0]
+        if mime in ['video/mp4', 'video/mpeg']:
+                range_header = request.headers.get('Range', None)
+                byte1, byte2 = 0, None
+                if range_header:
+                    match = re.search(r'(\d+)-(\d*)', range_header)
+                    groups = match.groups()
+
+                    if groups[0]:
+                        byte1 = int(groups[0])
+                    if groups[1]:
+                        byte2 = int(groups[1])
+
+                chunk, start, length, file_size = get_chunk(path, byte1, byte2)
+                resp = Response(chunk, 206, mimetype=mime, content_type=mime, direct_passthrough=True)
+                resp.headers.add('Content-Range', 'bytes {0}-{1}/{2}'.format(start, start + length - 1, file_size))
+                resp.headers.add('Accept-Ranges', 'bytes')
+                return resp
         else:
             abort(404)
     else:
