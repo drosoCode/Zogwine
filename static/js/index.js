@@ -219,8 +219,10 @@ function showTVSEpisodes(id)
         {
             if(season != -1)
                 cards += "</div>"
+
             cards += "<div class=\"alert alert-dark mt-4\" role=\"alert\">"
                 cards += "Season "+tvsE[i]["season"]
+                cards += "<button type=\"button\" class=\"btn btn-sm btn-outline-info mx-4\" onclick=toggleViewedSeason("+id+","+tvsE[i]["season"]+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button>"
             cards += "</div>"
             cards += "<div class=\"row\">"
 
@@ -232,6 +234,12 @@ function showTVSEpisodes(id)
     document.getElementById("content").innerHTML = cards;
 }
 
+function toggleViewedSeason(id, season)
+{
+    //set season as watched/unwatched
+    httpGet(apiEndpoint+"tvs/toggleViewedTVS?idShow="+id+"&season="+season+"&token="+userToken);
+    notify("Season status updated","success");
+}
 
 function makeTVSEpisodesCard(id)
 {

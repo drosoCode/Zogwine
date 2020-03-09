@@ -84,6 +84,17 @@ def toggleViewed():
     s = api.toggleViewed(request.args['idEpisode'], request.args['token'])
     return jsonify({'response':s})
 
+@app.route('/api/tvs/toggleViewedTVS', methods=['GET'])
+def toggleViewedTVS():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    #set show as viewed for user
+    s = 'all'
+    if 'season' in request.args:
+        s = request.args['season']
+    s = api.toggleViewedTVS(request.args['idShow'], request.args['token'], s)
+    return jsonify({'response':s})
+
 @app.route('/api/users/authenticate', methods=['GET','POST'])
 def authenticateUser():
     #return user infos

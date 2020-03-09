@@ -33,7 +33,7 @@ class api:
         mrDat = ''
         if mr:
             mrDat = 'NOT '
-        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(idView) FROM views WHERE idShow = t.idShow AND idEpisode IS NOT NULL AND viewCount > 0) AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow) AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
     def getTVSEp(self, idShow):
@@ -164,6 +164,12 @@ class api:
         else:
             return False
 
+    def toggleViewedTVS(self, idShow, token, season='all', add=None):
+        ids = self.getTVSEp(idShow)
+        for i in ids:
+            if season == 'all' or int(season) == int(i["season"]):
+                self.toggleViewed(i["id"],token,add)
+        return True
 
     def toggleViewed(self, idEpisode, token, add=None):
         cursor = self._connection.cursor(dictionary=True)
