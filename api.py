@@ -236,3 +236,15 @@ class api:
 
     def checkToken(self, token):
         return token in self._userTokens
+
+    def getStatistics(self, token):
+        avgEpTime = 0.5 #h
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT COUNT(idView) AS watchedEpCount, SUM(viewCount) AS watchedEpSum FROM views WHERE viewCount > 0 AND idUser = "+str(self._userTokens[token])+";")
+        dat1 = cursor.fetchone()
+        cursor.execute("SELECT COUNT(DISTINCT idShow) AS tvsCount, COUNT(idEpisode) AS epCount FROM episodes;")
+        dat2 = cursor.fetchone()
+        if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
+            dat1["watchedEpSum"] = 0
+        return {"watchedEpCount":int(dat1["watchedEpCount"]), "watchedEpSum":int(dat1["watchedEpSum"]), "tvsCount":int(dat2["tvsCount"]), "epCount": int(dat2["epCount"]), "lostTime": avgEpTime * int(dat1["watchedEpSum"])}
+    
