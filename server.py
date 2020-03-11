@@ -220,6 +220,12 @@ def streamFile():
     else:
         abort(404)
 
+@app.route('/api/tvs/getStatistics')
+def getStats():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return api.getStatistics(request.args['token'])
+
 @app.route('/api/logs')
 def getServerLogs():
     if 'token' not in request.args or not api.checkToken(request.args['token']):

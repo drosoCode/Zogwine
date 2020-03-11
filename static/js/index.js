@@ -90,6 +90,7 @@ function changePage(clear=false)
         document.querySelector("#content").hidden = true;
         document.querySelector("#home").hidden = false;
         document.querySelector("#login").hidden = true;
+        showHome();
     }
 }
 
@@ -137,6 +138,18 @@ function login()
     {
         notify("Authentification Failed","error");
     }
+}
+
+function showHome()
+{
+    let userData = JSON.parse(httpGet(apiEndpoint+"users/data?token="+userToken));
+    let stats = JSON.parse(httpGet(apiEndpoint+"tvs/getStatistics?token="+userToken));
+    document.querySelector("#statsWatchedEP").textContent = stats["watchedEpCount"];
+    document.querySelector("#statsLostTime").textContent = stats["lostTime"]+"H";
+    document.querySelector("#statsAvTVS").textContent = stats["tvsCount"];
+    document.querySelector("#statsAvEP").textContent = stats["epCount"];
+    document.querySelector("#cardUserName").textContent = userData["name"];
+    document.querySelector("#cardUserImg").setAttribute("src","../static/icons/"+userData["icon"]);
 }
 
 function showTVS()
