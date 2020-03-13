@@ -1,5 +1,8 @@
 body {
     background-color: #313131;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 .card:hover {
     box-shadow: 5px 5px 5px 5px #222;
