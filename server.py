@@ -234,3 +234,9 @@ def getServerLogs():
         return jsonify(getLogs(20))
     else:
         abort(403)
+
+@app.route('/sw_content.js')
+def getServiceWorker():
+    path = 'static/js/sw_content.js'
+    mime = mimetypes.guess_type(path, strict=False)[0]
+    return send_file(open(path, "rb"), mimetype=mime, as_attachment=True, attachment_filename=path[path.rfind('/')+1:])
