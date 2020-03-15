@@ -190,7 +190,7 @@ function makeTVSCard(id)
     let card = "<div class=\"col-xl-3 col-lg-6 col-md-6 col-sm-12 col-xs-12\">"
     card += "<div class=\"card text-white bg-dark\">"
         card += "<div class=\"row no-gutters\">"
-                card += "<img src=\""+data["icon"].replace('http://','https://')+"\" height=\"200px\" class=\"card-img col-4\">"
+                card += "<img src=\""+data["icon"]+"\" height=\"200px\" class=\"card-img col-4\">"
                 card += "<div class=\"card-body  col-8 pl-3\">"
                     card += "<h5 class=\"card-title\">"+data["title"]+"</h5>"
                     card += "<p class=\"card-text\"><small class=\"text-muted\">Premiered: "+data["premiered"]+" | Rating: "+data["rating"]+"</small></p>"  
@@ -273,7 +273,7 @@ function makeTVSEpisodesCard(id)
     let card = "<div class=\"col-xl-3 col-lg-4 col-md-6 col-sm-6 col-xs-12\">"
     card += "<div class=\"card text-white bg-dark\">"
         card += "<div class=\"row no-gutters\">"
-                card += "<img src=\""+data["icon"].replace('http://','https://')+"\" class=\"card-img-top\" height=\"200px\" width=\"30px\">"
+                card += "<img src=\""+data["icon"]+"\" class=\"card-img-top\" height=\"200px\" width=\"30px\">"
                 card += "<div class=\"card-body\">"
                     card += "<h5 class=\"card-title\">"+data["title"]+"</h5>"
                     card += "<p class=\"card-text\">Season "+data["season"]+" | Episode "+data["episode"]+"</p>"
@@ -468,7 +468,7 @@ function showSettings()
         for(let i=0; i<results.length; i++)
         {
             dat += "<div class=\"card text-white bg-dark\"><div class=\"row no-gutters\">"
-            dat += "<img src=\""+results[i]["icon"].replace('http://','https://')+"\" height=\"200px\" class=\"card-img col-2\">"
+            dat += "<img src=\""+results[i]["icon"]+"\" height=\"200px\" class=\"card-img col-2\">"
             dat += "<div class=\"card-body  col-10 pl-3\">"
             dat += "<h5 class=\"card-title\">"+results[i]["title"]+"</h5>"
             dat += "<p class=\"card-text\">Premiered: "+results[i]["premiered"]+" <br> Scraper: "+results[i]["scraperName"]+" <br> In Production: "+results[i]["in_production"]+"<br><small class=\"text-muted\">"+results[i]["desc"]+"</small></p>"
