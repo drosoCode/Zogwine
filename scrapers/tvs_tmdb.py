@@ -1,3 +1,4 @@
+# coding: utf-8
 import requests
 import json
 import urllib.parse
@@ -33,13 +34,15 @@ class tmdb:
                 for i in data:
                     dat.append(self.subStandardize(i))
                 return dat
-            else:
+            elif len(data) == 1:
                 return self.subStandardize(data[0])
+            else:
+                return data
         else:
             return self.subStandardize(data)
 
     def subStandardize(self, i):
-        baseImgUrl = "http://image.tmdb.org/t/p/w500"
+        baseImgUrl = "https://image.tmdb.org/t/p/w500"
         genres = {"28":"Action", "12":"Adventure", "16":"Animation", "35":"Comedy", "80":"Crime", "99":"Documentary", "18":"Drama", "10751":"Family", "14":"Fantasy", "36":"History", "27":"Horror", "10402":"Music", "9648":"Mystery", "10749":"Romance", "878":"Science Fiction", "10770":"TV Movie", "53":"Thriller", "10752":"War", "37":"Western"}
         tmp = {"scraperName":"tmdb"}
 
