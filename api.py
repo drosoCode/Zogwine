@@ -28,17 +28,19 @@ class api:
             self._userTokens = {}
         logger.info('API Class Instancied Successfully')
 
-    def getTVSData(self, mr=False):
+    def getTVSData(self, token, mr=False):
+        idUser = self._userTokens[token]
         cursor = self._connection.cursor(dictionary=True)
         mrDat = ''
         if mr:
             mrDat = 'NOT '
-        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0) AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
-    def getTVSEp(self, idShow):
+    def getTVSEp(self, idShow, token):
+        idUser = self._userTokens[token]
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idEpisode AS id, title, overview, icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode) AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
+        cursor.execute("SELECT idEpisode AS id, title, overview, icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode AND idUser = "+str(idUser)+") AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
         return cursor.fetchall()
     
     def setTVSID(self, idShow, resultID):
@@ -165,7 +167,7 @@ class api:
             return False
 
     def toggleViewedTVS(self, idShow, token, season='all', add=None):
-        ids = self.getTVSEp(idShow)
+        ids = self.getTVSEp(idShow, token)
         for i in ids:
             if season == 'all' or int(season) == int(i["season"]):
                 self.toggleViewed(i["id"],token,add)
