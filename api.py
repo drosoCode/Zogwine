@@ -22,7 +22,7 @@ class api:
             data = json.load(f)
             self._data = data
             self._connection = sql(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database='mediaController')
-            self._scanner = scanner(self._connection, data["api"]["tmdb"], data["api"]["tvdb"])
+            self._scanner = scanner(self._connection, 'tvs', data["api"])
             self._fileDuration = {}
             self._userProcess = {}
             self._userTokens = {}

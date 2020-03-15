@@ -11,6 +11,7 @@ class tvdb:
 
     def searchTVS(self, name):
         d = json.loads(requests.get(self._endpoint+"/search/series?name="+urllib.parse.quote(name), headers=self._headers).text)
+        print(d)
         if "Error" in d or 'data' not in d:
             return []
         else:
@@ -37,8 +38,10 @@ class tvdb:
                 for i in data:
                     dat.append(self.subStandardize(i))
                 return dat
-            else:
+            elif len(data) == 1:
                 return self.subStandardize(data[0])
+            else:
+                return data
         else:
             return self.subStandardize(data)
 
