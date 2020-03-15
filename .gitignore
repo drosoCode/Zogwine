@@ -1,6 +1,7 @@
 transcoder/out/*
 input.mkv
-*.json
+config.json
 *test*
 __pycache__*
 *.log
+.vscode/*

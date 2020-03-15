@@ -1,0 +1,22 @@
+{
+    "short_name": "Media",
+    "name": "Media Controller",
+    "description": "Media Controller App",
+    "icons": [
+      {
+        "src": "/static/icon_192.png",
+        "type": "image/png",
+        "sizes": "192x192"
+      },
+      {
+        "src": "/static/icon_512.png",
+        "type": "image/png",
+        "sizes": "512x512"
+      }
+    ],
+    "start_url": "/",
+    "background_color": "#121212",
+    "display": "fullscreen",
+    "scope": "/",
+    "theme_color": "#111111"
+  }
