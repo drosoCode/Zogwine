@@ -159,20 +159,6 @@ def getTranscoderFile():
     else:
         abort(404)
 
-@app.route('/api/tvs/getFile')
-def getFile():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    path = api.getEpPath(request.args['idEpisode'])
-    if os.path.exists(path):
-        mime = mimetypes.guess_type(path, strict=False)[0]
-        if 'video' in mime:
-            return send_file(open(path, "rb"), mimetype=mime, as_attachment=True, attachment_filename=path[path.rfind('/')+1:])
-        else:
-            abort(404)
-    else:
-        abort(404)
-
 def get_chunk(full_path, byte1=None, byte2=None):
     file_size = os.stat(full_path).st_size
     start = 0
@@ -190,8 +176,8 @@ def get_chunk(full_path, byte1=None, byte2=None):
         chunk = f.read(length)
     return chunk, start, length, file_size
 
-@app.route('/api/tvs/streamFile')
-def streamFile():
+@app.route('/api/tvs/getFile')
+def getFile():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
 
@@ -214,6 +200,7 @@ def streamFile():
                 resp = Response(chunk, 206, mimetype=mime, content_type=mime, direct_passthrough=True)
                 resp.headers.add('Content-Range', 'bytes {0}-{1}/{2}'.format(start, start + length - 1, file_size))
                 resp.headers.add('Accept-Ranges', 'bytes')
+                resp.headers.add('Content-Disposition', 'attachment', filename=path[path.rfind('/')+1:])
                 return resp
         else:
             abort(404)
