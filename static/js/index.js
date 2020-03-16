@@ -235,7 +235,8 @@ function showTVSEpisodes(id)
 
             cards += "<div class=\"alert alert-dark mt-4\" role=\"alert\">"
                 cards += "Season "+tvsE[i]["season"]
-                cards += "<button type=\"button\" class=\"btn btn-sm btn-outline-info mx-4\" onclick=toggleViewedSeason("+id+","+tvsE[i]["season"]+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button>"
+                cards += "<button type=\"button\" class=\"btn btn-sm btn-outline-info mx-4\" onclick=seasonOptions(0,"+id+","+tvsE[i]["season"]+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button>"
+                cards += "<button type=\"button\" class=\"btn btn-sm btn-outline-warning mx-4\" onclick=seasonOptions(1,"+id+","+tvsE[i]["season"]+")><i class=\"fas fa-download\"></i>&nbsp;Download</button>"
             cards += "</div>"
             cards += "<div class=\"row\">"
 
@@ -247,11 +248,28 @@ function showTVSEpisodes(id)
     document.getElementById("content").innerHTML = cards;
 }
 
-function toggleViewedSeason(id, season)
+function seasonOptions(type, id, season)
 {
-    //set season as watched/unwatched
-    httpGet(apiEndpoint+"tvs/toggleViewedTVS?idShow="+id+"&season="+season+"&token="+userToken);
-    notify("Season status updated","success");
+    if(type == 0)
+    {
+        //set season as watched/unwatched
+        httpGet(apiEndpoint+"tvs/toggleViewedTVS?idShow="+id+"&season="+season+"&token="+userToken);
+        notify("Season status updated","success");
+    }
+    else if(type == 1)
+    {
+        //download a season
+        let data = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id+"&token="+userToken));
+        for(ep of data)
+        {
+            if(ep["season"] == season)
+            {
+                let link = apiEndpoint+"tvs/getFile?idEpisode="+ep["id"]+"&token="+userToken;
+                let win = window.open(link, '_blank');
+                win.focus();
+            }
+        }
+    }
 }
 
 function makeTVSEpisodesCard(id)
@@ -379,7 +397,7 @@ function updatePlay(type, id='')
     else if(type == 4)
     {
         //play file
-        let link = apiEndpoint+"tvs/streamFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
         showPlayer(true, link, id);
     }
     else if(type == 5)
