@@ -25,19 +25,19 @@ def home():
 def getTVSEp():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.getTVSEp(request.args['idShow']))
+    return jsonify(api.getTVSEp(request.args['idShow'], request.args['token']))
 
 @app.route('/api/tvs/getShows', methods=['GET'])
 def getTVS():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.getTVSData(False))
+    return jsonify(api.getTVSData(request.args['token'], False))
 
 @app.route('/api/tvs/getShowsMultipleResults', methods=['GET'])
 def getTVSMR():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.getTVSData(True))
+    return jsonify(api.getTVSData(request.args['token'], True))
 
 @app.route('/api/tvs/setID', methods=['GET'])
 def setTVSID():
