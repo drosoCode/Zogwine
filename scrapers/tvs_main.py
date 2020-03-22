@@ -22,14 +22,17 @@ class tvs:
     def importScrapers(self):
         for i in os.listdir('scrapers/'):
             if 'tvs_' in i and i[i.rfind('.')+1:] == 'py' and 'main' not in i:
-                scraperName = i[i.rfind('_')+1:i.rfind('.')]
-                module = import_module('tvs_'+scraperName)
-                my_class = getattr(module, scraperName)
-                if my_class.__name__ in self._apiKeys:
-                    instance = my_class(self._apiKeys[my_class.__name__])
-                    self._scrapers.append(instance)
-                    self._logger.info('Scraper '+str(my_class.__name__)+' successfully initialised')
-                else:
+                try:
+                    scraperName = i[i.rfind('_')+1:i.rfind('.')]
+                    module = import_module('tvs_'+scraperName)
+                    my_class = getattr(module, scraperName)
+                    if my_class.__name__ in self._apiKeys:
+                        instance = my_class(self._apiKeys[my_class.__name__])
+                        self._scrapers.append(instance)
+                        self._logger.info('Scraper '+str(my_class.__name__)+' successfully initialised')
+                    else:
+                        self._logger.warning('Failed to import scraper '+str(my_class.__name__))
+                except:
                     self._logger.warning('Failed to import scraper '+str(my_class.__name__))
 
     def getTVSData(self):

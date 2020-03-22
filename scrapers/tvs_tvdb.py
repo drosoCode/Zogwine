@@ -11,7 +11,6 @@ class tvdb:
 
     def searchTVS(self, name):
         d = json.loads(requests.get(self._endpoint+"/search/series?name="+urllib.parse.quote(name), headers=self._headers).text)
-        print(d)
         if "Error" in d or 'data' not in d:
             return []
         else:
