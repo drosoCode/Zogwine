@@ -160,8 +160,7 @@ function showTVS()
     let cards = "";
     while(i<tvshows.length)
     {
-        if(tvshows[i]["title"] != null)
-            cards += makeTVSCard(i);
+        cards += makeTVSCard(i);
         i++;
     }
     document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
@@ -169,7 +168,14 @@ function showTVS()
 
 function makeTVSCard(id)
 {
-    let data = tvshows[id]
+    let data = tvshows[id]    
+    if(data["title"] == null)
+        data["title"] = data["path"]
+    if(data["genre"] == "null")
+        data["genre"] = "[]"
+    if(data["icon"] == null)
+        data["icon"] = "static/icons/undefinedTVS.png"
+
     let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<a type=\"button\" class=\"btn btn-primary btn-sm\" href=\"#tvshow_"+data["id"]+"\">Play</a>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSInfo("+id+")\">Info</button>"
@@ -275,6 +281,11 @@ function seasonOptions(type, id, season)
 function makeTVSEpisodesCard(id)
 {
     let data = tvsE[id];
+    if(data["title"] == null)
+        data["title"] = data["path"]
+    if(data["icon"] == null)
+        data["icon"] = "static/icons/undefinedEp.png"
+
     let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay('"+id+"')\">Play</button>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSEpisodeInfo('"+id+"')\">Info</button>"
