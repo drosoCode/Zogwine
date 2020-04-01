@@ -184,7 +184,7 @@ def getFile():
     path = api.getEpPath(request.args['idEpisode'])
     if os.path.exists(path):
         mime = mimetypes.guess_type(path, strict=False)[0]
-        if mime in ['video/mp4', 'video/mpeg']:
+        if 'video' in mime:
                 range_header = request.headers.get('Range', None)
                 byte1, byte2 = 0, None
                 if range_header:
