@@ -76,21 +76,24 @@ class api:
             "subtitles":[]
         }
 
+        i = 0
         for stream in dat["streams"]:
             lang = ''
             if stream["codec_type"] == "video":
                 data["general"]["video_codec"] = stream["codec_name"]
             elif stream["codec_type"] == "audio":
-                if 'language' in stream["tags"]:
+                if 'tags' in stream and 'language' in stream["tags"]:
                     lang = stream["tags"]["language"]
                 data["audio"].append({"index":stream["index"], "codec":stream["codec_name"], "channels":stream["channels"], "language": lang})
             elif stream["codec_type"] == "subtitle":
-                t = ''
-                if 'title' in stream["tags"]:
-                    t = stream["tags"]["title"]
-                if 'language' in stream["tags"]:
-                    lang = stream["tags"]["language"]
+                t = 'SUB'+str(i)
+                if 'tags' in stream:
+                    if 'title' in stream["tags"]:
+                        t = stream["tags"]["title"]
+                    if 'language' in stream["tags"]:
+                        lang = stream["tags"]["language"]
                 data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": lang, "title": t})
+                i += 1
 
         self._fileDuration[episodeID] = dat["format"]["duration"]
         return data
