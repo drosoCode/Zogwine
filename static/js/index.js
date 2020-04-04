@@ -281,8 +281,6 @@ function seasonOptions(type, id, season)
 function makeTVSEpisodesCard(id)
 {
     let data = tvsE[id];
-    if(data["title"] == null)
-        data["title"] = data["path"]
     if(data["icon"] == null)
         data["icon"] = "static/icons/undefinedEp.png"
 
