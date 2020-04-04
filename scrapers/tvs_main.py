@@ -179,7 +179,7 @@ class tvs:
                 if epCode not in self._existingEp or epCode in self._forceUpdateEp:
                     self._logger.debug('No entries are available for this episode or it is marked as forceUpdate')
                     #create empty dict
-                    result = {'title': None,'desc': None, 'icon': None, 'season': None, 'episode': None, 'rating': None,'id': None}
+                    result = {'title': item,'desc': None, 'icon': None, 'season': None, 'episode': None, 'rating': None,'id': None}
                     
                     for s in self._scrapers:
                         if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
@@ -192,27 +192,27 @@ class tvs:
                         self._logger.debug('Episode overview not available, setting as future forceUpdate')
                         forceUpdate = 1
 
-                    if result['id'] != None:
-                        if path != '':
-                            filePath = path + '/' + item
-                        else:
-                            filePath = item
-
-                        if epCode not in self._existingEp:
-                            self._logger.debug('Creating new entry')
-                            data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
-                            cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
-                            commit = True
-
-                        elif epCode in self._forceUpdateEp:
-                            self._logger.debug('Updating existing entry (forceUpdate)')
-                            data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
-                            cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;", data)
-                            commit = True
-
-                        self._logger.debug('Updating database with: '+str(data))
+                    if result['id'] == None:
+                        self._logger.warning('Episode ID is null')
+                        
+                    if path != '':
+                        filePath = path + '/' + item
                     else:
-                        self._logger.warning('Episode ID is null') 
+                        filePath = item
+
+                    if epCode not in self._existingEp:
+                        self._logger.debug('Creating new entry')
+                        data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
+                        cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
+                        commit = True
+
+                    elif epCode in self._forceUpdateEp:
+                        self._logger.debug('Updating existing entry (forceUpdate)')
+                        data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
+                        cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;", data)
+                        commit = True
+
+                    self._logger.debug('Updating database with: '+str(data)) 
                 else:
                     self._logger.debug('Entries for this episode already exists') 
             else:
