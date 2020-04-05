@@ -120,10 +120,10 @@ class tvs:
                 for s in self._scrapers:
                     #create empty dict
                     result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None}
-                    
+                    print(result)
                     if s.__class__.__name__ == self._tvs[item]["scraperName"]:
                         result.update(s.getTVS(self._tvs[item]["scraperID"]))
-
+                        break
                 data = (result["title"], result["desc"], result["icon"], result["fanart"], result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._tvs[item]["idShow"])
                 cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                 commit = True
