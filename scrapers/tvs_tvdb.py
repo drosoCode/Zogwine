@@ -18,6 +18,7 @@ class tvdb:
 
     def getTVS(self, id):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id), headers=self._headers).text)
+        print(d)
         if 'data' in d:
             return self.standardize(d["data"])
         else:
@@ -86,6 +87,5 @@ class tvdb:
                     tmp["title"] = i[j]
                 elif j == "siteRating":
                     tmp["rating"] = i[j]
-
         return tmp
 
