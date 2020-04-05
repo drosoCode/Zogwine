@@ -48,7 +48,7 @@ class api:
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT multipleResults FROM tv_shows WHERE idShow = "+str(idShow)+";")
         data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
-        cursor.execute("UPDATE tv_shows SET scraperName = %s, scraperID = %s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %s;", (data["scraperName"], data["id"], idShow))
+        cursor.execute("UPDATE tv_shows SET scraperName = %s, scraperID = %s, scraperData = %s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %s;", (data["scraperName"], data["id"], data["scraperData"], idShow))
         self._connection.commit()
         return True
 

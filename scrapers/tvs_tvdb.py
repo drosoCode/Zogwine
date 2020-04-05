@@ -24,7 +24,7 @@ class tvdb:
         else:
             return {"scraperName":"tvdb"}
 
-    def getTVSEp(self, id, season, episode=None):
+    def getTVSEp(self, id, season, episode=None, scraperData=None):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes/query?airedSeason="+str(season)+"&airedEpisode="+str(episode), headers=self._headers).text)
         if 'data' in d:
             return self.standardize(d["data"])
@@ -46,7 +46,7 @@ class tvdb:
             return self.subStandardize(data)
 
     def subStandardize(self, i):
-        tmp = {"scraperName":"tvdb"}
+        tmp = {"scraperName":"tvdb", "scraperData":None}
         baseImgUrl = "https://artworks.thetvdb.com"
         baseImgUrl2 = "https://artworks.thetvdb.com/banners/"
 

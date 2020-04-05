@@ -119,8 +119,7 @@ class tvs:
                 result = []
                 for s in self._scrapers:
                     #create empty dict
-                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None}
-                    print(result)
+                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None, 'scraperData': None}
                     if s.__class__.__name__ == self._tvs[item]["scraperName"]:
                         result.update(s.getTVS(self._tvs[item]["scraperID"]))
                         break
@@ -179,12 +178,12 @@ class tvs:
                 if epCode not in self._existingEp or epCode in self._forceUpdateEp:
                     self._logger.debug('No entries are available for this episode or it is marked as forceUpdate')
                     #create empty dict
-                    result = {'title': item,'desc': None, 'icon': None, 'season': None, 'episode': None, 'rating': None,'id': None}
+                    result = {'title': item,'desc': None, 'icon': None, 'season': season, 'episode': episode, 'rating': None,'id': None}
                     
                     for s in self._scrapers:
                         if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
                             self._logger.debug('Getting '+str(s.__class__.__name__)+' results')
-                            result.update(s.getTVSEp(self._tvs[self._currentTVS]["scraperID"],season,episode))
+                            result.update(s.getTVSEp(self._tvs[self._currentTVS]["scraperID"], season, episode, self._tvs[self._currentTVS]["scraperData"]))
                             break
 
                     forceUpdate = 0
