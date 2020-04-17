@@ -6,6 +6,7 @@ import mimetypes
 import os
 import re
 from base64 import b64decode
+import time
 
 from log import getLogs
 from api import api as apiClass
@@ -128,7 +129,8 @@ def getTranscoderM3U8():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
     token = request.args['token']
-    fileUrl = "/api/transcoder/file?token="+token+"&name="
+    #add time to fileUrl prevent browser caching
+    fileUrl = "/api/transcoder/file?token="+token+"&time="+str(time.time())+"&name="
     dat = ''
 
     file = 'out/'+str(token)+'/stream.m3u8'
