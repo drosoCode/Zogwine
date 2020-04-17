@@ -482,7 +482,7 @@ function showSettings()
     changePage(true);
     document.querySelector("#content").hidden = false;
 
-    let settingsData = "<br><button type=\"button\" class=\"btn btn-warning btn-lg btn-block\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><br>";
+    let settingsData = "<br><div class=\"btn-group btn-lg btn-block\"><button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(1)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Cache</button></div><br>";
     
     let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken));
     
@@ -552,6 +552,11 @@ function settingsLibUpdate(type=0)
         notify("Library Scan Started","success")
     }
     else if(type == 1)
+    {
+        httpGet(apiEndpoint+"core/refreshCache?token="+userToken,true);
+        notify("Cache Refresh Started","success")
+    }
+    else if(type == 2)
     {
         httpGet(apiEndpoint+"tvs/syncKodi?token="+userToken,true);
         notify("Kodi Libray Sync Started","success")
