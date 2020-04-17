@@ -108,7 +108,7 @@ class api:
 
     def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt):
         logger.info('Starting transcoder for episode '+str(idEpisode)+' and user '+str(self._userTokens[token]))
-        path = '"'+self.getEpPath(idEpisode)+'"'
+        path = self.getEpPath(idEpisode)
 
         #remove old data in this dir, if it still exists
         outFile = 'out/'+token
@@ -122,23 +122,22 @@ class api:
         outFile += '/stream'
 
         crf = str(self._data["config"]['crf']) #recommanded: 23
+        encoder = str(self._data["config"]['encoder']) #default: h264_nvenc
         hlsTime = str(self._data["config"]['hlsTime']) #in seconds
         
         if '..' not in path:
             if subStream != "-1":
                 if subTxt == "1":
-                    cmd = " -vsync 0 -i " + path + " -pix_fmt yuv420p -vf subtitles=" + path.replace(":","\\\\:") +" -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -map 0:s:" + subStream + " -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                    cmd = " -i \""+ path +"\" -filter_complex \"[0:v:0]subtitles='"+ path +"':si="+ str(subStream) +"[v]\" -map \"[v]\" -map 0:a:"+ audioStream +" -pix_fmt yuv420p -crf " + crf + " -c:v "+ encoder +" -c:a aac -ar 48000 -b:a 128k -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8 "
                 else:
-                    cmd = " -i " + path +" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                    cmd = " -i \""+ path +"\" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
             else:
-                cmd = " -vsync 0 -i " + path + " -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v h264_nvenc -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+str(hlsTime)+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                cmd = " -i \""+ path +"\" -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v "+ encoder +" -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
 
             cmd = "ffmpeg -hide_banner -loglevel error" + cmd
-            print(cmd)
-            #process = Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
+            logger.debug("Starting ffmpeg with:"+cmd)
             process = Popen("exec "+cmd, shell=True)
             self._userProcess[token] = process
-            print(self._userProcess)
 
             return True
         else:
