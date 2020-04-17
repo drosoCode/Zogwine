@@ -11,6 +11,7 @@ from subprocess import Popen
 import shutil
 import signal
 import secrets
+from base64 import b64decode
 
 from indexer import scanner
 from log import logger
@@ -34,13 +35,13 @@ class api:
         mrDat = ''
         if mr:
             mrDat = 'NOT '
-        cursor.execute("SELECT idShow AS id, title, overview, icon, fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image/',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
     def getTVSEp(self, idShow, token):
         idUser = self._userTokens[token]
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idEpisode AS id, title, overview, icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode AND idUser = "+str(idUser)+") AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
+        cursor.execute("SELECT idEpisode AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode AND idUser = "+str(idUser)+") AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
         return cursor.fetchall()
     
     def setTVSID(self, idShow, resultID):
@@ -253,3 +254,23 @@ class api:
             dat1["watchedEpSum"] = 0
         return {"watchedEpCount":int(dat1["watchedEpCount"]), "watchedEpSum":int(dat1["watchedEpSum"]), "tvsCount":int(dat2["tvsCount"]), "epCount": int(dat2["epCount"]), "lostTime": avgEpTime * int(dat1["watchedEpSum"])}
     
+    def refreshCache(self):
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT icon, fanart FROM tv_shows;")
+        data = cursor.fetchall()
+        for d in data:
+            if d["icon"] != None:
+                self.addCache(d["icon"])
+            if d["fanart"] != None:
+                self.addCache(d["fanart"])
+        cursor.execute("SELECT icon FROM episodes;")
+        data = cursor.fetchall()
+        for d in data:
+            if d["icon"] != None:
+                self.addCache(d["icon"])
+
+    def addCache(self, data):
+        file = 'out/cache/'+data
+        if not os.path.exists(file):
+            with open(file, 'wb') as f:
+                f.write(requests.get(b64decode(data).decode()).content)

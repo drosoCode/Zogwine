@@ -5,6 +5,7 @@ import json
 import requests
 import urllib.parse
 from importlib import import_module
+from base64 import b64encode
 
 class tvs:
 
@@ -18,6 +19,9 @@ class tvs:
         self._currentTVS = None
         logger.info('TVS Indexer Initialised Successfully')
         logger.info('Supported file formats: '+str(self._supportedFiles))
+
+    def encodeImg(self, img):
+        return b64encode(img.encode()).decode()
 
     def importScrapers(self):
         for i in os.listdir('scrapers/'):
@@ -123,7 +127,7 @@ class tvs:
                     if s.__class__.__name__ == self._tvs[item]["scraperName"]:
                         result.update(s.getTVS(self._tvs[item]["scraperID"]))
                         break
-                data = (result["title"], result["desc"], result["icon"], result["fanart"], result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._tvs[item]["idShow"])
+                data = (result["title"], result["desc"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._tvs[item]["idShow"])
                 cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                 commit = True
 
@@ -201,13 +205,13 @@ class tvs:
 
                     if epCode not in self._existingEp:
                         self._logger.debug('Creating new entry')
-                        data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
+                        data = (result["title"], result["desc"], self.encodeImg(result["icon"]), result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
                         cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
                         commit = True
 
                     elif epCode in self._forceUpdateEp:
                         self._logger.debug('Updating existing entry (forceUpdate)')
-                        data = (result["title"], result["desc"], result["icon"], result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
+                        data = (result["title"], result["desc"], self.encodeImg(result["icon"]), result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
                         cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;", data)
                         commit = True
 

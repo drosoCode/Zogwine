@@ -1,10 +1,11 @@
 import flask
-from flask import request, jsonify, abort, send_file, Response, stream_with_context, render_template
+from flask import request, jsonify, abort, send_file, Response, stream_with_context, render_template, redirect
 from flask_cors import CORS
 import requests
 import mimetypes
 import os
 import re
+from base64 import b64decode
 
 from log import getLogs
 from api import api as apiClass
@@ -221,6 +222,31 @@ def getServerLogs():
         return jsonify(getLogs(20))
     else:
         abort(403)
+
+@app.route('/cache/image')
+def getImage():
+    id = request.args['id']
+    url = b64decode(id).decode()
+    file = 'out/cache/'+id
+    ext = url[url.rfind('.')+1:]
+    mime = 'image/'+ext
+    if ext == 'jpg':
+        mime = 'image/jpeg'
+        
+    if '/' not in id and os.path.exists(file):
+        return send_file(open(file, "rb"), mimetype=mime)
+    else:
+        return redirect(url, code=302)
+
+
+@app.route('/api/core/refreshCache', methods=['GET'])
+def refreshCache():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    if not api.isAdmin(request.args['token']):
+        abort(403)
+    api.refreshCache()
+    return jsonify({'status': "ok"})
 
 @app.route('/sw_content.js')
 def getServiceWorker():
