@@ -35,7 +35,7 @@ class api:
         mrDat = ''
         if mr:
             mrDat = 'NOT '
-        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image/',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
     def getTVSEp(self, idShow, token):
