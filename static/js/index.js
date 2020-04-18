@@ -29,7 +29,6 @@ function httpGet(url, async=false)
     return xmlHttp.responseText;
 }
 
-//var apiEndpoint = "http://192.168.1.9:8080/api/";
 var apiEndpoint = "api/";
 var tvshows;
 var tvsE;
@@ -431,7 +430,6 @@ function showPlayer(static, url, id)
     changePage(true);
     $('#playerModal').modal('hide');
     document.querySelector("#player").hidden = false;
-    let data;
     
     document.querySelector("#userNavPlayerNext").innerHTML = "<button type=\"button\" class=\"btn btn-outline-warning btn-sm mx-1\" onclick=\"showPlay("+(id+1)+");\"><i class=\"fas fa-step-forward\"></i>&nbsp;Next</button>";
     document.querySelector("#userNavPlayerReload").hidden = false;
@@ -440,23 +438,39 @@ function showPlayer(static, url, id)
 
     if(static)
     {
-        data = '<video controls class="videoPlayer"><source src="'+url+'" type="video/mp4"><p>HTML5 video error</p></video>';
+        document.querySelector("#player").innerHTML = '<video controls class="videoPlayer"><source src="'+url+'" type="video/mp4"><p>HTML5 video error</p></video>';
     }
     else
     {
-        data = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
         notify("Starting up conversion, please wait ...","info");
-
-        setTimeout(function() 
+        console.log("boglo");
+        //display loading screen
+        document.querySelector("#player").innerHTML = '<div class="row d-flex justify-content-center vh-100" style="background-color: rgba(7, 7, 7, 0.5);"><div class="col-1 align-self-center"><div class="text-center font-weight-bold text-primary"><div class="text-center spinner-border text-primary" role="status"></div><br>Loading</div></div></div>';
+        //wait until video is available
+        while(true)
         {
-            const player = videojs('videoPlayer', {liveui: true});
-                player.src({
-                src: url,
-                type: 'application/x-mpegURL'
-            });
-        }, 10000);//wait 10sec for conversion
+            delay = Date.now();
+            target = Date.now()+5000;
+            while(delay < target) //wait 5sec
+            {
+                delay = Date.now();
+            }
+            
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", url, false);
+            xmlHttp.send( null );
+            if(xmlHttp.status != 404)
+                break;
+        }
+        
+        document.querySelector("#player").innerHTML = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
+
+        const player = videojs('videoPlayer', {liveui: true, autoplay: true});
+            player.src({
+            src: url,
+            type: 'application/x-mpegURL'
+        });
     }
-    document.querySelector("#player").innerHTML = data;
 }
 
 function checkPlaybackEnd()
