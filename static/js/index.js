@@ -442,34 +442,30 @@ function showPlayer(static, url, id)
     }
     else
     {
-        notify("Starting up conversion, please wait ...","info");
-        console.log("boglo");
         //display loading screen
-        document.querySelector("#player").innerHTML = '<div class="row d-flex justify-content-center vh-100" style="background-color: rgba(7, 7, 7, 0.5);"><div class="col-1 align-self-center"><div class="text-center font-weight-bold text-primary"><div class="text-center spinner-border text-primary" role="status"></div><br>Loading</div></div></div>';
+        document.querySelector("#player").innerHTML = '<div id="loadingScreen" class="row d-flex justify-content-center vh-100" style="background-color: rgba(7, 7, 7, 0.5);"><div class="col-1 align-self-center"><div class="text-center font-weight-bold text-primary"><div class="text-center spinner-border text-primary" role="status"></div><br>Loading</div></div></div>';
+        
         //wait until video is available
-        while(true)
+        var interval = setInterval(function()
         {
-            delay = Date.now();
-            target = Date.now()+5000;
-            while(delay < target) //wait 5sec
-            {
-                delay = Date.now();
-            }
-            
             var xmlHttp = new XMLHttpRequest();
             xmlHttp.open("GET", url, false);
             xmlHttp.send( null );
             if(xmlHttp.status != 404)
-                break;
-        }
-        
-        document.querySelector("#player").innerHTML = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
-
-        const player = videojs('videoPlayer', {liveui: true, autoplay: true});
-            player.src({
-            src: url,
-            type: 'application/x-mpegURL'
-        });
+            {
+                clearInterval(interval);
+                document.querySelector("#player").innerHTML = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
+                const player = videojs('videoPlayer', {liveui: true, autoplay: true});
+                    player.src({
+                    src: url,
+                    type: 'application/x-mpegURL'
+                });
+            }
+            if(document.querySelector("#loadingScreen") === null)
+            {
+                clearInterval(interval);
+            }
+        }, 8000);
     }
 }
 
