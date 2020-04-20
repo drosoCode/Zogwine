@@ -27,6 +27,8 @@ class api:
             self._fileDuration = {}
             self._userProcess = {}
             self._userTokens = {}
+
+            self._viewedThreshold = 0.9 #set file as viewed if 90% or more is viewed
         logger.info('API Class Instancied Successfully')
 
     def getTVSData(self, token, mr=False):
@@ -57,7 +59,9 @@ class api:
         self._scanner.scanDir(self._data["config"]["tvsDirectory"])
         return True
 
-    def getFileInfos(self, episodeID):        
+    def getFileInfos(self, token, episodeID):
+
+        #get file infos
         epPath = self.getEpPath(episodeID)
         cmd = "ffprobe -v quiet -print_format json -show_format -show_streams \""+epPath+"\" > out/data.json"
 
@@ -67,11 +71,21 @@ class api:
         with open("out/data.json","r", encoding='utf-8') as f:
             dat = json.load(f, encoding='UTF8')
 
+        #get last view end if available
+        startFrom = 0
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT viewTime FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(episodeID)+"';")
+        data = cursor.fetchone()
+        if data != None and "viewTime" in data:
+            if float(data["viewTime"]) > float(dat["format"]["duration"])*self._viewedThreshold:
+                startFrom = float(data["viewTime"])
+
         data = {
             "general":{
                 "format": dat["format"]["format_name"],
                 "duration": dat["format"]["duration"],
-                "extension": epPath[epPath.rfind('.')+1:]
+                "extension": epPath[epPath.rfind('.')+1:],
+                "startFrom": startFrom
             },
             "audio":[],
             "subtitles":[]
@@ -96,7 +110,7 @@ class api:
                 data["subtitles"].append({"index":stream["index"], "codec":stream["codec_name"], "language": lang, "title": t})
                 i += 1
 
-        self._fileDuration[episodeID] = dat["format"]["duration"]
+        self._fileDuration[episodeID] = [dat["format"]["duration"]]
         return data
 
     def getEpPath(self, idEpisode):
@@ -106,7 +120,7 @@ class api:
         logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
         return path
 
-    def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt):
+    def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt, startFrom=0):
         logger.info('Starting transcoder for episode '+str(idEpisode)+' and user '+str(self._userTokens[token]))
         path = self.getEpPath(idEpisode)
 
@@ -128,16 +142,18 @@ class api:
         if '..' not in path:
             if subStream != "-1":
                 if subTxt == "1":
-                    cmd = " -i \""+ path +"\" -filter_complex \"[0:v:0]subtitles='"+ path +"':si="+ str(subStream) +"[v]\" -map \"[v]\" -map 0:a:"+ audioStream +" -pix_fmt yuv420p -crf " + crf + " -c:v "+ encoder +" -c:a aac -ar 48000 -b:a 128k -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8 "
+                    cmd = " -ss "+str(startFrom)+" -i \""+ path +"\" -filter_complex \"[0:v:0]subtitles='"+ path +"':si="+ str(subStream) +"[v]\" -map \"[v]\" -map 0:a:"+ audioStream +" -pix_fmt yuv420p -crf " + crf + " -c:v "+ encoder +" -c:a aac -ar 48000 -b:a 128k -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8 "
                 else:
-                    cmd = " -i \""+ path +"\" -pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                    cmd = " -ss "+str(startFrom)+" -i \""+ path +"\" pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
             else:
-                cmd = " -i \""+ path +"\" -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v "+ encoder +" -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                cmd = " -ss "+str(startFrom)+" -i \""+ path +"\" -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v "+ encoder +" -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
 
             cmd = "ffmpeg -hide_banner -loglevel error" + cmd
             logger.debug("Starting ffmpeg with:"+cmd)
             process = Popen("exec "+cmd, shell=True)
             self._userProcess[token] = process
+
+            self._fileDuration[idEpisode].append(startFrom)
 
             return True
         else:
@@ -154,29 +170,46 @@ class api:
             os.system("rm -rf \"out/"+token+"\"")
             os.system("rm -rf \"out/"+token+"\"")
 
-    def setViewedTime(self, idEpisode, token, lastRequestedFile):
-        timeSplit = int(self._data["config"]["hlsTime"])
+    def setViewedTime(self, idEpisode, token, lastRequestedFile, endTime=-1):
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT idView, viewCount FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
+        data = cursor.fetchone()
+        viewAdd = 0
+
+        
         if lastRequestedFile is not None and idEpisode in self._fileDuration:
-            d = float(self._fileDuration[idEpisode])
-            num = int(re.findall("(?i)(?:stream)(\\d+)(?:\\.ts)", lastRequestedFile)[0]) + 1
+            d = float(self._fileDuration[idEpisode][0])
 
-            logger.debug('Setting viewed status for user '+str(self._userTokens[token])+' : '+str(d)+' '+str(num)+' '+str(num*timeSplit)+' '+str(d - (d/100*2)))
+            if endTime == -1 and lastRequestedFile != None:
+                #transcoded video
+                timeSplit = int(self._data["config"]["hlsTime"])
+                num = int(re.findall("(?i)(?:stream)(\\d+)(?:\\.ts)", lastRequestedFile)[0]) + 1
+                startFrom = float(self._fileDuration[idEpisode][1])
+                endTime = num*timeSplit + startFrom
 
-            if d is not None and num*timeSplit > d - (d/100*10):
-                self.toggleViewed(idEpisode, token, True)
+            if d is not None and endTime > d*self._viewedThreshold:
+                viewAdd = 1
+
+            if data != None and "viewCount" in data:
+                droso = (str(data["viewCount"]+viewAdd), str(endTime), str(data["idView"]))
+                print(droso)
+                cursor.execute("UPDATE views SET viewCount = %s, viewTime = %s WHERE idView = %s;", droso)
+            else:
+                cursor.execute("INSERT INTO views (idUser, idEpisode, viewCount, viewTime) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(viewAdd), str(endTime)))
+
             del self._fileDuration[idEpisode]
-            return True
-        else:
-            return False
 
-    def toggleViewedTVS(self, idShow, token, season='all', add=None):
+            return True
+
+
+    def toggleViewedTVS(self, idShow, token, season='all'):
         ids = self.getTVSEp(idShow, token)
         for i in ids:
             if season == 'all' or int(season) == int(i["season"]):
-                self.toggleViewed(i["id"],token,add)
+                self.toggleViewedEp(i["id"],token)
         return True
 
-    def toggleViewed(self, idEpisode, token, add=None):
+    def toggleViewedEp(self, idEpisode, token):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT viewCount FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
         data = cursor.fetchone()
@@ -184,15 +217,10 @@ class api:
         if data != None and "viewCount" in data:
             #update
             count = data["viewCount"]
-            if add == None:
-                if count > 0:
-                    count = 0
-                else:
-                    count = 1
-            elif add:
-                count += 1
+            if count > 0:
+                count = 0
             else:
-                count -= 1
+                count = 1
             cursor.execute("UPDATE views SET viewCount = %s WHERE idUser = %s AND idEpisode = %s;", (str(count), str(self._userTokens[token]), str(idEpisode)))
         else:
             cursor.execute("INSERT INTO views (idUser, idEpisode, viewCount) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(idEpisode)))

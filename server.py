@@ -63,7 +63,7 @@ def runTVSScan():
 def getFileInfos():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.getFileInfos(request.args['idEpisode']))
+    return jsonify(api.getFileInfos(request.args['token'], request.args['idEpisode']))
 
 @app.route('/api/tvs/playbackEnd', methods=['GET'])
 def playbackEnd():
@@ -72,18 +72,21 @@ def playbackEnd():
         abort(401)
     #set as viewed for user, and stop transcoder if started
     api.stopTranscoder(t)
-    s = True
-    if t in lastRequestedFile:
-        s = api.setViewedTime(request.args['idEpisode'], t, lastRequestedFile[t])
-        del lastRequestedFile[t]
+    s = False
+    if 'endTime' in request.args:
+        s = api.setViewedTime(request.args['idEpisode'], t, None, request.args['endTime'])
+    else:
+        if t in lastRequestedFile:
+            s = api.setViewedTime(request.args['idEpisode'], t, lastRequestedFile[t], -1)
+            del lastRequestedFile[t]
     return jsonify({'response':s})
 
-@app.route('/api/tvs/toggleViewed', methods=['GET'])
-def toggleViewed():
+@app.route('/api/tvs/toggleViewedEp', methods=['GET'])
+def toggleViewedEp():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
     #set episode as viewed for user
-    s = api.toggleViewed(request.args['idEpisode'], request.args['token'])
+    s = api.toggleViewedEp(request.args['idEpisode'], request.args['token'])
     return jsonify({'response':s})
 
 @app.route('/api/tvs/toggleViewedTVS', methods=['GET'])
@@ -118,7 +121,7 @@ def getUserData():
 def startTranscoder():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    s = api.startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['subTxt'])
+    s = api.startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['subTxt'], request.args['startFrom'])
     if s:
         return jsonify({'response':'ok'})
     else:
