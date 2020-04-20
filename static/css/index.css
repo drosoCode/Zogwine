@@ -28,3 +28,10 @@ body {
     font-family: 'Orbitron';
     text-align: center;
 }
+
+#startFromSliderContent .slider-selection {
+	background: #0275d8;
+}
+#startFromSliderContent .slider-handle {
+	background: #0275d8;
+}

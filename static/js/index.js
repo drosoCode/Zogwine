@@ -336,6 +336,8 @@ function showPlay(id)
     infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-barcode\"></i>&nbsp;Video Format&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['format']+"</span></button>";
     infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-clock\"></i>&nbsp;Duration&nbsp;<span class=\"badge badge-light\">"+Math.round(fileInfos['general']['duration']/60)+" mins</span></button>";
 
+    document.getElementById("playerModalTitle").innerText = data["title"];
+
     if(fileInfos['general']['extension'] != 'mp4')
     {
         infos += "<br><br><div class=\"form-row\">";
@@ -353,18 +355,28 @@ function showPlay(id)
             }
             infos += "</select></div>"
 
-        infos += "</div>";
+            infos += "</div><br>"
+            let startFrom = Math.round(fileInfos['general']['startFrom']/60);
+            let duration = Math.round(fileInfos['general']['duration']/60);
+
+            infos += "<div style='text-align:center;'><input type='text' data-slider-id='startFromSliderContent' data-slider-min='0' data-slider-max='"+duration+"' data-slider-step='1' data-slider-value='"+startFrom+"' id='startFromSlider' data-slider-tooltip='hide' data-slider-handle='round' /><span>&nbsp;&nbsp;Start from: <span id='startFromSliderVal'>"+startFrom+"</span> mins</span></div>";
+
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(3,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button></div>"
+
+        document.getElementById("playerModalContent").innerHTML = infos;
+
+        var slider = new Slider("#startFromSlider");
+        slider.on("slide", function(sliderValue) {
+            document.querySelector("#startFromSliderVal").textContent = sliderValue;
+        });
     }
     else
     {
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        document.getElementById("playerModalContent").innerHTML = infos;
     }
-    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button></div>"
-
-    document.getElementById("playerModalTitle").innerText = data["title"];
-    document.getElementById("playerModalContent").innerHTML = infos;
-
+    
     $('#playerModal').modal('show');
 }
 
@@ -380,7 +392,7 @@ function updatePlay(type, id='')
     else if(type == 2)
     {
         //set episode as watched/unwatched
-        httpGet(apiEndpoint+"tvs/toggleViewed?idEpisode="+tvsE[id]['id']+"&token="+userToken);
+        httpGet(apiEndpoint+"tvs/toggleViewedEp?idEpisode="+tvsE[id]['id']+"&token="+userToken);
         notify("Episode status updated","success");
     }
     else if(type == 3)
@@ -396,8 +408,10 @@ function updatePlay(type, id='')
         let subTxt = "1";
         if(subType == "hdmv_pgs_subtitle" || subType == "dvd_subtitle")
             subTxt = "0";
+        
+        let startFrom = parseInt(document.getElementById("startFromSliderVal").textContent, 10) * 60; //get startFrom in seconds
 
-        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt);
+        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt+"&startFrom="+startFrom);
 
         let link = apiEndpoint+"transcoder/m3u8?token="+userToken;
         showPlayer(false, link, id);
@@ -476,13 +490,16 @@ function checkPlaybackEnd()
         try
         {
             videojs('videoPlayer').dispose();
+            //for videos with transcoder
+            httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken, true);
         }
         catch (e)
         {
-            console.log('videojs error')
+            //for mp4 videos
+            httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken+"&endTime="+document.querySelector(".videoPlayer").currentTime, true);
         }
+
         document.querySelector("#player").innerHTML = "";
-        httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken, true);
         playing = false;
     }
 }
