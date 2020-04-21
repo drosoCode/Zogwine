@@ -359,7 +359,10 @@ function showPlay(id)
             let startFrom = Math.round(fileInfos['general']['startFrom']/60);
             let duration = Math.round(fileInfos['general']['duration']/60);
 
-            infos += "<div style='text-align:center;'><input type='text' data-slider-id='startFromSliderContent' data-slider-min='0' data-slider-max='"+duration+"' data-slider-step='1' data-slider-value='"+startFrom+"' id='startFromSlider' data-slider-tooltip='hide' data-slider-handle='round' /><span>&nbsp;&nbsp;Start from: <span id='startFromSliderVal'>"+startFrom+"</span> mins</span></div>";
+            infos += "<div class=\"form-row\">"
+            infos += "<div class=\"col mt-4 ml-3\"><input type='text' data-slider-id='startFromSliderContent' data-slider-min='0' data-slider-max='"+duration+"' data-slider-step='1' data-slider-value='"+startFrom+"' id='startFromSlider' data-slider-tooltip='hide' data-slider-handle='round' /><span>&nbsp;&nbsp;Start from: <span id='startFromSliderVal'>"+startFrom+"</span> mins</span></div>";
+            infos += "<div class=\"col\"><label for=\"resizeSelect\">Resize</label><select class=\"form-control\" id=\"resizeSelect\"><option value=0 selected>Original</option><option value=1080>1080</option><option value=720>720</option><option value=480>480</option><option value=320>320</option></select></div>";
+            infos += "</div>"
 
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(3,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
         infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button></div>"
@@ -401,6 +404,7 @@ function updatePlay(type, id='')
         let subType = "";
         let audioSelect = document.querySelector("#audioSelect").value;
         let subtitlesSelect = document.querySelector("#subtitlesSelect").value;
+        let resizeSelect = document.querySelector("#resizeSelect").value;
         if(subtitlesSelect == "")
             subtitlesSelect = "-1"
         else
@@ -411,7 +415,7 @@ function updatePlay(type, id='')
         
         let startFrom = parseInt(document.getElementById("startFromSliderVal").textContent, 10) * 60; //get startFrom in seconds
 
-        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt+"&startFrom="+startFrom);
+        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt+"&startFrom="+startFrom+"&resize="+resizeSelect);
 
         let link = apiEndpoint+"transcoder/m3u8?token="+userToken;
         showPlayer(false, link, id);
