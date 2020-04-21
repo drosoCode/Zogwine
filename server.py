@@ -121,7 +121,7 @@ def getUserData():
 def startTranscoder():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    s = api.startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['subTxt'], request.args['startFrom'])
+    s = api.startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['subTxt'], request.args['startFrom'], request.args['resize'])
     if s:
         return jsonify({'response':'ok'})
     else:

@@ -120,7 +120,7 @@ class api:
         logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
         return path
 
-    def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt, startFrom=0):
+    def startTranscoder(self, idEpisode, token, audioStream, subStream, subTxt, startFrom=0, resize=0):
         logger.info('Starting transcoder for episode '+str(idEpisode)+' and user '+str(self._userTokens[token]))
         path = self.getEpPath(idEpisode)
 
@@ -139,17 +139,30 @@ class api:
         encoder = str(self._data["config"]['encoder']) #default: h264_nvenc
         hlsTime = str(self._data["config"]['hlsTime']) #in seconds
         
+        if int(startFrom) > 0:
+            ext = path[path.rfind('.')+1:]
+            cutCmd = "ffmpeg -hide_banner -loglevel error -ss "+str(startFrom)+" -i \""+path+"\" -c copy -map 0 out/"+token+"/temp."+ext
+            logger.info("Cutting video with ffmpeg:"+cutCmd)
+            os.system(cutCmd)
+            path = "out/"+token+"/temp."+ext
+
+        size = ""
         if '..' not in path:
             if subStream != "-1":
-                if subTxt == "1":
-                    cmd = " -ss "+str(startFrom)+" -i \""+ path +"\" -filter_complex \"[0:v:0]subtitles='"+ path +"':si="+ str(subStream) +"[v]\" -map \"[v]\" -map 0:a:"+ audioStream +" -pix_fmt yuv420p -crf " + crf + " -c:v "+ encoder +" -c:a aac -ar 48000 -b:a 128k -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8 "
-                else:
-                    cmd = " -ss "+str(startFrom)+" -i \""+ path +"\" pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay[v]\" -map \"[v]\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
-            else:
-                cmd = " -ss "+str(startFrom)+" -i \""+ path +"\" -pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v "+ encoder +" -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+                if int(resize) > 0:
+                    size = "[v];[v]scale="+str(resize)+":-1"
 
-            cmd = "ffmpeg -hide_banner -loglevel error" + cmd
-            logger.debug("Starting ffmpeg with:"+cmd)
+                if subTxt == "1":
+                    cmd = "-filter_complex \"[0:v:0]subtitles='"+ path +"':si="+ subStream +size+"\" -map 0:a:"+ audioStream +" -pix_fmt yuv420p -crf " + crf + " -c:v "+ encoder +" -c:a aac -ar 48000 -b:a 128k -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8 "
+                else:
+                    cmd = "-pix_fmt yuv420p -preset medium -filter_complex \"[0:v][0:s:" + subStream + "]overlay"+size+"\" -map 0:a:" + audioStream + " -c:a aac -ar 48000 -b:a 128k -c:v h264_nvenc -crf " + crf + " -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+            else:
+                if int(resize) > 0:
+                    size = "-vf scale="+str(resize)+":-1 "
+                cmd = "-pix_fmt yuv420p -c:a aac -ar 48000 -b:a 128k -pix_fmt yuv420p -c:v "+ encoder +" -map 0:a:" + audioStream + " -map 0:v:0 -crf " + crf + " "+size+" -hls_time "+hlsTime+" -hls_playlist_type event -hls_segment_filename " + outFile + "%03d.ts " + outFile + ".m3u8"
+
+            cmd = "ffmpeg -hide_banner -loglevel error -i \""+ path +"\" " + cmd
+            logger.info("Starting ffmpeg with:"+cmd)
             process = Popen("exec "+cmd, shell=True)
             self._userProcess[token] = process
 
