@@ -23,6 +23,11 @@ body {
     height: 100%;
 }
 
+@font-face {
+    font-family: "Orbitron";
+    src: url("../webfonts/Orbitron-Regular.ttf");
+}
+
 .statsFont {
     font-size:2em;
     font-family: 'Orbitron';
