@@ -1,5 +1,8 @@
 body {
     background-color: #313131;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 .card:hover {
     box-shadow: 5px 5px 5px 5px #222;
@@ -18,4 +21,22 @@ body {
 .videoPlayer {
     width: 100%;
     height: 100%;
+}
+
+@font-face {
+    font-family: "Orbitron";
+    src: url("../webfonts/Orbitron-Regular.ttf");
+}
+
+.statsFont {
+    font-size:2em;
+    font-family: 'Orbitron';
+    text-align: center;
+}
+
+#startFromSliderContent .slider-selection {
+	background: #0275d8;
+}
+#startFromSliderContent .slider-handle {
+	background: #0275d8;
 }

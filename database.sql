@@ -18,6 +18,31 @@
 --
 -- Table structure for table `episodes`
 --
+USE mediaController;
+
+--
+-- Table structure for table `tv_shows`
+--
+
+DROP TABLE IF EXISTS `tv_shows`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tv_shows` (
+  `idShow` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `overview` text COLLATE utf8_unicode_ci DEFAULT NULL,
+  `icon` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `fanart` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `rating` int(11) DEFAULT NULL,
+  `premiered` date DEFAULT NULL,
+  `genre` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `scraperName` char(10) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `scraperID` int(11) DEFAULT NULL,
+  `path` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `multipleResults` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`idShow`)
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 DROP TABLE IF EXISTS `episodes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -66,29 +91,6 @@ INSERT INTO `scrapers` VALUES (1,'tmdb','https://www.themoviedb.org/tv/'),(2,'tv
 /*!40000 ALTER TABLE `scrapers` ENABLE KEYS */;
 UNLOCK TABLES;
 
---
--- Table structure for table `tv_shows`
---
-
-DROP TABLE IF EXISTS `tv_shows`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tv_shows` (
-  `idShow` int(11) NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `overview` text COLLATE utf8_unicode_ci DEFAULT NULL,
-  `icon` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `fanart` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `rating` int(11) DEFAULT NULL,
-  `premiered` date DEFAULT NULL,
-  `genre` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `scraperName` char(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `scraperID` int(11) DEFAULT NULL,
-  `path` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `multipleResults` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
-  `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`idShow`)
-) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 -- Table structure for table `users`

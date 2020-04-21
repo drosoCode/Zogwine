@@ -11,8 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function httpGet(url, async=false)
-{
-    
+{    
     if(url.indexOf("?") >= 0)
         url += "&time="+new Date().getTime()
     else
@@ -21,10 +20,15 @@ function httpGet(url, async=false)
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open( "GET", url, async); // false for synchronous request
     xmlHttp.send( null );
+
+    if(xmlHttp.status == 403 || xmlHttp.status == 401)
+        logout(true);
+    else if(xmlHttp.status >= 500)
+        notify("Internal Server Error","error");
+        
     return xmlHttp.responseText;
 }
 
-//var apiEndpoint = "http://192.168.1.9:8080/api/";
 var apiEndpoint = "api/";
 var tvshows;
 var tvsE;
@@ -85,6 +89,7 @@ function changePage(clear=false)
         document.querySelector("#content").hidden = true;
         document.querySelector("#home").hidden = false;
         document.querySelector("#login").hidden = true;
+        showHome();
     }
 }
 
@@ -99,12 +104,15 @@ function notify(text, type='error')
     }).show();
 }
 
-function logout()
+function logout(fail=false)
 {
     userToken = null;
     document.querySelector("#login_user").value = '';
     document.querySelector("#login_password").value = '';
-    notify("Signed Out","success");
+    if(fail)
+        notify("Forbidden Action","error");
+    else
+        notify("Signed Out","success");
     changePage();
 }
 
@@ -125,22 +133,33 @@ function login()
         document.querySelector("#userNav").hidden = false;
         changePage();
     }
-    catch
+    catch (e)
     {
         notify("Authentification Failed","error");
     }
 }
 
+function showHome()
+{
+    let userData = JSON.parse(httpGet(apiEndpoint+"users/data?token="+userToken));
+    let stats = JSON.parse(httpGet(apiEndpoint+"tvs/getStatistics?token="+userToken));
+    document.querySelector("#statsWatchedEP").textContent = stats["watchedEpCount"];
+    document.querySelector("#statsLostTime").textContent = stats["lostTime"]+"H";
+    document.querySelector("#statsAvTVS").textContent = stats["tvsCount"];
+    document.querySelector("#statsAvEP").textContent = stats["epCount"];
+    document.querySelector("#cardUserName").textContent = userData["name"];
+    document.querySelector("#cardUserImg").setAttribute("src","../static/icons/"+userData["icon"]);
+}
+
 function showTVS()
 {
-    tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows"));
+    tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows?token="+userToken));
     
     let i = 0;
     let cards = "";
     while(i<tvshows.length)
     {
-        if(tvshows[i]["title"] != null)
-            cards += makeTVSCard(i);
+        cards += makeTVSCard(i);
         i++;
     }
     document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
@@ -148,7 +167,14 @@ function showTVS()
 
 function makeTVSCard(id)
 {
-    let data = tvshows[id]
+    let data = tvshows[id]    
+    if(data["title"] == null)
+        data["title"] = data["path"]
+    if(data["genre"] == "null")
+        data["genre"] = "[]"
+    if(data["icon"] == null)
+        data["icon"] = "static/icons/undefinedTVS.png"
+
     let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<a type=\"button\" class=\"btn btn-primary btn-sm\" href=\"#tvshow_"+data["id"]+"\">Play</a>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSInfo("+id+")\">Info</button>"
@@ -201,7 +227,7 @@ function showTVSInfo(id)
 
 function showTVSEpisodes(id)
 {
-    tvsE = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id));
+    tvsE = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id+"&token="+userToken));
     let cards = "";
     let season = -1;
     let i = 0;
@@ -211,8 +237,11 @@ function showTVSEpisodes(id)
         {
             if(season != -1)
                 cards += "</div>"
+
             cards += "<div class=\"alert alert-dark mt-4\" role=\"alert\">"
                 cards += "Season "+tvsE[i]["season"]
+                cards += "<button type=\"button\" class=\"btn btn-sm btn-outline-info mx-4\" onclick=seasonOptions(0,"+id+","+tvsE[i]["season"]+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button>"
+                cards += "<button type=\"button\" class=\"btn btn-sm btn-outline-warning mx-4\" onclick=seasonOptions(1,"+id+","+tvsE[i]["season"]+")><i class=\"fas fa-download\"></i>&nbsp;Download</button>"
             cards += "</div>"
             cards += "<div class=\"row\">"
 
@@ -224,16 +253,42 @@ function showTVSEpisodes(id)
     document.getElementById("content").innerHTML = cards;
 }
 
+function seasonOptions(type, id, season)
+{
+    if(type == 0)
+    {
+        //set season as watched/unwatched
+        httpGet(apiEndpoint+"tvs/toggleViewedTVS?idShow="+id+"&season="+season+"&token="+userToken);
+        notify("Season status updated","success");
+    }
+    else if(type == 1)
+    {
+        //download a season
+        let data = JSON.parse(httpGet(apiEndpoint+"tvs/getEpisodes?idShow="+id+"&token="+userToken));
+        for(ep of data)
+        {
+            if(ep["season"] == season)
+            {
+                let link = apiEndpoint+"tvs/getFile?idEpisode="+ep["id"]+"&token="+userToken;
+                let win = window.open(link, '_blank');
+                win.focus();
+            }
+        }
+    }
+}
 
 function makeTVSEpisodesCard(id)
 {
     let data = tvsE[id];
+    if(data["icon"] == null)
+        data["icon"] = "static/icons/undefinedEp.png"
+
     let descData = "<div class=\"btn-group btn-sm\" role=\"group\">"
     descData += "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"showPlay('"+id+"')\">Play</button>"
     descData += "<button type=\"button\" class=\"btn btn-info btn-sm\" onclick=\"showTVSEpisodeInfo('"+id+"')\">Info</button>"
     if(data["viewCount"] > 0)
     {
-        descData += "<button type=\"button\" class=\"btn btn-success disabled btn-sm\">Viewed <span class=\"badge badge-light\">"+data["viewed"]+"</span></btn>";
+        descData += "<button type=\"button\" class=\"btn btn-success disabled btn-sm\">Viewed <span class=\"badge badge-light\">"+data["viewCount"]+"</span></btn>";
     }
     else
     {
@@ -275,11 +330,13 @@ function showPlay(id)
 {
     checkPlaybackEnd();
     let data = tvsE[id];
-    fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]));
+    fileInfos = JSON.parse(httpGet(apiEndpoint+"tvs/fileInfos?idEpisode="+data["id"]+"&token="+userToken));
 
     let infos = "<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-burn\"></i>&nbsp;Video Codec&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['video_codec']+"</span></button>";
     infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-barcode\"></i>&nbsp;Video Format&nbsp;<span class=\"badge badge-light\">"+fileInfos['general']['format']+"</span></button>";
     infos += "&nbsp;<button type=\"button\" class=\"btn btn-primary\"><i class=\"fas fa-clock\"></i>&nbsp;Duration&nbsp;<span class=\"badge badge-light\">"+Math.round(fileInfos['general']['duration']/60)+" mins</span></button>";
+
+    document.getElementById("playerModalTitle").innerText = data["title"];
 
     if(fileInfos['general']['extension'] != 'mp4')
     {
@@ -298,18 +355,31 @@ function showPlay(id)
             }
             infos += "</select></div>"
 
-        infos += "</div>";
+            infos += "</div><br>"
+            let startFrom = Math.round(fileInfos['general']['startFrom']/60);
+            let duration = Math.round(fileInfos['general']['duration']/60);
+
+            infos += "<div class=\"form-row\">"
+            infos += "<div class=\"col mt-4 ml-3\"><input type='text' data-slider-id='startFromSliderContent' data-slider-min='0' data-slider-max='"+duration+"' data-slider-step='1' data-slider-value='"+startFrom+"' id='startFromSlider' data-slider-tooltip='hide' data-slider-handle='round' /><span>&nbsp;&nbsp;Start from: <span id='startFromSliderVal'>"+startFrom+"</span> mins</span></div>";
+            infos += "<div class=\"col\"><label for=\"resizeSelect\">Resize</label><select class=\"form-control\" id=\"resizeSelect\"><option value=0 selected>Original</option><option value=1080>1080</option><option value=720>720</option><option value=480>480</option><option value=320>320</option></select></div>";
+            infos += "</div>"
+
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(3,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button></div>"
+
+        document.getElementById("playerModalContent").innerHTML = infos;
+
+        var slider = new Slider("#startFromSlider");
+        slider.on("slide", function(sliderValue) {
+            document.querySelector("#startFromSliderVal").textContent = sliderValue;
+        });
     }
     else
     {
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        document.getElementById("playerModalContent").innerHTML = infos;
     }
-    infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Set as Viewed</button></div>"
-
-    document.getElementById("playerModalTitle").innerText = data["title"];
-    document.getElementById("playerModalContent").innerHTML = infos;
-
+    
     $('#playerModal').modal('show');
 }
 
@@ -318,15 +388,15 @@ function updatePlay(type, id='')
     if(type == 1)
     {
         //download file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id'];
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
         let win = window.open(link, '_blank');
         win.focus();
     }
     else if(type == 2)
     {
-        //set episode as viewed
-        httpGet(apiEndpoint+"tvs/setViewed?idEpisode="+tvsE[id]['id']+"&token="+userToken);
-        notify("Episode set as Viewed","success");
+        //set episode as watched/unwatched
+        httpGet(apiEndpoint+"tvs/toggleViewedEp?idEpisode="+tvsE[id]['id']+"&token="+userToken);
+        notify("Episode status updated","success");
     }
     else if(type == 3)
     {
@@ -334,6 +404,7 @@ function updatePlay(type, id='')
         let subType = "";
         let audioSelect = document.querySelector("#audioSelect").value;
         let subtitlesSelect = document.querySelector("#subtitlesSelect").value;
+        let resizeSelect = document.querySelector("#resizeSelect").value;
         if(subtitlesSelect == "")
             subtitlesSelect = "-1"
         else
@@ -341,8 +412,10 @@ function updatePlay(type, id='')
         let subTxt = "1";
         if(subType == "hdmv_pgs_subtitle" || subType == "dvd_subtitle")
             subTxt = "0";
+        
+        let startFrom = parseInt(document.getElementById("startFromSliderVal").textContent, 10) * 60; //get startFrom in seconds
 
-        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt);
+        httpGet(apiEndpoint+"transcoder/start?idEpisode="+tvsE[id]['id']+"&token="+userToken+"&audioStream="+audioSelect+"&subStream="+subtitlesSelect+"&subTxt="+subTxt+"&startFrom="+startFrom+"&resize="+resizeSelect);
 
         let link = apiEndpoint+"transcoder/m3u8?token="+userToken;
         showPlayer(false, link, id);
@@ -350,7 +423,7 @@ function updatePlay(type, id='')
     else if(type == 4)
     {
         //play file
-        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id'];
+        let link = apiEndpoint+"tvs/getFile?idEpisode="+tvsE[id]['id']+"&token="+userToken;
         showPlayer(true, link, id);
     }
     else if(type == 5)
@@ -375,7 +448,6 @@ function showPlayer(static, url, id)
     changePage(true);
     $('#playerModal').modal('hide');
     document.querySelector("#player").hidden = false;
-    let data;
     
     document.querySelector("#userNavPlayerNext").innerHTML = "<button type=\"button\" class=\"btn btn-outline-warning btn-sm mx-1\" onclick=\"showPlay("+(id+1)+");\"><i class=\"fas fa-step-forward\"></i>&nbsp;Next</button>";
     document.querySelector("#userNavPlayerReload").hidden = false;
@@ -384,23 +456,35 @@ function showPlayer(static, url, id)
 
     if(static)
     {
-        data = '<video controls class="videoPlayer"><source src="'+url+'" type="video/mp4"><p>HTML5 video error</p></video>';
+        document.querySelector("#player").innerHTML = '<video controls class="videoPlayer"><source src="'+url+'" type="video/mp4"><p>HTML5 video error</p></video>';
     }
     else
     {
-        data = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
-        notify("Starting up conversion, please wait ...","info");
-
-        setTimeout(function() 
+        //display loading screen
+        document.querySelector("#player").innerHTML = '<div id="loadingScreen" class="row d-flex justify-content-center vh-100" style="background-color: rgba(7, 7, 7, 0.5);"><div class="col-1 align-self-center"><div class="text-center font-weight-bold text-primary"><div class="text-center spinner-border text-primary" role="status"></div><br>Loading</div></div></div>';
+        
+        //wait until video is available
+        var interval = setInterval(function()
         {
-            const player = videojs('videoPlayer', {liveui: true});
-                player.src({
-                src: url,
-                type: 'application/x-mpegURL'
-            });
-        }, 10000);//wait 10sec for conversion
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", url, false);
+            xmlHttp.send( null );
+            if(xmlHttp.status != 404)
+            {
+                clearInterval(interval);
+                document.querySelector("#player").innerHTML = '<video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto"></video>';
+                const player = videojs('videoPlayer', {liveui: true, autoplay: true});
+                    player.src({
+                    src: url,
+                    type: 'application/x-mpegURL'
+                });
+            }
+            if(document.querySelector("#loadingScreen") === null)
+            {
+                clearInterval(interval);
+            }
+        }, 8000);
     }
-    document.querySelector("#player").innerHTML = data;
 }
 
 function checkPlaybackEnd()
@@ -410,13 +494,16 @@ function checkPlaybackEnd()
         try
         {
             videojs('videoPlayer').dispose();
+            //for videos with transcoder
+            httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken, true);
         }
-        catch
+        catch (e)
         {
-            console.log('videojs error')
+            //for mp4 videos
+            httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken+"&endTime="+document.querySelector(".videoPlayer").currentTime, true);
         }
+
         document.querySelector("#player").innerHTML = "";
-        httpGet(apiEndpoint+"tvs/playbackEnd?idEpisode="+tvsE[playing]['id']+"&token="+userToken, true);
         playing = false;
     }
 }
@@ -426,9 +513,9 @@ function showSettings()
     changePage(true);
     document.querySelector("#content").hidden = false;
 
-    let settingsData = "<br><button type=\"button\" class=\"btn btn-warning btn-lg btn-block\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><br>";
+    let settingsData = "<br><div class=\"btn-group btn-lg btn-block\"><button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(1)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Cache</button></div><br>";
     
-    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults"));
+    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken));
     
     let i = 0;
     let cards = "";
@@ -482,7 +569,7 @@ function settingsSelectShow(idShow, id)
         card.parentNode.removeChild(card);
         notify("Preferences Applied","success")
     }
-    catch
+    catch (e)
     {
         notify("Unauthorized Action","error")
     }    
@@ -492,12 +579,17 @@ function settingsLibUpdate(type=0)
 {
     if(type == 0)
     {
-        httpGet(apiEndpoint+"tvs/runScan",true);
+        httpGet(apiEndpoint+"tvs/runScan?token="+userToken,true);
         notify("Library Scan Started","success")
     }
     else if(type == 1)
     {
-        httpGet(apiEndpoint+"tvs/syncKodi",true);
+        httpGet(apiEndpoint+"core/refreshCache?token="+userToken,true);
+        notify("Cache Refresh Started","success")
+    }
+    else if(type == 2)
+    {
+        httpGet(apiEndpoint+"tvs/syncKodi?token="+userToken,true);
         notify("Kodi Libray Sync Started","success")
     }
 }
