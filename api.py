@@ -208,7 +208,7 @@ class api:
                 print(droso)
                 cursor.execute("UPDATE views SET viewCount = %s, viewTime = %s WHERE idView = %s;", droso)
             else:
-                cursor.execute("INSERT INTO views (idUser, idEpisode, viewCount, viewTime) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(viewAdd), str(endTime)))
+                cursor.execute("INSERT INTO views (idUser, idEpisode, viewCount, viewTime) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(idEpisode), str(viewAdd), str(endTime)))
 
             del self._fileDuration[idEpisode]
 
