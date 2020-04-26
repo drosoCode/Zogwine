@@ -377,6 +377,7 @@ function showPlay(id)
     else
     {
         infos += "<br><br><button type=\"button\" class=\"btn btn-outline-success btn-block\" onclick=updatePlay(4,"+id+")><i class=\"fas fa-play-circle\"></i>&nbsp;Play</button>";
+        infos += "<br><div class=\"btn-group btn-block\" role=\"group\"><button type=\"button\" class=\"btn btn-warning\" onclick=updatePlay(1,"+id+")><i class=\"fas fa-download\"></i>&nbsp;Download</button><button type=\"button\" class=\"btn btn-info\" onclick=updatePlay(2,"+id+")><i class=\"fas fa-check-circle\"></i>&nbsp;Toggle Status</button></div>"
         document.getElementById("playerModalContent").innerHTML = infos;
     }
     
