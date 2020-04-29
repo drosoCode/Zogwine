@@ -142,7 +142,7 @@ function login()
 function showHome()
 {
     let userData = JSON.parse(httpGet(apiEndpoint+"users/data?token="+userToken));
-    let stats = JSON.parse(httpGet(apiEndpoint+"tvs/getStatistics?token="+userToken));
+    let stats = JSON.parse(httpGet(apiEndpoint+"core/getStatistics?token="+userToken));
     document.querySelector("#statsWatchedEP").textContent = stats["watchedEpCount"];
     document.querySelector("#statsLostTime").textContent = stats["lostTime"]+"H";
     document.querySelector("#statsAvTVS").textContent = stats["tvsCount"];
@@ -542,7 +542,7 @@ function showSettings()
 
     settingsData += "<br><br>";
 
-    let logs = JSON.parse(httpGet(apiEndpoint+'logs?token='+userToken));    
+    let logs = JSON.parse(httpGet(apiEndpoint+'core/getLogs?token='+userToken));    
     settingsData += "<div class=\"card\"><div class=\"card-header text-light bg-primary\">Logs</div><div class=\"card-body bg-dark\"><p class=\"card-text\">";
     for(let i=0; i<logs.length; i++)
     {
