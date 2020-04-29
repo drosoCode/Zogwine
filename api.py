@@ -37,13 +37,13 @@ class api:
         mrDat = ''
         if mr:
             mrDat = 'NOT '
-        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN views v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN tvs_status v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
     def getTVSEp(self, idShow, token):
         idUser = self._userTokens[token]
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idEpisode AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM views WHERE idEpisode = e.idEpisode AND idUser = "+str(idUser)+") AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
+        cursor.execute("SELECT idEpisode AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, season, episode, rating, scraperName, scraperID, (SELECT viewCount FROM tvs_status WHERE idEpisode = e.idEpisode AND idUser = "+str(idUser)+") AS viewCount FROM episodes e WHERE idShow = "+str(idShow)+" ORDER BY season, episode;")
         return cursor.fetchall()
     
     def setTVSID(self, idShow, resultID):
@@ -74,7 +74,7 @@ class api:
         #get last view end if available
         startFrom = 0
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT viewTime FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(episodeID)+"';")
+        cursor.execute("SELECT viewTime FROM tvs_status WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(episodeID)+"';")
         data = cursor.fetchone()
         if data != None and "viewTime" in data:
             if float(data["viewTime"]) > float(dat["format"]["duration"])*self._viewedThreshold:
@@ -185,7 +185,7 @@ class api:
 
     def setViewedTime(self, idEpisode, token, lastRequestedFile, endTime=-1):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idView, viewCount FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
+        cursor.execute("SELECT idView, viewCount FROM tvs_status WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
         data = cursor.fetchone()
         viewAdd = 0
 
@@ -206,9 +206,9 @@ class api:
             if data != None and "viewCount" in data:
                 droso = (str(data["viewCount"]+viewAdd), str(endTime), str(data["idView"]))
                 print(droso)
-                cursor.execute("UPDATE views SET viewCount = %s, viewTime = %s WHERE idView = %s;", droso)
+                cursor.execute("UPDATE tvs_status SET viewCount = %s, viewTime = %s WHERE idView = %s;", droso)
             else:
-                cursor.execute("INSERT INTO views (idUser, idEpisode, viewCount, viewTime) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(idEpisode), str(viewAdd), str(endTime)))
+                cursor.execute("INSERT INTO tvs_status (idUser, idEpisode, viewCount, viewTime) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(idEpisode), str(viewAdd), str(endTime)))
 
             del self._fileDuration[idEpisode]
 
@@ -224,7 +224,7 @@ class api:
 
     def toggleViewedEp(self, idEpisode, token):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT viewCount FROM views WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
+        cursor.execute("SELECT viewCount FROM tvs_status WHERE idUser = '"+str(self._userTokens[token])+"' AND idEpisode = '"+str(idEpisode)+"';")
         data = cursor.fetchone()
         count = 0
         if data != None and "viewCount" in data:
@@ -234,9 +234,9 @@ class api:
                 count = 0
             else:
                 count = 1
-            cursor.execute("UPDATE views SET viewCount = %s WHERE idUser = %s AND idEpisode = %s;", (str(count), str(self._userTokens[token]), str(idEpisode)))
+            cursor.execute("UPDATE tvs_status SET viewCount = %s WHERE idUser = %s AND idEpisode = %s;", (str(count), str(self._userTokens[token]), str(idEpisode)))
         else:
-            cursor.execute("INSERT INTO views (idUser, idEpisode, viewCount) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(idEpisode)))
+            cursor.execute("INSERT INTO tvs_status (idUser, idEpisode, viewCount) VALUES (%s, %s, 1);", (str(self._userTokens[token]), str(idEpisode)))
         self._connection.commit()
         return True
 
@@ -286,7 +286,7 @@ class api:
     def getStatistics(self, token):
         avgEpTime = 0.5 #h
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT COUNT(idView) AS watchedEpCount, SUM(viewCount) AS watchedEpSum FROM views WHERE viewCount > 0 AND idUser = "+str(self._userTokens[token])+";")
+        cursor.execute("SELECT COUNT(idView) AS watchedEpCount, SUM(viewCount) AS watchedEpSum FROM tvs_status WHERE viewCount > 0 AND idUser = "+str(self._userTokens[token])+";")
         dat1 = cursor.fetchone()
         cursor.execute("SELECT COUNT(DISTINCT idShow) AS tvsCount, COUNT(idEpisode) AS epCount FROM episodes;")
         dat2 = cursor.fetchone()
