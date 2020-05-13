@@ -21,7 +21,10 @@ class tvs:
         logger.info('Supported file formats: '+str(self._supportedFiles))
 
     def encodeImg(self, img):
-        return b64encode(img.encode()).decode()
+        if img is not None and img != "":
+            return b64encode(img.encode()).decode()
+        else:
+            return None
 
     def importScrapers(self):
         for i in os.listdir('scrapers/'):
