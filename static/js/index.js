@@ -514,31 +514,13 @@ function showSettings()
     changePage(true);
     document.querySelector("#content").hidden = false;
 
-    let settingsData = "<br><div class=\"btn-group btn-lg btn-block\"><button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button><button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(1)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Cache</button></div><br>";
-    
-    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken));
-    
-    let i = 0;
-    let cards = "";
-    for(let tvsEntity of tvsData)
-    {
-        let dat = "<div class=\"row\"><div class=\"card\" id=\"settingsShow_"+tvsEntity["id"]+"\"><div class=\"card-header\"> TV Show "+tvsEntity["id"]+" ("+tvsEntity["path"]+")</div><div class=\"card-body\">"
-        results = JSON.parse(tvsEntity["multipleResults"])
-        for(let i=0; i<results.length; i++)
-        {
-            dat += "<div class=\"card text-white bg-dark\"><div class=\"row no-gutters\">"
-            dat += "<img src=\""+results[i]["icon"]+"\" height=\"200px\" class=\"card-img col-2\">"
-            dat += "<div class=\"card-body  col-10 pl-3\">"
-            dat += "<h5 class=\"card-title\">"+results[i]["title"]+"</h5>"
-            dat += "<p class=\"card-text\">Premiered: "+results[i]["premiered"]+" <br> Scraper: "+results[i]["scraperName"]+" <br> In Production: "+results[i]["in_production"]+"<br><small class=\"text-muted\">"+results[i]["desc"]+"</small></p>"
-            dat += "<button type=\"button\" class=\"btn btn-success btn-lg btn-block\" onclick=settingsSelectShow("+tvsEntity['id']+","+i+")><i class=\"fas fa-check\"></i>&nbsp;Select</button>"
-            dat += "</div></div></div>"
-        }
-        dat += "</div></div></div>";
+    let settingsData = "<br><div class=\"btn-group btn-lg btn-block\">";
+    settingsData += "<button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button>"
+    settingsData += "<button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(1)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Cache</button></div><br>";
         
-        settingsData += '<br><br>'+dat;
-        i++;
-    }
+    let cards = "";
+    settingsData += "<br><br>"+makeTVSSettingsCard(JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken)));
+    settingsData += "<br><br>"+makeMovieSettingsCard(JSON.parse(httpGet(apiEndpoint+"movie/getShowsMultipleResults?token="+userToken)));
 
     settingsData += "<br><br>";
 
@@ -561,6 +543,81 @@ function showSettings()
     document.querySelector("#content").innerHTML = settingsData;
 }
 
+function makeTVSSettingsCard(tvsData)
+{
+    for(let tvsEntity of tvsData)
+    {
+        let dat = "<div class=\"row\"><div class=\"card\" id=\"settingsShow_"+tvsEntity["id"]+"\"><div class=\"card-header\"> TV Show "+tvsEntity["id"]+" ("+tvsEntity["path"]+")</div><div class=\"card-body\">"
+        results = JSON.parse(tvsEntity["multipleResults"])
+        for(let i=0; i<results.length; i++)
+        {
+            dat += "<div class=\"card text-white bg-dark\"><div class=\"row no-gutters\">"
+            dat += "<img src=\""+results[i]["icon"]+"\" height=\"200px\" class=\"card-img col-2\">"
+            dat += "<div class=\"card-body  col-10 pl-3\">"
+            dat += "<h5 class=\"card-title\">"+results[i]["title"]+"</h5>"
+            dat += "<p class=\"card-text\">Premiered: "+results[i]["premiered"]+" <br> Scraper: "+results[i]["scraperName"]+" <br> In Production: "+results[i]["in_production"]+"<br><small class=\"text-muted\">"+results[i]["desc"]+"</small></p>"
+            dat += "<button type=\"button\" class=\"btn btn-success btn-lg btn-block\" onclick=settingsSelectShow("+tvsEntity['id']+","+i+")><i class=\"fas fa-check\"></i>&nbsp;Select</button>"
+            dat += "</div></div></div>"
+        }
+        dat += "</div></div></div>";
+        
+        settingsData += '<br><br>'+dat;
+        i++;
+    }
+    return dat;
+}
+function makeTVSSettingsCard(tvsData)
+{
+    let settingsData = '';
+    let i = 0;
+    for(let tvsEntity of tvsData)
+    {
+        let dat = "<div class=\"row\"><div class=\"card\" id=\"settingsShow_"+tvsEntity["id"]+"\"><div class=\"card-header\"> TV Show "+tvsEntity["id"]+" ("+tvsEntity["path"]+")</div><div class=\"card-body\">"
+        results = JSON.parse(tvsEntity["multipleResults"])
+        for(let i=0; i<results.length; i++)
+        {
+            dat += "<div class=\"card text-white bg-dark\"><div class=\"row no-gutters\">"
+            dat += "<img src=\""+results[i]["icon"]+"\" height=\"200px\" class=\"card-img col-2\">"
+            dat += "<div class=\"card-body  col-10 pl-3\">"
+            dat += "<h5 class=\"card-title\">"+results[i]["title"]+"</h5>"
+            dat += "<p class=\"card-text\">Premiered: "+results[i]["premiered"]+" <br> Scraper: "+results[i]["scraperName"]+" <br> In Production: "+results[i]["in_production"]+"<br><small class=\"text-muted\">"+results[i]["desc"]+"</small></p>"
+            dat += "<button type=\"button\" class=\"btn btn-success btn-lg btn-block\" onclick=settingsSelectShow("+tvsEntity['id']+","+i+")><i class=\"fas fa-check\"></i>&nbsp;Select</button>"
+            dat += "</div></div></div>"
+        }
+        dat += "</div></div></div>";
+        
+        settingsData += '<br><br>'+dat;
+        i++;
+    }
+    return settingsData;
+}
+
+function makeMovieSettingsCard(moviesData)
+{
+    let settingsData = '';
+    let i = 0;
+    for(let movieEntity of moviesData)
+    {
+        let dat = "<div class=\"row\"><div class=\"card\" id=\"settingsMovie_"+movieEntity["id"]+"\"><div class=\"card-header\"> Movie "+movieEntity["id"]+" ("+movieEntity["path"]+")</div><div class=\"card-body\">"
+        results = JSON.parse(movieEntity["multipleResults"])
+        for(let i=0; i<results.length; i++)
+        {
+            dat += "<div class=\"card text-white bg-dark\"><div class=\"row no-gutters\">"
+            dat += "<img src=\""+results[i]["icon"]+"\" height=\"200px\" class=\"card-img col-2\">"
+            dat += "<div class=\"card-body  col-10 pl-3\">"
+            dat += "<h5 class=\"card-title\">"+results[i]["title"]+"</h5>"
+            dat += "<p class=\"card-text\">Premiered: "+results[i]["premiered"]+" <br> Scraper: "+results[i]["scraperName"]+"<br><small class=\"text-muted\">"+results[i]["desc"]+"</small></p>"
+            dat += "<button type=\"button\" class=\"btn btn-success btn-lg btn-block\" onclick=settingsSelectMovie("+movieEntity['id']+","+i+")><i class=\"fas fa-check\"></i>&nbsp;Select</button>"
+            dat += "</div></div></div>"
+        }
+        dat += "</div></div></div>";
+        
+        settingsData += '<br><br>'+dat;
+        i++;
+    }
+    return settingsData;
+}
+
 function settingsSelectShow(idShow, id)
 {
     try
@@ -572,7 +629,22 @@ function settingsSelectShow(idShow, id)
     }
     catch (e)
     {
-        notify("Unauthorized Action","error")
+        notify("Error","error")
+    }    
+}
+
+function settingsSelectMovie(idMovie, id)
+{
+    try
+    {
+        httpGet(apiEndpoint+"movie/setID?idMovie="+idMovie+"&id="+id+"&token="+userToken, true);
+        let card = document.querySelector("#settingsMovie_"+idMovie);
+        card.parentNode.removeChild(card);
+        notify("Preferences Applied","success")
+    }
+    catch (e)
+    {
+        notify("Error","error")
     }    
 }
 
@@ -580,7 +652,7 @@ function settingsLibUpdate(type=0)
 {
     if(type == 0)
     {
-        httpGet(apiEndpoint+"tvs/runScan?token="+userToken,true);
+        httpGet(apiEndpoint+"core/runScan?token="+userToken,true);
         notify("Library Scan Started","success")
     }
     else if(type == 1)

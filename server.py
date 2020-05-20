@@ -106,6 +106,15 @@ def refreshCache():
     api.refreshCache()
     return jsonify({'status': "ok"})
 
+@app.route('/api/core/runScan', methods=['GET'])
+def runScan():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    if not api.isAdmin(request.args['token']):
+        abort(403)
+    api.runScan()
+    return jsonify({'status': "ok"})
+
 @app.route('/sw_content.js')
 def getServiceWorker():
     path = 'static/js/sw_content.js'
@@ -140,15 +149,6 @@ def tvs_setID():
         return jsonify(api.tvs_setID(request.args['idShow'], request.args['id']))
     else:
         abort(401)
-
-@app.route('/api/tvs/runScan', methods=['GET'])
-def tvs_runScan():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if not api.isAdmin(request.args['token']):
-        abort(403)
-    api.tvs_runScan()
-    return jsonify({'status': "ok"})
 
 @app.route('/api/tvs/fileInfos', methods=['GET'])
 def tvs_getFileInfos():
@@ -266,3 +266,26 @@ def tvs_getFile():
         return getFile(path, 'video')
     else:
         abort(404)
+
+######################################################## MOVIES #############################################################################
+
+@app.route('/api/movie/getMovies', methods=['GET'])
+def mov_getData():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.mov_getData(request.args['token'], False))
+
+@app.route('/api/movie/getShowsMultipleResults', methods=['GET'])
+def mov_getDataMr():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.mov_getData(request.args['token'], True))
+
+@app.route('/api/movie/setID', methods=['GET'])
+def mov_setID():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    if api.isAdmin(request.args['token']):
+        return jsonify(api.mov_setID(request.args['idMovie'], request.args['id']))
+    else:
+        abort(401)

@@ -7,7 +7,7 @@ from tornado.web import Application
 
 logger.info('Starting Program ...')
 
-#api.runScan()
+#api.mov_runScan()
 #app.run(host='0.0.0.0', port=8080, threaded=True)
 
 tr = WSGIContainer(app)

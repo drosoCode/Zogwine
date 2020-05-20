@@ -23,7 +23,6 @@ class api:
             data = json.load(f)
             self._data = data
             self._connection = sql(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database='mediaController')
-            self._scanner = scanner(self._connection, 'tvs', data["api"])
             self._fileDuration = {}
             self._userProcess = {}
             self._userTokens = {}
@@ -93,6 +92,11 @@ class api:
 
     def refreshCache(self):
         self.tvs_refreshCache()
+        self.mov_refreshCache()
+
+    def runScan(self):
+        self.tvs_runScan()
+        self.mov_runScan()
 
 ######################################################################## TVS ##############################################################################
 
@@ -102,7 +106,7 @@ class api:
         mrDat = ''
         if mr:
             mrDat = 'NOT '
-        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN tvs_status v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        cursor.execute("SELECT idShow AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons, (SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes, (SELECT COUNT(v.idView) FROM episodes e LEFT JOIN tvs_status v ON (v.idEpisode = e.idEpisode) WHERE e.idShow = t.idShow AND viewCount > 0  AND idUser = "+str(idUser)+") AS viewedEpisodes, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND dataType = 'tv_shows'),scraperID) AS scraperLink FROM tv_shows t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
         return cursor.fetchall()
     
     def tvs_getEp(self, idShow, token):
@@ -121,7 +125,7 @@ class api:
         return True
 
     def tvs_runScan(self):
-        self._scanner.scanDir(self._data["config"]["tvsDirectory"])
+        scanner(self._connection, 'tvs', self._data["api"]).scanDir(self._data["config"]["tvsDirectory"])
         return True
 
     def tvs_getFileInfos(self, token, episodeID):
@@ -317,3 +321,37 @@ class api:
         for d in data:
             if d["icon"] != None:
                 self.addCache(d["icon"])
+
+##################################################### MOVIES #########################################################
+
+    def mov_runScan(self):
+        scanner(self._connection, 'movies', self._data["api"]).scanDir(self._data["config"]["moviesDirectory"])
+        return True
+
+    def mov_getData(self, token, mr=False):
+        idUser = self._userTokens[token]
+        cursor = self._connection.cursor(dictionary=True)
+        mrDat = ''
+        if mr:
+            mrDat = 'NOT '
+        cursor.execute("SELECT idMovie AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT COUNT(st.idView) FROM movies mov LEFT JOIN mov_status st ON (st.idMovie = mov.idMovie) WHERE idUser = "+str(idUser)+") AS viewCount, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND dataType = 'movies'),scraperID) AS scraperLink FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;")
+        return cursor.fetchall()
+
+    def mov_setID(self, idMovie, resultID):
+        #the resultID is the one from the json list of multipleResults entry
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT multipleResults FROM movies WHERE idMovie = "+str(idMovie)+";")
+        data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
+        cursor.execute("UPDATE movies SET scraperName = %s, scraperID = %s, scraperData = %s, forceUpdate = 1, multipleResults = NULL WHERE idMovie = %s;", (data["scraperName"], data["id"], data["scraperData"], idMovie))
+        self._connection.commit()
+        return True
+        
+    def mov_refreshCache(self):
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT icon, fanart FROM movies;")
+        data = cursor.fetchall()
+        for d in data:
+            if d["icon"] != None:
+                self.addCache(d["icon"])
+            if d["fanart"] != None:
+                self.addCache(d["fanart"])
