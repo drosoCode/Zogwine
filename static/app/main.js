@@ -93,6 +93,7 @@ function changePage(hash=null)
         //show Movies
         changePageActive(2);
         document.querySelector("#content").hidden = false;
+        mov_show();
     }
     else if(hash == "tvshows")
     {
