@@ -8,9 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', () => changePage());
     window.addEventListener("beforeunload",() => checkPlaybackEnd());
     document.querySelector("#logout").addEventListener('click', () => logout());
-    document.querySelector("#userNavSettings").addEventListener('click', () => showSettings());
     changePage();
-    
 });
 
 function httpGet(url, async=false)
@@ -36,59 +34,86 @@ var apiEndpoint = "api/";
 var fileInfos;
 var userToken = null;
 
-function changePage(clear=false) 
+function changePageActive(id)
+{
+    let tabs = [
+        document.querySelector("#homeNav"),
+        document.querySelector("#tvshowsNav")
+    ];
+    for(let i=0; i<tabs.length; i++)
+    {
+        if(i == id)
+            tabs[i].classList.add("active");
+        else
+            tabs[i].classList.remove("active");
+    }
+}
+
+function clearPages()
 {
     document.querySelector("#userNavPlayerNext").innerHTML = "";
-    document.querySelector("#userNavPlayerReload").hidden = true;
+    document.querySelector("#home").hidden = true;
+    document.querySelector("#content").hidden = true;
+    document.querySelector("#content").innerHTML = "";
+    document.querySelector("#login").hidden = true;
+}
 
-    let hash = location.hash.slice(1);
-
+function changePage(hash=null)
+{
+    if(hash == null)
+    {
+        hash = location.hash.slice(1);
+    }
+    else
+    {
+        if(history.pushState) {
+            history.pushState(null, null, '#'+hash);
+        }
+        else {
+            location.hash = '#'+hash;
+        }
+    }
     checkPlaybackEnd();
-    playing = false;
+    clearPages();
     
     if(userToken == null)
     {
-        document.querySelector("#homeNav").classList.remove("active");
-        document.querySelector("#tvshowsNav").classList.remove("active");
-        document.querySelector("#home").hidden = true;
-        document.querySelector("#content").hidden = true;
+        //Show login screen
+        changePageActive(-1);
         document.querySelector("#login").hidden = false;
-        document.querySelector("#userNav").hidden = true;
-    }
-    else if(clear)
-    {
-        document.querySelector("#homeNav").classList.remove("active");
-        document.querySelector("#tvshowsNav").classList.remove("active");
-        document.querySelector("#home").hidden = true;
-        document.querySelector("#content").hidden = true;
-        document.querySelector("#login").hidden = true;
-        document.querySelector("#content").innerHTML = "";
     }
     else if(hash == "tvshows")
     {
-        document.querySelector("#homeNav").classList.remove("active");
-        document.querySelector("#tvshowsNav").classList.add("active");
-        document.querySelector("#home").hidden = true;
+        //show TV Shows
+        changePageActive(1);
         document.querySelector("#content").hidden = false;
-        document.querySelector("#login").hidden = true;
         showTVS();
     }
     else if(hash.indexOf("tvshow_") != -1)
     {
-        document.querySelector("#homeNav").classList.remove("active");
-        document.querySelector("#tvshowsNav").classList.add("active");
-        document.querySelector("#home").hidden = true;
+        //Show episodes for a TV Show
+        changePageActive(1);
         document.querySelector("#content").hidden = false;
-        document.querySelector("#login").hidden = true;
         tvs_showEpisodes(hash.substring(7));
+    }
+    else if(hash == "settings")
+    {
+        //Show Settings screen
+        changePageActive(-1);
+        document.querySelector("#content").hidden = false;
+        showSettings()
+    }
+    else if(hash == "player")
+    {
+        //Player screen
+        changePageActive(-1);
+        document.querySelector("#player").hidden = false;
     }
     else
     {
-        document.querySelector("#homeNav").classList.add("active");
-        document.querySelector("#tvshowsNav").classList.remove("active");
-        document.querySelector("#content").hidden = true;
+        //Show Home screen
+        changePageActive(0);
         document.querySelector("#home").hidden = false;
-        document.querySelector("#login").hidden = true;
         showHome();
     }
 }
@@ -154,9 +179,6 @@ function showHome()
 
 function showSettings()
 {
-    changePage(true);
-    document.querySelector("#content").hidden = false;
-
     let settingsData = "<br><div class=\"btn-group btn-lg btn-block\">";
     settingsData += "<button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button>"
     settingsData += "<button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(1)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Cache</button></div><br>";

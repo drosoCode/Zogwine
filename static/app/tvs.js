@@ -282,12 +282,10 @@ function tvs_updatePlay(type, id='')
 
 function tvs_showPlayer(static, url, id)
 {
-    changePage(true);
+    changePage("player");
     $('#playerModal').modal('hide');
-    document.querySelector("#player").hidden = false;
     
     document.querySelector("#userNavPlayerNext").innerHTML = "<button type=\"button\" class=\"btn btn-outline-warning btn-sm mx-1\" onclick=\"tvs_showPlay("+(id+1)+");\"><i class=\"fas fa-step-forward\"></i>&nbsp;Next</button>";
-    document.querySelector("#userNavPlayerReload").hidden = false;
 
     tvsPlaying = id;
 
