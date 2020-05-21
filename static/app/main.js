@@ -38,7 +38,13 @@ function changePageActive(id)
 {
     let tabs = [
         document.querySelector("#homeNav"),
-        document.querySelector("#tvshowsNav")
+        document.querySelector("#tvshowsNav"),
+        document.querySelector("#moviesNav"),
+        document.querySelector("#musicNav"),
+        document.querySelector("#gamesNav"),
+        document.querySelector("#mangasNav"),
+        document.querySelector("#booksNav"),
+        document.querySelector("#devicesNav")
     ];
     for(let i=0; i<tabs.length; i++)
     {
@@ -82,12 +88,18 @@ function changePage(hash=null)
         changePageActive(-1);
         document.querySelector("#login").hidden = false;
     }
+    else if(hash == "movies")
+    {
+        //show Movies
+        changePageActive(2);
+        document.querySelector("#content").hidden = false;
+    }
     else if(hash == "tvshows")
     {
         //show TV Shows
         changePageActive(1);
         document.querySelector("#content").hidden = false;
-        showTVS();
+        tvs_show();
     }
     else if(hash.indexOf("tvshow_") != -1)
     {
@@ -96,12 +108,42 @@ function changePage(hash=null)
         document.querySelector("#content").hidden = false;
         tvs_showEpisodes(hash.substring(7));
     }
+    else if(hash == "music")
+    {
+        //show Music
+        changePageActive(3);
+        document.querySelector("#content").hidden = false;
+    }
+    else if(hash == "games")
+    {
+        //show Games
+        changePageActive(4);
+        document.querySelector("#content").hidden = false;
+    }
+    else if(hash == "mangas")
+    {
+        //show Mangas
+        changePageActive(5);
+        document.querySelector("#content").hidden = false;
+    }
+    else if(hash == "books")
+    {
+        //show Books
+        changePageActive(6);
+        document.querySelector("#content").hidden = false;
+    }
+    else if(hash == "devices")
+    {
+        //show Devices screen
+        changePageActive(7);
+        document.querySelector("#content").hidden = false;
+    }
     else if(hash == "settings")
     {
         //Show Settings screen
         changePageActive(-1);
         document.querySelector("#content").hidden = false;
-        showSettings()
+        settings_show()
     }
     else if(hash == "player")
     {
@@ -114,7 +156,7 @@ function changePage(hash=null)
         //Show Home screen
         changePageActive(0);
         document.querySelector("#home").hidden = false;
-        showHome();
+        home_show();
     }
 }
 
@@ -164,7 +206,7 @@ function login()
     }
 }
 
-function showHome()
+function home_show()
 {
     let userData = JSON.parse(httpGet(apiEndpoint+"users/data?token="+userToken));
     let stats = JSON.parse(httpGet(apiEndpoint+"core/getStatistics?token="+userToken));
@@ -177,7 +219,7 @@ function showHome()
 }
 
 
-function showSettings()
+function settings_show()
 {
     let settingsData = "<br><div class=\"btn-group btn-lg btn-block\">";
     settingsData += "<button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(0)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Library</button>"

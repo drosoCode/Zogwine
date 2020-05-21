@@ -1,4 +1,10 @@
 
+function mov_show()
+{
+    
+}
+
+
 function mov_makeSettingsCard(moviesData)
 {
     let settingsData = '';

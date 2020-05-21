@@ -2,7 +2,7 @@ var tvshows;
 var tvsE;
 var tvsPlaying = false;
 
-function showTVS()
+function tvs_show()
 {
     tvshows = JSON.parse(httpGet(apiEndpoint+"tvs/getShows?token="+userToken));
     
