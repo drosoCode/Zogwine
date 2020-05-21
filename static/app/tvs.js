@@ -344,8 +344,9 @@ function tvs_checkPlaybackEnd()
 }
 
 
-function tvs_makeSettingsCard(tvsData)
+function tvs_makeSettingsCard()
 {
+    let tvsData = JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken));
     let settingsData = '';
     let i = 0;
     for(let tvsEntity of tvsData)

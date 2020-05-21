@@ -226,8 +226,8 @@ function settings_show()
     settingsData += "<button type=\"button\" class=\"btn btn-warning\" onclick=\"settingsLibUpdate(1)\"><i class=\"fas fa-sync\"></i>&nbsp;Update Cache</button></div><br>";
         
     let cards = "";
-    settingsData += "<br><br>"+tvs_makeSettingsCard(JSON.parse(httpGet(apiEndpoint+"tvs/getShowsMultipleResults?token="+userToken)));
-    settingsData += "<br><br>"+mov_makeSettingsCard(JSON.parse(httpGet(apiEndpoint+"movie/getShowsMultipleResults?token="+userToken)));
+    settingsData += "<br><br>"+tvs_makeSettingsCard();
+    settingsData += "<br><br>"+mov_makeSettingsCard();
 
     settingsData += "<br><br>";
 

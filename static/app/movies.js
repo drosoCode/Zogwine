@@ -1,12 +1,25 @@
+var movies;
+var tvsE;
+var tvsPlaying = false;
 
 function mov_show()
 {
+    movies = JSON.parse(httpGet(apiEndpoint+"movies/getMovies?token="+userToken));
     
+    let i = 0;
+    let cards = "";
+    while(i<movies.length)
+    {
+        cards += mov_makeCard(i);
+        i++;
+    }
+    document.querySelector("#content").innerHTML = "<div class=\"row\">"+cards+"</div>";
 }
 
 
-function mov_makeSettingsCard(moviesData)
+function mov_makeSettingsCard()
 {
+    let moviesData = JSON.parse(httpGet(apiEndpoint+"movies/getShowsMultipleResults?token="+userToken))
     let settingsData = '';
     let i = 0;
     for(let movieEntity of moviesData)
@@ -35,7 +48,7 @@ function mov_settingsSelect(idMovie, id)
 {
     try
     {
-        httpGet(apiEndpoint+"movie/setID?idMovie="+idMovie+"&id="+id+"&token="+userToken, true);
+        httpGet(apiEndpoint+"movies/setID?idMovie="+idMovie+"&id="+id+"&token="+userToken, true);
         let card = document.querySelector("#settingsMovie_"+idMovie);
         card.parentNode.removeChild(card);
         notify("Preferences Applied","success")

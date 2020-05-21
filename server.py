@@ -269,19 +269,19 @@ def tvs_getFile():
 
 ######################################################## MOVIES #############################################################################
 
-@app.route('/api/movie/getMovies', methods=['GET'])
+@app.route('/api/movies/getMovies', methods=['GET'])
 def mov_getData():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
     return jsonify(api.mov_getData(request.args['token'], False))
 
-@app.route('/api/movie/getShowsMultipleResults', methods=['GET'])
+@app.route('/api/movies/getShowsMultipleResults', methods=['GET'])
 def mov_getDataMr():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
     return jsonify(api.mov_getData(request.args['token'], True))
 
-@app.route('/api/movie/setID', methods=['GET'])
+@app.route('/api/movies/setID', methods=['GET'])
 def mov_setID():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
