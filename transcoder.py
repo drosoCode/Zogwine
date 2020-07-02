@@ -11,7 +11,7 @@ class transcoder:
         self._fileInfos = None
         self._audioStream = 0
         self._subStream = -1
-        self._subTxt = True
+        self._subFile = ""
         self._enableHLS = True
         self._startFrom = 0
         self._hlsTime = 60
@@ -28,16 +28,16 @@ class transcoder:
     def setAudioStream(self, audioStream):
         self._audioStream = audioStream
 
-    def setSub(self, subStream, subTxt=True):
+    def setSub(self, subStream, subFile=""):
         self._subStream = subStream
-        self._subTxt = subTxt
 
     def enableHLS(self, en, time=-1):
         self._enableHLS = en
         self._hlsTime = time
 
-    def setStart(self, time):
+    def setStartTime(self, time):
         self._startFrom = time
+        self._fileInfos['general']['startFrom'] = time
     
     def setOutputFile(self, outFile):
         self.__outFile = outFile
@@ -58,18 +58,18 @@ class transcoder:
     def getFileInfos(self):
         return self._fileInfos
 
-    def getViewedDuration(self, data):
+    def getWatchedDuration(self, data):
         if self._enableHLS:
-            #data is the name of latest viewed hls segment
+            #data is the name of latest watched hls segment
             name = self._outFile
             pos = self._outFile.rfind("/")
             if pos > 0:
                 name = name[pos+1:]
             num = int(re.findall("(?i)(?:"+name+")(\\d+)(?:\\.ts)", data)[0]) + 1
-            return num * self._hlsTime + self._startFrom
+            return num * int(self._hlsTime) + int(self._startFrom)
         else:
             #data is the last timecode
-            return data + self._startFrom
+            return int(data) + int(self._startFrom)
 
     def ffprobe(self):
         cmd = "ffprobe -v quiet -print_format json -show_format -show_streams \""+self._file+"\" > out/data.json"
@@ -83,7 +83,8 @@ class transcoder:
             "general":{
                 "format": dat["format"]["format_name"],
                 "duration": dat["format"]["duration"],
-                "extension": self._file[self._file.rfind('.')+1:]
+                "extension": self._file[self._file.rfind('.')+1:],
+                "startFrom": 0
             },
             "audio":[],
             "subtitles":[]
@@ -110,8 +111,10 @@ class transcoder:
 
         return data
 
+    def start(self):
+        if not os.path.exists(self._outDir):
+            os.makedirs(self._outDir)
 
-    def startVideoTranscode(self):
         filePath = self._file
         if int(self._startFrom) > 0:
             ext = filePath[filePath.rfind('.')+1:]
@@ -137,19 +140,24 @@ class transcoder:
         if int(self._resize) > 0:
             resize = "[v2];[v2]scale="+str(self._resize)+":-1"
 
+
         if self._subStream != -1:
-            if self._subTxt:
-                cmd = " -filter_complex \"[0:v:0]"+rm3d+"subtitles='"+ filePath +"':si="+ self._subStream +resize+"\""
+            if self._subFile == "":
+                if self._fileInfos['subtitles'][int(self._subStream)]["codec"] in ["hdmv_pgs_subtitle", "dvd_subtitle"]:
+                    cmd += " -filter_complex \"[0:v]"+rm3d+"[0:s:" + self._subStream + "]overlay"+resize+"\""
+                else:
+                    cmd += " -filter_complex \"[0:v:0]"+rm3d+"subtitles='"+ filePath +"':si="+ self._subStream +resize+"\""
             else:
-                cmd = " -filter_complex \"[0:v]"+rm3d+"[0:s:" + self._subStream + "]overlay"+resize+"\""
+                cmd += " -filter_complex \"[0:v:0]"+rm3d+"subtitles='"+ self._subFile +"':si="+ self._subStream +resize+"\""
+
 
         cmd += " -map 0:a:" + self._audioStream + " -c:a aac -ar 48000 -b:a 128k"
         cmd += rm3dMeta
         cmd += " -c:v " + self._encoder
-        cmd += " -crf " + self._crf
+        cmd += " -crf " + str(self._crf)
 
         if self._enableHLS:
-            cmd += " -hls_time "+self._hlsTime+" -hls_playlist_type event -hls_segment_filename " + self._outFile + "%03d.ts " + self._outFile + ".m3u8"
+            cmd += " -hls_time "+str(self._hlsTime)+" -hls_playlist_type event -hls_segment_filename " + self._outFile + "%03d.ts " + self._outFile + ".m3u8"
         else:
             cmd += " "+self._outFile+'.'+self._fileInfos['general']['extension']
 
@@ -157,7 +165,8 @@ class transcoder:
         logger.info("Starting ffmpeg with:"+cmd)
         self._runningProcess = Popen("exec "+cmd, shell=True)
 
-    def stopTranscode(self):
-        self._runningProcess.kill()
-        self._runningProcess = None
-        os.system("rm -rf \""+self._outDir+"\"")
+    def stop(self):
+        if self._runningProcess is not None:
+            self._runningProcess.kill()
+            self._runningProcess = None
+            os.system("rm -rf \""+self._outDir+"\"")

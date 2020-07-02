@@ -130,16 +130,22 @@ def tvs_getEp():
     return jsonify(api.tvs_getEp(request.args['idShow'], request.args['token']))
 
 @app.route('/api/tvs/getShows', methods=['GET'])
-def tvs_getData():
+def tvs_getShows():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.tvs_getData(request.args['token'], False))
+    return jsonify(api.tvs_getShows(request.args['token'], False))
 
 @app.route('/api/tvs/getShowsMultipleResults', methods=['GET'])
-def tvs_getDataMr():
+def tvs_getShowsMr():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.tvs_getData(request.args['token'], True))
+    return jsonify(api.tvs_getShows(request.args['token'], True))
+
+@app.route('/api/tvs/getShow', methods=['GET'])
+def tvs_getShow():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.tvs_getShow(request.args['token'], request.args['idShow']))
 
 @app.route('/api/tvs/setID', methods=['GET'])
 def tvs_setID():
@@ -212,7 +218,7 @@ def getUserData():
 def tvs_startTranscoder():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    s = api.tvs_startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['subTxt'], request.args['startFrom'], request.args['resize'])
+    s = api.tvs_startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['startFrom'], request.args['resize'])
     if s:
         return jsonify({'response':'ok'})
     else:
