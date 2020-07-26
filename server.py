@@ -10,7 +10,7 @@ import time
 
 from log import getLogs
 from api import api as apiClass
-api = apiClass("config/config.json")
+api = apiClass("config/config_dev.json")
 
 app = flask.Flask(__name__)
 CORS(app)
@@ -77,7 +77,11 @@ def getServerLogs():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
     if api.isAdmin(request.args['token']):
-        return jsonify(getLogs(20))
+        try:
+            l = int(request.args['amount'])
+        except Exception:
+            l = 20
+        return jsonify(getLogs(l))
     else:
         abort(403)
 
@@ -124,10 +128,16 @@ def getServiceWorker():
 ######################################################## TVS #############################################################################
 
 @app.route('/api/tvs/getEpisodes', methods=['GET'])
-def tvs_getEp():
+def tvs_getEps():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.tvs_getEp(request.args['idShow'], request.args['token']))
+    return jsonify(api.tvs_getEps(request.args['token'], request.args['idShow']))
+
+@app.route('/api/tvs/getSeasons', methods=['GET'])
+def tvs_getSeasons():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.tvs_getSeasons(request.args['token'], request.args['idShow']))
 
 @app.route('/api/tvs/getShows', methods=['GET'])
 def tvs_getShows():
@@ -146,6 +156,18 @@ def tvs_getShow():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
     return jsonify(api.tvs_getShow(request.args['token'], request.args['idShow']))
+
+@app.route('/api/tvs/getPersons', methods=['GET'])
+def tvs_getPersons():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.getPersons(2, request.args['idShow']))
+
+@app.route('/api/tvs/getTags', methods=['GET'])
+def tvs_getTags():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.getTags(2, request.args['idShow']))
 
 @app.route('/api/tvs/setID', methods=['GET'])
 def tvs_setID():

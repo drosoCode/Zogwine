@@ -1,6 +1,7 @@
 import requests
 import json
 import urllib.parse
+from datetime import datetime
 
 class tvdb:
 
@@ -23,6 +24,48 @@ class tvdb:
             return self.standardize(d["data"])
         else:
             return {"scraperName":"tvdb"}
+
+    def getTVSSeason(self, id, season):
+        d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/images/query?keyType=season&subKey="+str(season), headers=self._headers).text)
+        ep = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes/query?airedSeason="+str(season)+"&airedEpisode=1", headers=self._headers).text)
+        try:
+            ic = "https://artworks.thetvdb.com/banners/"+d['data'][0]['fileName']
+        except Exception:
+            ic = None
+        return {
+                   'premiered': ep['data'][0]['firstAired'],
+                   'title': 'Season '+str(season),
+                   'overview': 'No Data Available',
+                   'icon': ic
+                }
+
+    def getPersons(self, id):
+        d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/actors", headers=self._headers).text)
+        persons = []
+        for p in d['data']:
+            persons.append([p.get('name'), p.get('role')])
+        return persons
+        
+    def getNextEpisode(self, id):
+        d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes", headers=self._headers).text)
+        if d['links']['last'] != 1:
+            d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes?page="+d['links']['last'], headers=self._headers).text)
+        for ep in d['data']:
+            if datetime.strptime(ep.get['firstAired'], '%y-%m-%d') > datetime.now():
+                return self.subStandardize(ep)
+        return None
+
+    def getTags(self, idTvs):
+        d = json.loads(requests.get(self._endpoint+"/series/"+str(idTvs), headers=self._headers).text)['data']
+        tags = []
+        if 'network' in d:
+            tags.append(['network', d['network'], None])
+
+        if 'genre' in d:
+            for c in d['genre']:
+                tags.append(['genre'], c, None])
+
+        return tags
 
     def getTVSEp(self, id, season, episode=None, scraperData=None):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes/query?airedSeason="+str(season)+"&airedEpisode="+str(episode), headers=self._headers).text)

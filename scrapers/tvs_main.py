@@ -17,6 +17,7 @@ class tvs:
         self._scrapers = []
         self.importScrapers()
         self._currentTVS = None
+        self._seasons = []
         logger.info('TVS Indexer Initialised Successfully')
         logger.info('Supported file formats: '+str(self._supportedFiles))
 
@@ -126,11 +127,11 @@ class tvs:
                 result = []
                 for s in self._scrapers:
                     #create empty dict
-                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None, 'scraperData': None}
+                    result = {'title': None,'overview': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None, 'scraperData': None}
                     if s.__class__.__name__ == self._tvs[item]["scraperName"]:
                         result.update(s.getTVS(self._tvs[item]["scraperID"]))
                         break
-                data = (result["title"], result["desc"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._tvs[item]["idShow"])
+                data = (result["title"], result["overview"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._tvs[item]["idShow"])
                 cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                 commit = True
 
@@ -141,6 +142,15 @@ class tvs:
                 self._logger.debug('D- Item match multipleResults, ignoring')
             else:
                 #tvs is ok, call scan on tvs folder
+                
+                #scan for seasons for the previous tv_show
+                if self._currentTVS is not None:
+                    if self.scanSeasons():
+                        commit = True
+                    if self.scanShowData():
+                        commit = True
+
+                self._seasons = []
                 self._currentTVS = item
                 self.scanDir(os.path.join(path,item), True)
                 self._logger.debug('D- Item ok, scanning subdirectories')
@@ -177,6 +187,8 @@ class tvs:
             episode = re.findall("(?i)(?:s\\d+e)(\\d+)(?:\\.)", item)
             if len(season) > 0 and len(episode) > 0:
                 season = int(season[0])
+                if season not in self._seasons:
+                    self._seasons.append(season)
                 episode = int(episode[0])
                 epCode = str(season)+"."+str(episode)
 
@@ -185,7 +197,7 @@ class tvs:
                 if epCode not in self._existingEp or epCode in self._forceUpdateEp:
                     self._logger.debug('No entries are available for this episode or it is marked as forceUpdate')
                     #create empty dict
-                    result = {'title': item,'desc': None, 'icon': None, 'season': season, 'episode': episode, 'rating': None,'id': None}
+                    result = {'title': item,'overview': None, 'icon': None, 'season': season, 'episode': episode, 'rating': None,'id': None}
                     
                     for s in self._scrapers:
                         if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
@@ -194,7 +206,7 @@ class tvs:
                             break
 
                     forceUpdate = 0
-                    if "desc" not in result or ("desc" in result and result["desc"] == ""):
+                    if "overview" not in result or ("overview" in result and result["overview"] == ""):
                         self._logger.debug('Episode overview not available, setting as future forceUpdate')
                         forceUpdate = 1
 
@@ -208,13 +220,13 @@ class tvs:
 
                     if epCode not in self._existingEp:
                         self._logger.debug('Creating new entry')
-                        data = (result["title"], result["desc"], self.encodeImg(result["icon"]), result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
+                        data = (result["title"], result["overview"], self.encodeImg(result["icon"]), result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate)
                         cursor.execute("INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, path, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",data)
                         commit = True
 
                     elif epCode in self._forceUpdateEp:
                         self._logger.debug('Updating existing entry (forceUpdate)')
-                        data = (result["title"], result["desc"], self.encodeImg(result["icon"]), result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
+                        data = (result["title"], result["overview"], self.encodeImg(result["icon"]), result["season"], result["episode"], result["rating"], self._tvs[self._currentTVS]["scraperName"], result["id"], filePath, self._tvs[self._currentTVS]["idShow"], forceUpdate, self._idUpdateEp[epCode])                        
                         cursor.execute("UPDATE episodes SET title = %s, overview = %s, icon = %s, season = %s, episode = %s, rating = %s, scraperName = %s, scraperID = %s, path = %s, idShow = %s, forceUpdate = %s WHERE idEpisode = %s;", data)
                         commit = True
 
@@ -227,3 +239,100 @@ class tvs:
         if commit:
             self._connection.commit()
             self._logger.debug(str(cursor.rowcount)+'were affected')
+
+
+    def scanSeasons(self):
+        #scan seasons for a tv_show
+        commit = False
+        scraperID = self._tvs[self._currentTVS]["scraperID"]
+        idShow = self._tvs[self._currentTVS]["idShow"]
+        cursor = self._connection.cursor(dictionary=True)
+        noUpdate = []
+        existingSeasons = []
+        cursor.execute("SELECT season, forceUpdate FROM seasons WHERE idShow = %(idShow)s;", {'idShow': idShow})
+        for s in cursor.fetchall():
+            existingSeasons.append(s['season'])
+            if s['forceUpdate'] != 1:
+                noUpdate.append(s['season'])
+
+        for s in self._scrapers:
+            if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
+                self._logger.debug('Getting '+str(s.__class__.__name__)+' results')
+                for season in self._seasons:
+                    if season not in existingSeasons:
+                        #season don't already exists, and must be created
+                        data = s.getTVSSeason(scraperID, season)
+                        queryData = {'idShow': idShow, 'title': data['title'], 'overview': data['overview'], 'icon': self.encodeImg(data['icon']), 'premiered': data['premiered'], 'forceUpdate': 0, 'season': season}
+                        cursor.execute("INSERT INTO seasons (idShow, title, icon, season, premiered, overview, forceUpdate) VALUES (%(idShow)s, %(title)s, %(icon)s, %(season)s, %(premiered)s, %(overview)s, %(forceUpdate)s);", queryData)
+                        commit = True
+                    elif season not in noUpdate:
+                        #season already exists and must be updated
+                        data = s.getTVSSeason(scraperID, season)
+                        queryData = {'idShow': idShow, 'title': data['title'], 'overview': data['overview'], 'icon': self.encodeImg(data['icon']), 'premiered': data['premiered'], 'forceUpdate': 0}
+                        cursor.execute("UPDATE seasons SET title = %(title)s, icon = %(icon)s, season = %(season)s, premiered  = %(premiered)s, overview = %(overview)s, forceUpdate = %(forceUpdate)s WHERE idShow = %(idShow)s;", queryData)
+                        commit = True
+                break
+        return commit
+
+    def scanShowData(self):
+        #scan tags and persons for a tv_show
+        commit = False
+        scraperID = self._tvs[self._currentTVS]["scraperID"]
+        idShow = self._tvs[self._currentTVS]["idShow"]
+        cursor = self._connection.cursor(dictionary=True)
+
+        for s in self._scrapers:
+            if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
+                self._logger.debug('Getting '+str(s.__class__.__name__)+' results')
+
+                #tags part
+                newTags = []
+                for t in s.getTags(scraperID):
+                    cursor.execute("SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;", {'name': t[0], 'value': t[1]})
+                    idTag = cursor.fetchone()
+                    if idTag == None:
+                        #create tag if new
+                        cursor.execute("INSERT INTO tags (name, value, icon) VALUES (%(name)s, %(value)s, %(icon)s);", {'name': t[0], 'value': t[1], 'icon': self.encodeImg(t[2])})
+                        #get tag id
+                        cursor.execute("SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;", {'name': t[0], 'value': t[1]})
+                        idTag = cursor.fetchone()
+                        commit = True
+                    newTags.append(idTag['idTag'])
+
+                #get existing tags for this tvs
+                cursor.execute("SELECT idTag FROM tags_link WHERE mediaType = 2 AND idMedia = %(idShow)s;", {'idShow': idShow})
+                existingTags = []
+                for i in cursor.fetchall():
+                    existingTags.append(i['idTag'])
+                #link new tags to this tv_show
+                for i in newTags:
+                    if i not in existingTags:
+                        cursor.execute("INSERT INTO tags_link (idTag, idMedia, mediaType) VALUES (%(idTag)s, %(idShow)s, 2);", {'idTag': i, 'idShow': idShow})
+                        commit = True
+                        
+                #persons part
+                tvsPersons = s.getPersons(scraperID)
+                tvsPersonsIDs = []
+                for p in tvsPersons:
+                    cursor.execute("SELECT idPers FROM persons WHERE name = %(name)s;", {'name': p[0]})
+                    idPers = cursor.fetchone()
+                    if idPers == None:
+                        #create person if new
+                        cursor.execute("INSERT INTO persons (name) VALUES (%(name)s);", {'name': p[0]})
+                        #get person id
+                        cursor.execute("SELECT idPers FROM persons WHERE name = %(name)s;", {'name': p[0]})
+                        idPers = cursor.fetchone()
+                        commit = True
+                    tvsPersonsIDs.append(idPers['idPers'])
+                
+                #get existing persons for this tvs
+                cursor.execute("SELECT idPers FROM persons_link WHERE mediaType = 2 AND idMedia = %(idShow)s;", {'idShow': idShow})
+                existingPers = []
+                for i in cursor.fetchall():
+                    existingPers.append(i['idPers'])
+                #link new tags to this tv_show
+                for i in range(len(tvsPersonsIDs)):
+                    if tvsPersonsIDs[i] not in existingPers:
+                        cursor.execute("INSERT INTO persons_link (idPers, idMedia, mediaType, role) VALUES (%(idPers)s, %(idShow)s, 2, %(role)s);", {'idPers': tvsPersonsIDs[i], 'idShow': idShow, 'role': tvsPersons[i][1]})
+
+        return commit
