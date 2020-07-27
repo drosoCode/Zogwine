@@ -143,7 +143,7 @@ def tvs_getEps():
 def tvs_getSeasons():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.tvs_getSeasons(request.args['token'], request.args['idShow']))
+    return jsonify(api.tvs_getSeasons(request.args['token'], request.args['idShow'], request.args.get('season')))
 
 @app.route('/api/tvs/getShows', methods=['GET'])
 def tvs_getShows():

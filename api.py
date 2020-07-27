@@ -175,16 +175,21 @@ class api:
         cursor.execute(query, {'idUser': str(idUser), 'idShow': str(idShow)})
         return cursor.fetchone()    
 
-    def tvs_getSeasons(self, token, idShow):
+    def tvs_getSeasons(self, token, idShow, season=None):
         idUser = self._userTokens[token]
         cursor = self._connection.cursor(dictionary=True)
+        s = ''
+        dat = {'idUser': idUser, 'idShow': idShow}
+        if season is not None:
+            dat['season'] = season
+            s = "AND season = %(season)s "
         cursor.execute("SELECT title, overview, CONCAT('/cache/image?id=',icon) AS icon," \
                         "season, premiered, "\
                         "(SELECT COUNT(*) FROM episodes WHERE idShow = s.idShow AND season = s.season) AS episodes, "
                         "(SELECT COUNT(watchCount) FROM status WHERE idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = s.idShow AND season = s.season) AND mediaType = 1 AND idUser = %(idUser)s) AS watchedEpisodes " \
-                       "FROM seasons s "\
-                       "WHERE idShow = %(idShow)s " \
-                       "ORDER BY season;", {'idUser': idUser, 'idShow': idShow})
+                       "FROM seasons s " \
+                       "WHERE idShow = %(idShow)s " + s + ""\
+                       "ORDER BY season;", dat)
         return cursor.fetchall()
     
     def tvs_getEps(self, token, idShow, season=None):
