@@ -33,6 +33,8 @@ class tvdb:
         except Exception:
             ic = None
         return {
+                   'scraperName': 'tvdb',
+                   'scraperData': None,
                    'premiered': ep['data'][0]['firstAired'],
                    'title': 'Season '+str(season),
                    'overview': 'No Data Available',
@@ -49,10 +51,19 @@ class tvdb:
     def getNextEpisode(self, id):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes", headers=self._headers).text)
         if d['links']['last'] != 1:
-            d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes?page="+d['links']['last'], headers=self._headers).text)
+            d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes?page="+str(d['links']['last']), headers=self._headers).text)
         for ep in d['data']:
-            if datetime.strptime(ep.get['firstAired'], '%y-%m-%d') > datetime.now():
-                return self.subStandardize(ep)
+            if ep.get('firstAired') is not None and ep.get('firstAired') != '' and datetime.strptime(ep.get('firstAired'), '%Y-%m-%d') > datetime.now():
+                return {
+                    'scraperName': 'tvdb',
+                    'scraperData': None,
+                    'date': ep.get('firstAired'),
+                    'title': ep.get('episodeName'),
+                    'overview': ep.get('overview'),
+                    'season': ep.get('airedSeason'),
+                    'episode': ep.get('airedEpisodeNumber'),
+                    'icon': None
+                }
         return None
 
     def getTags(self, idTvs):
@@ -63,7 +74,7 @@ class tvdb:
 
         if 'genre' in d:
             for c in d['genre']:
-                tags.append(['genre'], c, None])
+                tags.append(['genre', c, None])
 
         return tags
 

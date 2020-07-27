@@ -26,6 +26,8 @@ class tmdb:
             n = "Season"+str(season)
         
         return {
+                   'scraperName': 'tmdb',
+                   'scraperData': None,
                    'premiered': resp.get('air_date'),
                    'title': n,
                    'overview': resp.get('overview'),
@@ -43,8 +45,20 @@ class tmdb:
 
     def getNextEpisode(self, idTvs):
         d = json.loads(requests.get(self._endpoint+"tv/"+str(idTvs)+"?api_key="+self._apikey).text)
-        if 'next_episode_to_air' in d and datetime.strptime(d['next_episode_to_air']['air_date'], '%y-%m-%d') > datetime.now():
-            return self.subStandardize(d['next_episode_to_air'])
+        if 'next_episode_to_air' in d and d['next_episode_to_air'] is not None and datetime.strptime(d['next_episode_to_air']['air_date'], '%Y-%m-%d') > datetime.now():
+            ic = None
+            if d['next_episode_to_air'].get('still_path') is not None:
+                ic = self._baseImgUrl + d['next_episode_to_air'].get('still_path')
+            return {
+                    'scraperName': 'tmdb',
+                    'scraperData': None,
+                    'date': d['next_episode_to_air'].get('air_date'),
+                    'title': d['next_episode_to_air'].get('name'),
+                    'overview': d['next_episode_to_air'].get('overview'),
+                    'season': d['next_episode_to_air'].get('season_number'),
+                    'episode': d['next_episode_to_air'].get('episode_number'),
+                    'icon': ic
+                }
         return None
 
     def getTags(self, idTvs):

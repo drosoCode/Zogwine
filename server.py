@@ -127,11 +127,17 @@ def getServiceWorker():
 
 ######################################################## TVS #############################################################################
 
+@app.route('/api/tvs/getNextEpisodes', methods=['GET'])
+def tvs_getNextEps():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.tvs_getNextEps())
+
 @app.route('/api/tvs/getEpisodes', methods=['GET'])
 def tvs_getEps():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.tvs_getEps(request.args['token'], request.args['idShow']))
+    return jsonify(api.tvs_getEps(request.args['token'], request.args['idShow'], request.args.get('season')))
 
 @app.route('/api/tvs/getSeasons', methods=['GET'])
 def tvs_getSeasons():

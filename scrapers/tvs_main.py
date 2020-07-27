@@ -336,3 +336,10 @@ class tvs:
                         cursor.execute("INSERT INTO persons_link (idPers, idMedia, mediaType, role) VALUES (%(idPers)s, %(idShow)s, 2, %(role)s);", {'idPers': tvsPersonsIDs[i], 'idShow': idShow, 'role': tvsPersons[i][1]})
 
         return commit
+
+    def getTvsNextEps(self, scraperName, scraperID):
+        for s in self._scrapers:
+            if s.__class__.__name__ == scraperName:
+                self._logger.info('Getting '+str(s.__class__.__name__)+' results')
+                return s.getNextEpisode(scraperID)
+        return None

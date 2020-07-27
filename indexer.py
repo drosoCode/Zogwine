@@ -31,3 +31,6 @@ class scanner:
             return None
         else:
             return self._class.scanDir(path)
+
+    def getTvsNextEps(self, scraperName, scraperID):
+        return self._class.getTvsNextEps(scraperName, scraperID)

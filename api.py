@@ -187,16 +187,41 @@ class api:
                        "ORDER BY season;", {'idUser': idUser, 'idShow': idShow})
         return cursor.fetchall()
     
-    def tvs_getEps(self, idShow, token):
+    def tvs_getEps(self, token, idShow, season=None):
         idUser = self._userTokens[token]
         cursor = self._connection.cursor(dictionary=True)
+        s = ''
+        dat = {'idUser': idUser, 'idShow': idShow}
+        if season is not None:
+            dat['season'] = season
+            s = "AND season = %(season)s "
         cursor.execute("SELECT idEpisode AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon," \
                         "season, episode, rating, scraperName, scraperID, "\
                         "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount " \
                        "FROM episodes e "\
-                       "WHERE idShow = %(idShow)s " \
-                       "ORDER BY season, episode;", {'idUser': idUser, 'idShow': idShow})
+                       "WHERE idShow = %(idShow)s " + s + "" \
+                       "ORDER BY season, episode;", dat)
         return cursor.fetchall()
+
+    def tvs_getNextEps(self):
+        scan = scanner(self._connection, 'tvs', self._data["api"])
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT idShow, title, scraperName, scraperID, fanart " \
+                       "FROM tv_shows "\
+                       "WHERE multipleResults IS NULL")
+        data = {}
+        for tvs in cursor.fetchall():
+            ep = scan.getTvsNextEps(tvs['scraperName'], tvs['scraperID'])
+            if ep is not None:
+                ep['idShow'] = tvs['idShow']
+                ep['showTitle'] = tvs['title']
+                if ep['icon'] is None:
+                    ep['icon'] = tvs['fanart']
+                data[ep['date']] = ep
+        ret = []
+        for d in sorted(data):
+            ret.append(data[d])
+        return ret
     
     def tvs_setID(self, idShow, resultID):
         #the resultID is the one from the json list of multipleResults entry
