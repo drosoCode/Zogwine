@@ -120,6 +120,8 @@ class api:
         self.tvs_runScan()
         #self.mov_runScan()
 
+    def runPersonsScan(self):
+        scanner(self._connection, 'persons', self._data["api"]).scanPersons()
 
     def getPersons(self, mediaType, idMedia):
         cursor = self._connection.cursor(dictionary=True)

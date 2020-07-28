@@ -34,3 +34,6 @@ class scanner:
 
     def getTvsNextEps(self, scraperName, scraperID):
         return self._class.getTvsNextEps(scraperName, scraperID)
+
+    def scanPersons(self):
+        return self._class.scan()

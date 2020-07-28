@@ -118,6 +118,15 @@ def runScan():
         abort(403)
     api.runScan()
     return jsonify({'status': "ok"})
+    
+@app.route('/api/core/runPersonsScan', methods=['GET'])
+def runPersonsScan():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    if not api.isAdmin(request.args['token']):
+        abort(403)
+    api.runPersonsScan()
+    return jsonify({'status': "ok"})
 
 @app.route('/sw_content.js')
 def getServiceWorker():
