@@ -27,7 +27,10 @@ class tvdb:
 
     def getTVSSeason(self, id, season):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/images/query?keyType=season&subKey="+str(season), headers=self._headers).text)
-        ep = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes/query?airedSeason="+str(season)+"&airedEpisode=1", headers=self._headers).text)
+        try:
+            date = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes/query?airedSeason="+str(season)+"&airedEpisode=1", headers=self._headers).text)['data'][0]['firstAired']
+        except Exception:
+            date = 'Unknown'
         try:
             ic = "https://artworks.thetvdb.com/banners/"+d['data'][0]['fileName']
         except Exception:
@@ -35,7 +38,7 @@ class tvdb:
         return {
                    'scraperName': 'tvdb',
                    'scraperData': None,
-                   'premiered': ep['data'][0]['firstAired'],
+                   'premiered': date,
                    'title': 'Season '+str(season),
                    'overview': 'No Data Available',
                    'icon': ic
