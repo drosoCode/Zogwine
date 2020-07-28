@@ -206,23 +206,20 @@ def playbackEnd():
             del lastRequestedFile[t]
     return jsonify({'response':s})
 
-@app.route('/api/tvs/toggleViewedEp', methods=['GET'])
-def tvs_toggleViewedEp():
+@app.route('/api/tvs/toggleEpisodeStatus', methods=['GET'])
+def tvs_toggleWatchedEpisode():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    #set episode as viewed for user
-    s = api.tvs_toggleViewedEp(request.args['idEpisode'], request.args['token'])
+    #set episode as watched for user
+    s = api.tvs_toggleWatchedEpisode(request.args['token'], request.args['idEpisode'])
     return jsonify({'response':s})
 
-@app.route('/api/tvs/toggleViewedTVS', methods=['GET'])
-def tvs_toggleViewed():
+@app.route('/api/tvs/toggleSeasonStatus', methods=['GET'])
+def tvs_toggleWatchedSeason():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    #set show as viewed for user
-    s = 'all'
-    if 'season' in request.args:
-        s = request.args['season']
-    s = api.tvs_toggleViewed(request.args['idShow'], request.args['token'], s)
+    #set show as watched for user
+    s = api.tvs_toggleWatchedSeason(request.args['token'], request.args['idShow'], request.args.get('season'))
     return jsonify({'response':s})
 
 @app.route('/api/users/authenticate', methods=['GET','POST'])

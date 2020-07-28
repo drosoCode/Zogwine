@@ -302,14 +302,27 @@ class api:
 
         return True
 
-    def tvs_toggleViewed(self, idShow, token, season='all'):
-        ids = self.tvs_getEps(idShow, token)
+    def tvs_toggleWatchedSeason(self, token, idShow, season=None):
+        cursor = self._connection.cursor(dictionary=True)
+        dat = {'idUser': self._userTokens[token], 'idShow': idShow}
+        watched = True
+
+        if season is not None:
+            dat['season'] = season
+            s = "AND season = %(season)s"
+        cursor.execute("SELECT SUM(watchCount) AS watched FROM status WHERE idUser = %(idUser)s AND mediaType = 1 " \
+            "AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(idShow)s " + s + ");", dat)
+        isWatched = cursor.fetchone()['watched']
+        if isWatched is not None and int(isWatched) > 0:
+            watched = False
+
+        ids = self.tvs_getEps(token, idShow)
         for i in ids:
-            if season == 'all' or int(season) == int(i["season"]):
-                self.tvs_toggleViewedEp(i["id"],token)
+            if season is None or int(season) == int(i["season"]):
+                self.tvs_toggleWatchedEpisode(token, i["id"], watched)
         return True
 
-    def tvs_toggleViewedEp(self, idEpisode, token):
+    def tvs_toggleWatchedEpisode(self, token, idEpisode, watched=None):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;", {'idEpisode': str(idEpisode), 'idUser': str(self._userTokens[token])})
         data = cursor.fetchone()
@@ -317,12 +330,12 @@ class api:
         if data != None and "watchCount" in data:
             #update
             count = data["watchCount"]
-            if count > 0:
+            if watched is False or count > 0:
                 count = 0
             else:
                 count = 1
             cursor.execute("UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idMedia)s;", {'watchCount': str(count), 'idUser': str(self._userTokens[token]), 'idMedia': str(idEpisode)})
-        else:
+        elif watched is not False:
             cursor.execute("INSERT INTO status (idUser, mediaType, idMedia, watchCount) VALUES (%(idUser)s, 1, %(idMedia)s, 1);", {'idUser': str(self._userTokens[token]), 'idMedia': str(idEpisode)})
         self._connection.commit()
         return True
