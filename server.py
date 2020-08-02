@@ -17,8 +17,6 @@ CORS(app)
 
 app.config["DEBUG"] = True
 
-lastRequestedFile = {}
-
 @app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
@@ -110,15 +108,6 @@ def refreshCache():
     api.refreshCache()
     return jsonify({'status': "ok"})
 
-@app.route('/api/core/runScan', methods=['GET'])
-def runScan():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if not api.isAdmin(request.args['token']):
-        abort(403)
-    api.runScan()
-    return jsonify({'status': "ok"})
-    
 @app.route('/api/core/runPersonsScan', methods=['GET'])
 def runPersonsScan():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
@@ -133,6 +122,98 @@ def getServiceWorker():
     path = 'static/js/sw_content.js'
     mime = mimetypes.guess_type(path, strict=False)[0]
     return send_file(open(path, "rb"), mimetype=mime, as_attachment=True, attachment_filename=path[path.rfind('/')+1:])
+
+
+@app.route('/api/users/authenticate', methods=['GET','POST'])
+def authenticateUser():
+    #return user infos
+    d = api.authenticateUser(request.args['user'],request.args['password'])
+    if not d:
+        abort(401)
+    else:
+        return jsonify({'response': d})
+
+@app.route('/api/users/data', methods=['GET','POST'])
+def getUserData():
+    #return user infos
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.getUserData(request.args['token']))
+
+
+@app.route('/api/player/start')
+def tvs_startTranscoder():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    s = api.startPlayer(request.args['token'], request.args)
+    if s:
+        return jsonify({'response':'ok'})
+    else:
+        abort(403)
+
+@app.route('/api/player/m3u8')
+def getTranscoderM3U8():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    token = request.args['token']
+    #add time to fileUrl prevent browser caching
+    fileUrl = "/api/player/file?token="+token+"&time="+str(time.time())+"&name="
+    dat = ''
+
+    file = 'out/'+str(token)+'/stream.m3u8'
+    if os.path.exists(file):
+        fileData = open(file, "r").read()
+        for i in fileData.split("\n"):
+            if ".ts" in i and "stream" in i:
+                dat += fileUrl+i+"\n"
+            else:
+                dat += i+"\n"
+        return Response(dat, mimetype='application/x-mpegURL')
+    else:
+        abort(404)
+
+@app.route('/api/player/file')
+def getTranscoderFile():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    name = request.args['name']
+    token = request.args['token']
+    #send transcoded file
+    file = 'out/'+str(token)+'/'+name
+    if os.path.exists(file):
+        if '/' not in name and '/' not in token:
+            return send_file(open(file, "rb"), mimetype='video/MP2T', as_attachment=True, attachment_filename=file[file.rfind('/')+1:])
+        else:
+            abort(403)
+    else:
+        abort(404)
+
+@app.route('/api/player/getFile')
+def player_getFile():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+
+    path = api.getMediaPath(request.args['token'], request.args['mediaType'], request.args['mediaData'])
+    if os.path.exists(path):
+        return getFile(path, 'video')
+    else:
+        abort(404)
+
+@app.route('/api/player/getInfos', methods=['GET'])
+def player_getFileInfos():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    return jsonify(api.getFileInfos(request.args['token'], request.args['mediaType'], request.args['mediaData']))
+
+@app.route('/api/player/stop', methods=['GET'])
+def playbackEnd():
+    t = request.args['token']
+    if not api.checkToken(t):
+        abort(401)
+    #set as viewed for user, and stop transcoder if started
+    s = api.setWatchTime(t, request.args['mediaType'], request.args['mediaData'], request.args.get('endTime'))
+    api.stopPlayer(t)
+    return jsonify({'response':s})
 
 ######################################################## TVS #############################################################################
 
@@ -193,28 +274,6 @@ def tvs_setID():
     else:
         abort(401)
 
-@app.route('/api/tvs/fileInfos', methods=['GET'])
-def tvs_getFileInfos():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getFileInfos(request.args['token'], request.args['idEpisode']))
-
-@app.route('/api/tvs/playbackEnd', methods=['GET'])
-def playbackEnd():
-    t = request.args['token']
-    if not api.checkToken(t):
-        abort(401)
-    #set as viewed for user, and stop transcoder if started
-    api.tvs_stopTranscoder(t)
-    s = False
-    if 'endTime' in request.args:
-        s = api.tvs_setViewedTime(request.args['idEpisode'], t, None, request.args['endTime'])
-    else:
-        if t in lastRequestedFile:
-            s = api.tvs_setViewedTime(request.args['idEpisode'], t, lastRequestedFile[t], -1)
-            del lastRequestedFile[t]
-    return jsonify({'response':s})
-
 @app.route('/api/tvs/toggleEpisodeStatus', methods=['GET'])
 def tvs_toggleWatchedEpisode():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
@@ -231,81 +290,14 @@ def tvs_toggleWatchedSeason():
     s = api.tvs_toggleWatchedSeason(request.args['token'], request.args['idShow'], request.args.get('season'))
     return jsonify({'response':s})
 
-@app.route('/api/users/authenticate', methods=['GET','POST'])
-def authenticateUser():
-    #return user infos
-    d = api.authenticateUser(request.args['user'],request.args['password'])
-    if not d:
-        abort(401)
-    else:
-        return jsonify({'response': d})
-
-@app.route('/api/users/data', methods=['GET','POST'])
-def getUserData():
-    #return user infos
+@app.route('/api/tvs/runScan', methods=['GET'])
+def tvs_runScan():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.getUserData(request.args['token']))
-
-
-@app.route('/api/transcoder/start')
-def tvs_startTranscoder():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    s = api.tvs_startTranscoder(request.args['idEpisode'], request.args['token'], request.args['audioStream'], request.args['subStream'], request.args['startFrom'], request.args['resize'])
-    if s:
-        return jsonify({'response':'ok'})
-    else:
+    if not api.isAdmin(request.args['token']):
         abort(403)
-
-@app.route('/api/transcoder/m3u8')
-def getTranscoderM3U8():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    token = request.args['token']
-    #add time to fileUrl prevent browser caching
-    fileUrl = "/api/transcoder/file?token="+token+"&time="+str(time.time())+"&name="
-    dat = ''
-
-    file = 'out/'+str(token)+'/stream.m3u8'
-    if os.path.exists(file):
-        fileData = open(file, "r").read()
-        for i in fileData.split("\n"):
-            if ".ts" in i and "stream" in i:
-                dat += fileUrl+i+"\n"
-            else:
-                dat += i+"\n"
-        return Response(dat, mimetype='application/x-mpegURL')
-    else:
-        abort(404)
-
-@app.route('/api/transcoder/file')
-def getTranscoderFile():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    name = request.args['name']
-    token = request.args['token']
-    lastRequestedFile[token] = name
-    #send transcoded file
-    file = 'out/'+str(token)+'/'+name
-    if os.path.exists(file):
-        if '/' not in name and '/' not in token:
-            return send_file(open(file, "rb"), mimetype='video/MP2T', as_attachment=True, attachment_filename=file[file.rfind('/')+1:])
-        else:
-            abort(403)
-    else:
-        abort(404)
-
-@app.route('/api/tvs/getFile')
-def tvs_getFile():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-
-    path = api.tvs_getEpPath(request.args['idEpisode'])
-    if os.path.exists(path):
-        return getFile(path, 'video')
-    else:
-        abort(404)
+    api.tvs_runScan()
+    return jsonify({'status': "ok"})
 
 ######################################################## MOVIES #############################################################################
 

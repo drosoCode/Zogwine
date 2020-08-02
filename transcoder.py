@@ -9,8 +9,8 @@ class transcoder:
     def __init__(self, filePath, outDir="./", encoder="h264_nvenc", crf=23):
         self._file = None
         self._fileInfos = None
-        self._audioStream = 0
-        self._subStream = -1
+        self._audioStream = '0'
+        self._subStream = '-1'
         self._subFile = ""
         self._enableHLS = True
         self._startFrom = 0
@@ -26,10 +26,10 @@ class transcoder:
         self._fileInfos = self.ffprobe()
 
     def setAudioStream(self, audioStream):
-        self._audioStream = audioStream
+        self._audioStream = str(audioStream)
 
     def setSub(self, subStream, subFile=""):
-        self._subStream = subStream
+        self._subStream = str(subStream)
 
     def enableHLS(self, en, time=-1):
         self._enableHLS = en
@@ -59,17 +59,7 @@ class transcoder:
         return self._fileInfos
 
     def getWatchedDuration(self, data):
-        if self._enableHLS:
-            #data is the name of latest watched hls segment
-            name = self._outFile
-            pos = self._outFile.rfind("/")
-            if pos > 0:
-                name = name[pos+1:]
-            num = int(re.findall("(?i)(?:"+name+")(\\d+)(?:\\.ts)", data)[0]) + 1
-            return num * int(self._hlsTime) + int(self._startFrom)
-        else:
-            #data is the last timecode
-            return int(data) + int(self._startFrom)
+        return float(data) + float(self._startFrom)
 
     def ffprobe(self):
         cmd = "ffprobe -v quiet -print_format json -show_format -show_streams \""+self._file+"\" > out/data.json"
@@ -141,7 +131,7 @@ class transcoder:
             resize = "[v2];[v2]scale="+str(self._resize)+":-1"
 
 
-        if self._subStream != -1:
+        if self._subStream != '-1':
             if self._subFile == "":
                 if self._fileInfos['subtitles'][int(self._subStream)]["codec"] in ["hdmv_pgs_subtitle", "dvd_subtitle"]:
                     cmd += " -filter_complex \"[0:v]"+rm3d+"[0:s:" + self._subStream + "]overlay"+resize+"\""
@@ -151,7 +141,8 @@ class transcoder:
                 cmd += " -filter_complex \"[0:v:0]"+rm3d+"subtitles='"+ self._subFile +"':si="+ self._subStream +resize+"\""
 
 
-        cmd += " -map 0:a:" + self._audioStream + " -c:a aac -ar 48000 -b:a 128k"
+        if self._audioStream != '0':
+            cmd += " -map 0:a:" + self._audioStream + " -c:a aac -ar 48000 -b:a 128k"
         cmd += rm3dMeta
         cmd += " -c:v " + self._encoder
         cmd += " -crf " + str(self._crf)

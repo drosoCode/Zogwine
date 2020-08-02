@@ -36,6 +36,7 @@ class api:
             self._userTokens = {}
         logger.info('API Class Instancied Successfully')
 
+#region general
     def getUserData(self,token):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT name, icon, admin, kodiLinkBase FROM users WHERE idUser = '"+str(self._userTokens[token])+"';")
@@ -66,15 +67,17 @@ class api:
             return False
 
     def generateToken(self, userID):
-        vals = self._userTokens.values()
-        try:
-            i = vals.index(userID)
-            del self._userTokens[vals[i]]
-        except:
-            pass
         t = secrets.token_hex(20)
         self._userTokens[t] = userID
         return t
+
+    def removeToken(self, token):
+        uid = self._userTokens[token]
+        del self._userTokens[token]
+        if sum(u == uid for u in self._userTokens.values()) == 0:
+            if uid in self._userFiles:
+                self._userFiles[uid].stop()
+                del self._userFiles[uid]
 
     def checkToken(self, token):
         return token in self._userTokens
@@ -115,7 +118,6 @@ class api:
             if d["icon"] != None:
                 self.addCache(d["icon"])
 
-
     def runScan(self):
         self.tvs_runScan()
         #self.mov_runScan()
@@ -125,7 +127,7 @@ class api:
 
     def getPersons(self, mediaType, idMedia):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT p.idPers, role, name, gender, birthdate, deathdate, description, CONCAT('/cache/image?id=',icon) AS icon " \
+        cursor.execute("SELECT p.idPers, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/cache/image?id=',icon) AS icon " \
                         "FROM persons p, persons_link l " \
                         "WHERE p.idPers = l.idPers" \
                         " AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;", {'mediaType': mediaType, 'idMedia': idMedia})
@@ -138,7 +140,72 @@ class api:
                         "WHERE t.idTag = l.idTag" \
                         " AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;", {'mediaType': mediaType, 'idMedia': idMedia})
         return cursor.fetchall()
+#endregion
 
+#region player
+    def getMediaPath(self, token, mediaType, mediaData):
+        if mediaType == '1':
+            #tvs episode
+            return self.tvs_getEpPath(mediaData)
+        elif mediaType == '3':
+            #movie
+            pass
+        else:
+            return None
+
+    def getStartTime(self, token, mediaType, mediaData):
+        if mediaType == 1:
+            cursor = self._connection.cursor(dictionary=True)
+            cursor.execute("SELECT viewTime FROM tvs_status WHERE idUser = %(idUser)s AND idEpisode = %(idEpisode)s;", {'idUser': self._userTokens[token], 'idEpisode': mediaData})
+            data = cursor.fetchone()
+            if data != None and "viewTime" in data:
+                return float(data["viewTime"])
+        return None
+
+    def getFileInfos(self, token, mediaType, mediaData):
+        uid = self._userTokens[token]
+        path = self.getMediaPath(token, mediaType, mediaData)
+        tr = transcoder(path, self._data['config']['outDir']+'/'+token, self._data['config']['encoder'], self._data['config']['crf'])
+
+        #get last view end if available
+        st = self.getStartTime(token, mediaType, mediaData)
+        if st is not None:
+            tr.setStartTime(st)
+
+        self._userFiles[uid] = tr
+        return tr.getFileInfos()
+
+    def startPlayer(self, token, options):
+        uid = self._userTokens[token]
+        logger.info('Starting transcoder for user '+str(uid))
+
+        self._userFiles[uid].enableHLS(True, self._data["config"]['hlsTime'])
+        if 'audioStream' in options:
+            self._userFiles[uid].setAudioStream(options.get('audioStream'))
+        if 'subStream' in options:
+            self._userFiles[uid].setSub(options.get('subStream'))
+        if 'startFrom' in options:
+            self._userFiles[uid].setStartTime(options.get('startFrom'))
+        if 'resize' in options:
+            self._userFiles[uid].resize(options.get('resize'))
+
+        self._userFiles[uid].start()
+        return True
+
+    def setWatchTime(self, token, mediaType, mediaData, endTime=None):
+        if mediaType == '1':
+            self.tvs_setWatchTime(token, mediaData, endTime)
+        return True
+    
+    def stopPlayer(self, token):
+        logger.info('Stopping transcoder for user '+str(self._userTokens[token]))
+        self._userFiles[self._userTokens[token]].stop()
+        del self._userFiles[self._userTokens[token]]
+        
+
+#endregion
+
+#region tvs
 ######################################################################## TVS ##############################################################################
 
     def tvs_getShows(self, token, mr=False):
@@ -243,20 +310,6 @@ class api:
         scanner(self._connection, 'tvs', self._data["api"]).scanDir(self._data["config"]["tvsDirectory"])
         return True
 
-    def tvs_getFileInfos(self, token, episodeID):
-        epPath = self.tvs_getEpPath(episodeID)
-        tr = transcoder(epPath, self._data['config']['outDir']+'/'+token, self._data['config']['encoder'], self._data['config']['crf'])
-
-        #get last view end if available
-        cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT viewTime FROM tvs_status WHERE idUser = %(idUser)s AND idEpisode = %(idEpisode)s;", {'idUser': self._userTokens[token], 'idEpisode': episodeID})
-        data = cursor.fetchone()
-        if data != None and "viewTime" in data:
-            tr.setStartTime(float(data["viewTime"]))
-
-        self._userFiles[token] = tr
-        return tr.getFileInfos()
-
     def tvs_getEpPath(self, idEpisode):
         cursor = self._connection.cursor(dictionary=True)
         cursor.execute("SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = %(idEpisode)s;", {'idEpisode': idEpisode})
@@ -264,45 +317,28 @@ class api:
         logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
         return path
 
-    def tvs_startTranscoder(self, idEpisode, token, audioStream, subStream, startFrom=0, resize=-1):
-        logger.info('Starting transcoder for user '+str(self._userTokens[token]))
+    def tvs_setWatchTime(self, token, idEpisode, endTime=None):
+        uid = self._userTokens[token]
+        if endTime is not None:
+            endTime = self._userFiles[uid].getWatchedDuration(endTime)
+            duration = float(self._userFiles[uid].getFileInfos()['general']['duration'])
 
-        self._userFiles[token].setAudioStream(audioStream)
-        self._userFiles[token].setSub(subStream)
-        self._userFiles[token].enableHLS(True, self._data["config"]['hlsTime'])
-        self._userFiles[token].setStartTime(startFrom)
-        self._userFiles[token].resize(resize)
-        self._userFiles[token].start()
+            cursor = self._connection.cursor(dictionary=True)
+            cursor.execute("SELECT idStatus, watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;", {'idUser': uid, 'idEpisode': idEpisode})
+            data = cursor.fetchone()
+            viewAdd = 0
+        
+            if endTime > duration * self._data['config']['watchedThreshold']:
+                viewAdd = 1
 
-        return True
-    
-    def tvs_stopTranscoder(self, token):
-        logger.info('Stopping transcoder for user '+str(self._userTokens[token]))
-        self._userFiles[token].stop()
+            if data != None and "watchCount" in data:
+                cursor.execute("UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s WHERE idStatus = %(idStatus)s;", {'watchCount':str(data["watchCount"]+viewAdd), 'watchTime': str(endTime), 'idStatus': str(data["idStatus"])})
+            else:
+                cursor.execute("INSERT INTO tvs_status (idUser, idEpisode, watchCount, watchTime) VALUES (%s, %s, 1, %s);", (str(uid), str(idEpisode), str(viewAdd), str(endTime)))
 
-    def tvs_setViewedTime(self, idEpisode, token, lastRequestedFile, endTime=-1):
-        if endTime == -1:
-            endTime = self._userFiles[token].getWatchedDuration(lastRequestedFile)
+            return True
         else:
-            endTime = self._userFiles[token].getWatchedDuration(endTime)
-        d = float(self._userFiles[token].getFileInfos()['general']['duration'])
-
-        cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idStatus, watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;", {'idUser': self._userTokens[token], 'idEpisode': idEpisode})
-        data = cursor.fetchone()
-        viewAdd = 0
-    
-        if endTime > d * self._data['config']['watchedThreshold']:
-            viewAdd = 1
-
-        if data != None and "watchCount" in data:
-            cursor.execute("UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s WHERE idStatus = %(idStatus)s;", {'watchCount':str(data["watchCount"]+viewAdd), 'watchTime': str(endTime), 'idStatus': str(data["idStatus"])})
-        else:
-            cursor.execute("INSERT INTO tvs_status (idUser, idEpisode, watchCount, watchTime) VALUES (%s, %s, 1, %s);", (str(self._userTokens[token]), str(idEpisode), str(viewAdd), str(endTime)))
-
-        del self._userFiles[token]
-
-        return True
+            return False
 
     def tvs_toggleWatchedSeason(self, token, idShow, season=None):
         cursor = self._connection.cursor(dictionary=True)
@@ -361,7 +397,9 @@ class api:
         for d in data:
             if d["icon"] != None:
                 self.addCache(d["icon"])
+#endregion
 
+#region movies
 ##################################################### MOVIES #########################################################
 
     def mov_runScan(self):
@@ -395,3 +433,4 @@ class api:
                 self.addCache(d["icon"])
             if d["fanart"] != None:
                 self.addCache(d["fanart"])
+#endregion
