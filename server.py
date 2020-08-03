@@ -12,15 +12,14 @@ from log import getLogs
 from api import api as apiClass
 api = apiClass("config/config_dev.json")
 
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, static_url_path='')
 CORS(app)
 
 app.config["DEBUG"] = True
 
 @app.route('/', methods=['GET'])
 def home():
-    return render_template('index.html')
-
+    return redirect('index.html', code=302)
 
 ################################################################ MAIN ##################################################################
 
@@ -116,13 +115,6 @@ def runPersonsScan():
         abort(403)
     api.runPersonsScan()
     return jsonify({'status': "ok"})
-
-@app.route('/sw_content.js')
-def getServiceWorker():
-    path = 'static/js/sw_content.js'
-    mime = mimetypes.guess_type(path, strict=False)[0]
-    return send_file(open(path, "rb"), mimetype=mime, as_attachment=True, attachment_filename=path[path.rfind('/')+1:])
-
 
 @app.route('/api/users/authenticate', methods=['GET','POST'])
 def authenticateUser():
