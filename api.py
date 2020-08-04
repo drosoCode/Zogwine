@@ -123,7 +123,7 @@ class api:
         #self.mov_runScan()
 
     def runPersonsScan(self):
-        scanner(self._connection, 'persons', self._data["api"]).scanPersons()
+        scanner(self._connection, 'persons', self._data["api"]).getObject().scanPersons()
 
     def getPersons(self, mediaType, idMedia):
         cursor = self._connection.cursor(dictionary=True)
@@ -276,26 +276,15 @@ class api:
                        "WHERE idShow = %(idShow)s " + s + "" \
                        "ORDER BY season, episode;", dat)
         return cursor.fetchall()
-
-    def tvs_getNextEps(self):
-        scan = scanner(self._connection, 'tvs', self._data["api"])
+    
+    def tvs_getUpcomingEpisodes(self):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT idShow, title, scraperName, scraperID, fanart " \
-                       "FROM tv_shows "\
-                       "WHERE multipleResults IS NULL")
-        data = {}
-        for tvs in cursor.fetchall():
-            ep = scan.getTvsNextEps(tvs['scraperName'], tvs['scraperID'])
-            if ep is not None:
-                ep['idShow'] = tvs['idShow']
-                ep['showTitle'] = tvs['title']
-                if ep['icon'] is None:
-                    ep['icon'] = tvs['fanart']
-                data[ep['date']] = ep
-        ret = []
-        for d in sorted(data):
-            ret.append(data[d])
-        return ret
+        cursor.execute("SELECT u.idEpisode AS id, u.title AS title, t.title AS showTitle, u.overview AS overview, CONCAT('/cache/image?id=',COALESCE(u.icon, t.fanart)) AS icon," \
+                        "u.season AS season, u.episode AS episode, u.date AS date, u.idShow AS idShow "\
+                       "FROM upcoming_episodes u, tv_shows t "\
+                       "WHERE u.idShow = t.idShow AND u.date >= DATE(SYSDATE())" \
+                       "ORDER BY date;")
+        return cursor.fetchall()
     
     def tvs_setID(self, idShow, resultID):
         #the resultID is the one from the json list of multipleResults entry
@@ -308,6 +297,10 @@ class api:
 
     def tvs_runScan(self):
         scanner(self._connection, 'tvs', self._data["api"]).scanDir(self._data["config"]["tvsDirectory"])
+        return True
+
+    def tvs_runUpcomingScan(self):
+        scanner(self._connection, 'tvs', self._data["api"]).getObject().scanUpcomingEpisodes()
         return True
 
     def tvs_getEpPath(self, idEpisode):
@@ -393,6 +386,11 @@ class api:
             if d["icon"] != None:
                 self.addCache(d["icon"])
         cursor.execute("SELECT icon FROM seasons;")
+        data = cursor.fetchall()
+        for d in data:
+            if d["icon"] != None:
+                self.addCache(d["icon"])
+        cursor.execute("SELECT icon FROM upcoming_episodes;")
         data = cursor.fetchall()
         for d in data:
             if d["icon"] != None:

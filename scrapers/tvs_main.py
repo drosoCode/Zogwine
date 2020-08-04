@@ -337,9 +337,21 @@ class tvs:
 
         return commit
 
-    def getTvsNextEps(self, scraperName, scraperID):
-        for s in self._scrapers:
-            if s.__class__.__name__ == scraperName:
-                self._logger.info('Getting '+str(s.__class__.__name__)+' results')
-                return s.getNextEpisode(scraperID)
-        return None
+    def scanUpcomingEpisodes(self):
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute('DELETE FROM upcoming_episodes WHERE date < DATE(SYSDATE())')
+        cursor.execute("SELECT idShow, scraperName, scraperID " \
+                       "FROM tv_shows "\
+                       "WHERE multipleResults IS NULL AND idShow NOT IN (SELECT idShow FROM upcoming_episodes)")
+        for tvs in cursor.fetchall():
+            for s in self._scrapers:
+                if s.__class__.__name__ == tvs['scraperName']:
+                    self._logger.info('Getting '+str(s.__class__.__name__)+' results')
+                    ep = s.getUpcomingEpisode(tvs['scraperID'])
+                    if ep is not None:
+                        queryData = {'title': ep.get('title'), 'overview': ep.get('overview'), 'season': ep.get('season'), 'episode': ep.get('episode'), 'date': ep.get('date'), 'icon': ep.get('icon'), 'idShow': tvs['idShow']}
+                        cursor.execute("INSERT INTO upcoming_episodes (title, overview, season, episode, date, icon, idShow) "\
+                                    "VALUES (%(title)s, %(overview)s, %(season)s, %(episode)s, %(date)s, %(icon)s, %(idShow)s)", queryData)
+        
+        self._connection.commit()
+        self._logger.debug(str(cursor.rowcount)+'were affected')

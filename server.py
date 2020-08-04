@@ -209,11 +209,20 @@ def playbackEnd():
 
 ######################################################## TVS #############################################################################
 
-@app.route('/api/tvs/getNextEpisodes', methods=['GET'])
-def tvs_getNextEps():
+@app.route('/api/tvs/getUpcomingEpisodes', methods=['GET'])
+def tvs_getUpcomingEpisodes():
     if 'token' not in request.args or not api.checkToken(request.args['token']):
         abort(401)
-    return jsonify(api.tvs_getNextEps())
+    return jsonify(api.tvs_getUpcomingEpisodes())
+
+@app.route('/api/tvs/runUpcomingScan', methods=['GET'])
+def tvs_runUpcomingScan():
+    if 'token' not in request.args or not api.checkToken(request.args['token']):
+        abort(401)
+    if not api.isAdmin(request.args['token']):
+        abort(403)
+    api.tvs_runUpcomingScan()
+    return jsonify({'status': "ok"})
 
 @app.route('/api/tvs/getEpisodes', methods=['GET'])
 def tvs_getEps():

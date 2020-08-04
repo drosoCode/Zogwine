@@ -32,8 +32,9 @@ class scanner:
         else:
             return self._class.scanDir(path)
 
-    def getTvsNextEps(self, scraperName, scraperID):
-        return self._class.getTvsNextEps(scraperName, scraperID)
-
-    def scanPersons(self):
-        return self._class.scan()
+    def getObject(self):
+        if self._class == None:
+            logger.error('Indexer not available')
+            return None
+        else:
+            return self._class

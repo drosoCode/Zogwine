@@ -51,7 +51,7 @@ class tvdb:
             persons.append([p.get('name'), p.get('role')])
         return persons
         
-    def getNextEpisode(self, id):
+    def getUpcomingEpisode(self, id):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes", headers=self._headers).text)
         if d['links']['last'] != 1:
             d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes?page="+str(d['links']['last']), headers=self._headers).text)

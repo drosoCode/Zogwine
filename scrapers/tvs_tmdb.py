@@ -43,7 +43,7 @@ class tmdb:
             persons.append([p.get('name'), p.get('department')])
         return persons
 
-    def getNextEpisode(self, idTvs):
+    def getUpcomingEpisode(self, idTvs):
         d = json.loads(requests.get(self._endpoint+"tv/"+str(idTvs)+"?api_key="+self._apikey).text)
         if 'next_episode_to_air' in d and d['next_episode_to_air'] is not None and datetime.strptime(d['next_episode_to_air']['air_date'], '%Y-%m-%d') > datetime.now():
             ic = None
