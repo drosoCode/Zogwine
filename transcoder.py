@@ -142,7 +142,7 @@ class transcoder:
 
 
         if self._audioStream != '0':
-            cmd += " -map 0:a:" + self._audioStream + " -c:a aac -ar 48000 -b:a 128k"
+            cmd += " -map 0:a:" + self._audioStream + " -c:a aac -ar 48000 -b:a 128k -ac 2"
         cmd += rm3dMeta
         cmd += " -c:v " + self._encoder
         cmd += " -crf " + str(self._crf)
