@@ -555,6 +555,8 @@ def tvs_toggleWatchedEpisodeFlask():
 @app.route('/api/tvs/toggleSeasonStatus', methods=['GET'])
 def tvs_toggleWatchedSeason():
     checkArgs(['idShow'])
+    token = request.args['token']
+    idShow = request.args['idShow']
     cursor = sqlConnection.cursor(dictionary=True)
     dat = {'idUser': userTokens[token], 'idShow': idShow}
     watched = True

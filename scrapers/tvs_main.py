@@ -142,17 +142,16 @@ class tvs:
                 self._logger.debug('D- Item match multipleResults, ignoring')
             else:
                 #tvs is ok, call scan on tvs folder
-                
-                #scan for seasons for the previous tv_show
-                if self._currentTVS is not None:
-                    if self.scanSeasons():
-                        commit = True
-                    if self.scanShowData():
-                        commit = True
-
                 self._seasons = []
                 self._currentTVS = item
+                #scan for subfolders/files
                 self.scanDir(os.path.join(path,item), True)
+                #scan for seasons
+                if self.scanSeasons():
+                    commit = True
+                #scan for tags and people
+                if self.scanShowData():
+                    commit = True
                 self._logger.debug('D- Item ok, scanning subdirectories')
         else:
             #entries for this tvs doesn't exists, create entry with multipleResults
@@ -240,7 +239,6 @@ class tvs:
             self._connection.commit()
             self._logger.debug(str(cursor.rowcount)+'were affected')
 
-
     def scanSeasons(self):
         #scan seasons for a tv_show
         commit = False
@@ -254,7 +252,6 @@ class tvs:
             existingSeasons.append(s['season'])
             if s['forceUpdate'] != 1:
                 noUpdate.append(s['season'])
-
         for s in self._scrapers:
             if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
                 self._logger.debug('Getting '+str(s.__class__.__name__)+' results')
