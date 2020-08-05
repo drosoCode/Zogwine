@@ -1,5 +1,5 @@
 from log import logger
-from server import api, app
+from server import app
 
 from tornado.wsgi import WSGIContainer
 from tornado.ioloop import IOLoop

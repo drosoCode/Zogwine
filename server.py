@@ -7,21 +7,82 @@ import os
 import re
 from base64 import b64decode
 import time
+import json
+import base64
+import hashlib
+import secrets
 
-from log import getLogs
-from api import api as apiClass
-api = apiClass("config/config_dev.json")
+from dbHelper import sql
+from indexer import scanner
+from log import logger, getLogs
+from transcoder import transcoder
+
+"""
+DB:
+    mediaType: 1=tv_show ep
+               2=tv_show
+               3=movie
+               
+"""
+
+with open('config/config_dev.json') as f:
+    data = json.load(f)
+    configData = data
+    sqlConnection = sql(host=data["db"]["host"],user=data["db"]["user"],password=data["db"]["password"],database=data["db"]["name"], use_unicode=True, charset='utf8')
+    userFiles = {}
+    userTokens = {}
+    logger.info('Server Class Instancied Successfully')
 
 app = flask.Flask(__name__, static_url_path='')
 CORS(app)
 
 app.config["DEBUG"] = True
 
+@app.before_request
+def before_request():
+    if request.endpoint not in ['authenticateUser', 'getImage'] and ('token' not in request.args or not request.args['token'] in userTokens):
+        abort(401)
+
+def checkArgs(args):
+    for a in args:
+        if a not in request.args:
+            abort(404)
+            return False
+    return True
+
+def checkUser(prop):
+    if prop == 'admin':
+        d = getUserData(request.args['token'])
+        if "admin" in d and d["admin"]:
+            return True
+        else:
+            abort(403)
+
+def generateToken(userID):
+    t = secrets.token_hex(20)
+    userTokens[t] = userID
+    return t
+
+def removeToken(token):
+    uid = userTokens[token]
+    del userTokens[token]
+    if sum(u == uid for u in userTokens.values()) == 0:
+        if uid in userFiles:
+            userFiles[uid].stop()
+            del userFiles[uid]
+
+def addCache(data):
+    file = 'out/cache/'+data
+    if not os.path.exists(file):
+        with open(file, 'wb') as f:
+            logger.debug('Adding '+file+' to cache')
+            f.write(requests.get(b64decode(data).decode()).content)
+
 @app.route('/', methods=['GET'])
 def home():
     return redirect('index.html', code=302)
 
-################################################################ MAIN ##################################################################
+#region main
 
 def get_chunk(full_path, byte1=None, byte2=None):
     file_size = os.stat(full_path).st_size
@@ -64,23 +125,25 @@ def getFile(path, requiredMime):
         abort(404)
 
 @app.route('/api/core/getStatistics')
-def getStats():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return api.getStatistics(request.args['token'])
+def getStatistics():
+    avgEpTime = 0.5 #h
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT COUNT(idStatus) AS watchedEpCount, SUM(watchCount) AS watchedEpSum FROM status WHERE watchCount > 0 AND mediaType = 1 AND idUser = %(idUser)s;", {'idUser': userTokens[request.args['token']]})
+    dat1 = cursor.fetchone()
+    cursor.execute("SELECT COUNT(DISTINCT idShow) AS tvsCount, COUNT(idEpisode) AS epCount FROM episodes;")
+    dat2 = cursor.fetchone()
+    if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
+        dat1["watchedEpSum"] = 0
+    return {"watchedEpCount":int(dat1["watchedEpCount"]), "watchedEpSum":int(dat1["watchedEpSum"]), "tvsCount":int(dat2["tvsCount"]), "epCount": int(dat2["epCount"]), "lostTime": avgEpTime * int(dat1["watchedEpSum"])}
 
 @app.route('/api/core/getLogs')
 def getServerLogs():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if api.isAdmin(request.args['token']):
-        try:
-            l = int(request.args['amount'])
-        except Exception:
-            l = 20
-        return jsonify(getLogs(l))
-    else:
-        abort(403)
+    checkUser('admin')
+    try:
+        l = int(request.args['amount'])
+    except Exception:
+        l = 20
+    return jsonify(getLogs(l))
 
 @app.route('/cache/image')
 def getImage():
@@ -97,56 +160,106 @@ def getImage():
     else:
         return redirect(url, code=302)
 
-
 @app.route('/api/core/refreshCache', methods=['GET'])
 def refreshCache():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if not api.isAdmin(request.args['token']):
-        abort(403)
-    api.refreshCache()
-    return jsonify({'status': "ok"})
+    checkUser('admin')
+    tvs_refreshCache()
+    mov_refreshCache()
+
+    cursor = sqlConnection.cursor(dictionary=True)
+    #refresh tags cache
+    cursor.execute("SELECT icon FROM tags;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+    #refresh persons cache
+    cursor.execute("SELECT icon FROM persons;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+    return jsonify({'response': 'ok'})
 
 @app.route('/api/core/runPersonsScan', methods=['GET'])
 def runPersonsScan():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if not api.isAdmin(request.args['token']):
-        abort(403)
-    api.runPersonsScan()
-    return jsonify({'status': "ok"})
+    checkUser('admin')
+    scanner(sqlConnection, 'persons', configData["api"]).getObject().scan()
+    return jsonify({'response': 'ok'})
 
 @app.route('/api/users/authenticate', methods=['GET','POST'])
 def authenticateUser():
-    #return user infos
-    d = api.authenticateUser(request.args['user'],request.args['password'])
-    if not d:
-        abort(401)
+    checkArgs(['user', 'password'])
+    user = request.args['user']
+    password = hashlib.sha256(bytes(request.args['password'], 'utf-8')).hexdigest()
+    cursor = sqlConnection.cursor(dictionary=True)
+    if user != "" and password != "":
+        r = "SELECT idUser FROM users WHERE user = '"+str(user)+"' AND password = '"+str(password)+"';"
+        cursor.execute(r)
+        dat = cursor.fetchone()
+        if dat != None and "idUser" in dat:
+            logger.info('User: '+str(user)+' successfully authenticated')
+            return jsonify({'response': generateToken(dat["idUser"])})
+        else:
+            logger.warning('Bad Authentication for user: '+str(user))
+            return jsonify({'response': 'error'})
     else:
-        return jsonify({'response': d})
+        logger.warning('Empty User or Password for authentication')
+        return jsonify({'response': 'error'})
+
+def getUserData(token):
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT name, icon, admin, kodiLinkBase FROM users WHERE idUser = %(idUser)s", {'idUser': userTokens[token]})
+    return cursor.fetchone()
 
 @app.route('/api/users/data', methods=['GET','POST'])
-def getUserData():
-    #return user infos
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.getUserData(request.args['token']))
+def getUserDataFlask():
+    return jsonify(getUserData(request.args['token']))
 
+@app.route('/api/core/getPersons', methods=['GET'])
+def getPersons():
+    checkArgs(['mediaType', 'mediaData'])
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT p.idPers, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/cache/image?id=',icon) AS icon " \
+                    "FROM persons p, persons_link l " \
+                    "WHERE p.idPers = l.idPers" \
+                    " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;", {'mediaType': request.args['mediaType'], 'mediaData': request.args['mediaData']})
+    return jsonify(cursor.fetchall())
+
+@app.route('/api/core/getTags', methods=['GET'])
+def getTags():
+    checkArgs(['mediaType', 'mediaData'])
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT t.idTag, name, value, CONCAT('/cache/image?id=',icon) AS icon " \
+                    "FROM tags t, tags_link l " \
+                    "WHERE t.idTag = l.idTag" \
+                    " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;", {'mediaType': request.args['mediaType'], 'mediaData': request.args['mediaData']})
+    return jsonify(cursor.fetchall())
+
+#endregion
+
+#region player
 
 @app.route('/api/player/start')
-def tvs_startTranscoder():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    s = api.startPlayer(request.args['token'], request.args)
-    if s:
-        return jsonify({'response':'ok'})
-    else:
-        abort(403)
+def startPlayer():
+    uid = userTokens[request.args['token']]
+    logger.info('Starting transcoder for user '+str(uid))
+
+    userFiles[uid].enableHLS(True, configData["config"]['hlsTime'])
+    if 'audioStream' in request.args:
+        userFiles[uid].setAudioStream(request.args.get('audioStream'))
+    if 'subStream' in request.args:
+        userFiles[uid].setSub(request.args.get('subStream'))
+    if 'startFrom' in request.args:
+        userFiles[uid].setStartTime(request.args.get('startFrom'))
+    if 'resize' in request.args:
+        userFiles[uid].resize(request.args.get('resize'))
+
+    userFiles[uid].start()
+    return jsonify({'response':'ok'})
 
 @app.route('/api/player/m3u8')
 def getTranscoderM3U8():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
     token = request.args['token']
     #add time to fileUrl prevent browser caching
     fileUrl = "/api/player/file?token="+token+"&time="+str(time.time())+"&name="
@@ -166,8 +279,6 @@ def getTranscoderM3U8():
 
 @app.route('/api/player/file')
 def getTranscoderFile():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
     name = request.args['name']
     token = request.args['token']
     #send transcoded file
@@ -180,145 +291,346 @@ def getTranscoderFile():
     else:
         abort(404)
 
+def getMediaPath(token, mediaType, mediaData):
+    if mediaType == '1':
+        #tvs episode
+        return tvs_getEpPath(mediaData)
+    elif mediaType == '3':
+        #movie
+        pass
+    else:
+        return None
+
 @app.route('/api/player/getFile')
 def player_getFile():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-
-    path = api.getMediaPath(request.args['token'], request.args['mediaType'], request.args['mediaData'])
+    checkArgs(['mediaType', 'mediaData'])
+    path = getMediaPath(request.args['token'], request.args['mediaType'], request.args['mediaData'])
     if os.path.exists(path):
         return getFile(path, 'video')
     else:
         abort(404)
 
+def getFileInfos(token, mediaType, mediaData):
+    uid = userTokens[token]
+    path = getMediaPath(token, mediaType, mediaData)
+    tr = transcoder(path, configData['config']['outDir']+'/'+token, configData['config']['encoder'], configData['config']['crf'])
+
+    #get last view end if available
+    st = None
+    if mediaType == 1:
+        cursor = sqlConnection.cursor(dictionary=True)
+        cursor.execute("SELECT viewTime FROM tvs_status WHERE idUser = %(idUser)s AND idEpisode = %(idEpisode)s;", {'idUser': userTokens[token], 'idEpisode': mediaData})
+        data = cursor.fetchone()
+        if data != None and "viewTime" in data:
+            st = float(data["viewTime"])
+    
+    if st is not None:
+        tr.setStartTime(st)
+
+    userFiles[uid] = tr
+    return tr.getFileInfos()
+
 @app.route('/api/player/getInfos', methods=['GET'])
 def player_getFileInfos():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.getFileInfos(request.args['token'], request.args['mediaType'], request.args['mediaData']))
+    checkArgs(['mediaType', 'mediaData'])
+    return jsonify(getFileInfos(request.args['token'], request.args['mediaType'], request.args['mediaData']))
 
 @app.route('/api/player/stop', methods=['GET'])
-def playbackEnd():
-    t = request.args['token']
-    if not api.checkToken(t):
-        abort(401)
-    #set as viewed for user, and stop transcoder if started
-    s = api.setWatchTime(t, request.args['mediaType'], request.args['mediaData'], request.args.get('endTime'))
-    api.stopPlayer(t)
-    return jsonify({'response':s})
+def player_stop():
+    token = request.args['token']
+    mediaType = request.args['mediaType']
+    mediaData = request.args['mediaData']
+    endTime = request.args.get('endTime')
+    #set watch time
+    if mediaType == '1':
+        tvs_setWatchTime(token, mediaData, endTime)
+    #stop transcoder
+    logger.info('Stopping transcoder for user '+str(userTokens[token]))
+    userFiles[userTokens[token]].stop()
+    del userFiles[userTokens[token]]
+    
+    return jsonify({'response':'ok'})
 
-######################################################## TVS #############################################################################
+#endregion
+
+#region tvs
+
+def tvs_getEpPath(idEpisode):
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = %(idEpisode)s;", {'idEpisode': idEpisode})
+    path = configData["config"]["tvsDirectory"]+'/'+cursor.fetchone()['path']
+    logger.debug('Getting episode path for id:'+str(idEpisode)+' -> '+path)
+    return path
+
+def tvs_refreshCache():
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT icon, fanart FROM tv_shows;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+        if d["fanart"] != None:
+            addCache(d["fanart"])
+    cursor.execute("SELECT icon FROM episodes;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+    cursor.execute("SELECT icon FROM seasons;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+    cursor.execute("SELECT icon FROM upcoming_episodes;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+
+def tvs_setWatchTime(token, idEpisode, endTime=None):
+    uid = userTokens[token]
+    if endTime is not None:
+        endTime = userFiles[uid].getWatchedDuration(endTime)
+        duration = float(userFiles[uid].getFileInfos()['general']['duration'])
+
+        cursor = sqlConnection.cursor(dictionary=True)
+        cursor.execute("SELECT idStatus, watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;", {'idUser': uid, 'idEpisode': idEpisode})
+        data = cursor.fetchone()
+        viewAdd = 0
+    
+        if endTime > duration * configData['config']['watchedThreshold']:
+            viewAdd = 1
+
+        if data != None and "watchCount" in data:
+            cursor.execute("UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s WHERE idStatus = %(idStatus)s;", {'watchCount':str(data["watchCount"]+viewAdd), 'watchTime': str(endTime), 'idStatus': str(data["idStatus"])})
+        else:
+            cursor.execute("INSERT INTO tvs_status (idUser, idEpisode, watchCount, watchTime) VALUES (%s, %s, 1, %s);", (str(uid), str(idEpisode), str(viewAdd), str(endTime)))
+
+        return True
+    else:
+        return False
 
 @app.route('/api/tvs/getUpcomingEpisodes', methods=['GET'])
 def tvs_getUpcomingEpisodes():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getUpcomingEpisodes())
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT u.idEpisode AS id, u.title AS title, t.title AS showTitle, u.overview AS overview, CONCAT('/cache/image?id=',COALESCE(u.icon, t.fanart)) AS icon," \
+                    "u.season AS season, u.episode AS episode, u.date AS date, u.idShow AS idShow "\
+                    "FROM upcoming_episodes u, tv_shows t "\
+                    "WHERE u.idShow = t.idShow AND u.date >= DATE(SYSDATE())" \
+                    "ORDER BY date;")
+    return jsonify(cursor.fetchall())
 
 @app.route('/api/tvs/runUpcomingScan', methods=['GET'])
 def tvs_runUpcomingScan():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if not api.isAdmin(request.args['token']):
-        abort(403)
-    api.tvs_runUpcomingScan()
+    scanner(sqlConnection, 'tvs', configData["api"]).getObject().scanUpcomingEpisodes()
     return jsonify({'status': "ok"})
 
+def tvs_getEps(token, idShow, season=None):
+    idUser = userTokens[token]
+    cursor = sqlConnection.cursor(dictionary=True)
+    s = ''
+    dat = {'idUser': idUser, 'idShow': idShow}
+    if season is not None:
+        dat['season'] = season
+        s = "AND season = %(season)s "
+    cursor.execute("SELECT idEpisode AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon," \
+                    "season, episode, rating, scraperName, scraperID, "\
+                    "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount " \
+                    "FROM episodes e "\
+                    "WHERE idShow = %(idShow)s " + s + "" \
+                    "ORDER BY season, episode;", dat)
+    return cursor.fetchall()
+
 @app.route('/api/tvs/getEpisodes', methods=['GET'])
-def tvs_getEps():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getEps(request.args['token'], request.args['idShow'], request.args.get('season')))
+def tvs_getEpsFlask():
+    checkArgs(['idShow'])
+    return jsonify(tvs_getEps(request.args['token'], request.args['idShow'], request.args.get('season')))
 
 @app.route('/api/tvs/getSeasons', methods=['GET'])
 def tvs_getSeasons():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getSeasons(request.args['token'], request.args['idShow'], request.args.get('season')))
+    checkArgs(['idShow'])
+    idUser = userTokens[request.args['token']]
+    cursor = sqlConnection.cursor(dictionary=True)
+    season = request.args.get('season')
+    s = ''
+    dat = {'idUser': idUser, 'idShow': request.args['idShow']}
+    if season is not None:
+        dat['season'] = season
+        s = "AND season = %(season)s "
+    cursor.execute("SELECT title, overview, CONCAT('/cache/image?id=',icon) AS icon," \
+                    "season, premiered, "\
+                    "(SELECT COUNT(*) FROM episodes WHERE idShow = s.idShow AND season = s.season) AS episodes, "
+                    "(SELECT COUNT(watchCount) FROM status WHERE idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = s.idShow AND season = s.season) AND mediaType = 1 AND idUser = %(idUser)s) AS watchedEpisodes " \
+                    "FROM seasons s " \
+                    "WHERE idShow = %(idShow)s " + s + ""\
+                    "ORDER BY season;", dat)
+    return jsonify(cursor.fetchall())
+
+def tvs_getShows(token, mr=False):
+    idUser = userTokens[token]
+    cursor = sqlConnection.cursor(dictionary=True)
+    mrDat = ''
+    if mr:
+        mrDat = 'NOT '
+    query = "SELECT idShow AS id, title,"\
+                "CONCAT('/cache/image?id=',icon) AS icon,"\
+                "rating, premiered, genre, multipleResults,"\
+                "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"\
+                "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"\
+                "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode) "\
+                    "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s AND idShow = t.idShow) AS watchedEpisodes "\
+                "FROM tv_shows t "\
+                "WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;"
+    cursor.execute(query, {'idUser': str(idUser)})
+    return cursor.fetchall()
 
 @app.route('/api/tvs/getShows', methods=['GET'])
-def tvs_getShows():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getShows(request.args['token'], False))
+def tvs_getShowsFlask():
+    return jsonify(tvs_getShows(request.args['token'], False))
 
 @app.route('/api/tvs/getShowsMultipleResults', methods=['GET'])
 def tvs_getShowsMr():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getShows(request.args['token'], True))
+    return jsonify(tvs_getShows(request.args['token'], True))
 
 @app.route('/api/tvs/getShow', methods=['GET'])
 def tvs_getShow():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.tvs_getShow(request.args['token'], request.args['idShow']))
-
-@app.route('/api/tvs/getPersons', methods=['GET'])
-def tvs_getPersons():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.getPersons(2, request.args['idShow']))
-
-@app.route('/api/tvs/getTags', methods=['GET'])
-def tvs_getTags():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.getTags(2, request.args['idShow']))
+    checkArgs(['idShow'])
+    idUser = userTokens[request.args['token']]
+    cursor = sqlConnection.cursor(dictionary=True)
+    query = "SELECT idShow AS id," \
+                "title, overview, " \
+                "CONCAT('/cache/image?id=',icon) AS icon, " \
+                "CONCAT('/cache/image?id=',fanart) AS fanart, " \
+                "rating, premiered, genre, scraperName, scraperID, path," \
+                "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons," \
+                "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes," \
+                "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)" \
+                    "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes," \
+                "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 'tv_shows'),scraperID) AS scraperLink " \
+                "FROM tv_shows t " \
+                "WHERE multipleResults IS NULL AND idShow = %(idShow)s ORDER BY title;"
+    cursor.execute(query, {'idUser': str(idUser), 'idShow': str(request.args['idShow'])})
+    return jsonify(cursor.fetchone())
 
 @app.route('/api/tvs/setID', methods=['GET'])
 def tvs_setID():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if api.isAdmin(request.args['token']):
-        return jsonify(api.tvs_setID(request.args['idShow'], request.args['id']))
-    else:
-        abort(401)
+    checkArgs(['idShow', 'id'])
+    checkUser('admin')
+
+    idShow = request.args['idShow']
+    resultID = request.args['id']
+    #the resultID is the one from the json list of multipleResults entry
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT multipleResults FROM tv_shows WHERE idShow = %(idShow)s;", {'idShow': str(idShow)})
+    data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
+    cursor.execute("UPDATE tv_shows SET scraperName = %(scraperName)s, scraperID = %(scraperId)s, scraperData = %(scraperData)s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %(idShow)s;", {'scraperName': data["scraperName"], 'scraperId': data["id"], 'scraperData': data["scraperData"], 'idShow': idShow})
+    sqlConnection.commit()
+    return jsonify({'status': "ok"})
+
+def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;", {'idEpisode': str(idEpisode), 'idUser': str(userTokens[token])})
+    data = cursor.fetchone()
+    count = 0
+    if data != None and "watchCount" in data:
+        #update
+        count = data["watchCount"]
+        if watched is False or count > 0:
+            count = 0
+        else:
+            count = 1
+        cursor.execute("UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idMedia)s;", {'watchCount': str(count), 'idUser': str(userTokens[token]), 'idMedia': str(idEpisode)})
+    elif watched is not False:
+        cursor.execute("INSERT INTO status (idUser, mediaType, idMedia, watchCount) VALUES (%(idUser)s, 1, %(idMedia)s, 1);", {'idUser': str(userTokens[token]), 'idMedia': str(idEpisode)})
+    sqlConnection.commit()
+    return True
 
 @app.route('/api/tvs/toggleEpisodeStatus', methods=['GET'])
-def tvs_toggleWatchedEpisode():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
+def tvs_toggleWatchedEpisodeFlask():
+    checkArgs(['idEpisode'])
     #set episode as watched for user
-    s = api.tvs_toggleWatchedEpisode(request.args['token'], request.args['idEpisode'])
-    return jsonify({'response':s})
+    tvs_toggleWatchedEpisode(request.args['token'], request.args['idEpisode'])
+    return jsonify({'response':'ok'})
 
 @app.route('/api/tvs/toggleSeasonStatus', methods=['GET'])
 def tvs_toggleWatchedSeason():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    #set show as watched for user
-    s = api.tvs_toggleWatchedSeason(request.args['token'], request.args['idShow'], request.args.get('season'))
-    return jsonify({'response':s})
+    checkArgs(['idShow'])
+    cursor = sqlConnection.cursor(dictionary=True)
+    dat = {'idUser': userTokens[token], 'idShow': idShow}
+    watched = True
+
+    season = request.args.get('season')
+    if season is not None:
+        dat['season'] = season
+        s = "AND season = %(season)s"
+    cursor.execute("SELECT SUM(watchCount) AS watched FROM status WHERE idUser = %(idUser)s AND mediaType = 1 " \
+        "AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(idShow)s " + s + ");", dat)
+    isWatched = cursor.fetchone()['watched']
+    if isWatched is not None and int(isWatched) > 0:
+        watched = False
+
+    ids = tvs_getEps(token, idShow)
+    for i in ids:
+        if season is None or int(season) == int(i["season"]):
+            tvs_toggleWatchedEpisode(token, i["id"], watched)
+   
+    return jsonify({'response':'ok'})
 
 @app.route('/api/tvs/runScan', methods=['GET'])
 def tvs_runScan():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if not api.isAdmin(request.args['token']):
-        abort(403)
-    api.tvs_runScan()
-    return jsonify({'status': "ok"})
+    checkUser('admin')
+    scanner(sqlConnection, 'tvs', configData["api"]).scanDir(configData["config"]["tvsDirectory"])
+    return jsonify({'response': "ok"})
 
-######################################################## MOVIES #############################################################################
+#endregion
+
+#region movies
+
+@app.route('/api/movies/runScan', methods=['GET'])
+def mov_runScan():
+    checkUser('admin')
+    scanner(sqlConnection, 'movies', configData["api"]).scanDir(configData["config"]["moviesDirectory"])
+    return jsonify({'response': 'ok'})
+
+def mov_getData(token, mr=False):
+    idUser = userTokens[token]
+    cursor = sqlConnection.cursor(dictionary=True)
+    mrDat = ''
+    if mr:
+        mrDat = 'NOT '
+    cursor.execute("SELECT idMovie AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT COUNT(st.idStatus) FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3) AS viewCount, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 'movies'),scraperID) AS scraperLink FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;", {'idUser': idUser})
+    return cursor.fetchall()
 
 @app.route('/api/movies/getMovies', methods=['GET'])
-def mov_getData():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.mov_getData(request.args['token'], False))
+def mov_getDataFlask():
+    return jsonify(mov_getData(request.args['token']))
 
 @app.route('/api/movies/getShowsMultipleResults', methods=['GET'])
 def mov_getDataMr():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    return jsonify(api.mov_getData(request.args['token'], True))
+    return jsonify(mov_getData(request.args['token'], True))
 
 @app.route('/api/movies/setID', methods=['GET'])
 def mov_setID():
-    if 'token' not in request.args or not api.checkToken(request.args['token']):
-        abort(401)
-    if api.isAdmin(request.args['token']):
-        return jsonify(api.mov_setID(request.args['idMovie'], request.args['id']))
-    else:
-        abort(401)
+    checkUser('admin')
+    checkArgs(['idMovie', 'id'])
+    idMovie = reques.args['idMovie']
+    resultID = reques.args['id']
+    #the resultID is the one from the json list of multipleResults entry
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT multipleResults FROM movies WHERE idMovie = "+str(idMovie)+";")
+    data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
+    cursor.execute("UPDATE movies SET scraperName = %(scraperName)s, scraperID = %(scraperID)s, scraperData = %(scraperData)s, forceUpdate = 1, multipleResults = NULL WHERE idMovie = %(idMovie)s;", {'scraperName': data["scraperName"], 'scraperID': data["id"], 'scraperData': data["scraperData"], 'idMovie': idMovie})
+    sqlConnection.commit()
+    return jsonify({'result': 'ok'})
+
+def mov_refreshCache():
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT icon, fanart FROM movies;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None:
+            addCache(d["icon"])
+        if d["fanart"] != None:
+            addCache(d["fanart"])
+
+#endregion
