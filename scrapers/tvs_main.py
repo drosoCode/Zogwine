@@ -252,6 +252,7 @@ class tvs:
             existingSeasons.append(s['season'])
             if s['forceUpdate'] != 1:
                 noUpdate.append(s['season'])
+        print('SEASONS ===============================================================================')
         for s in self._scrapers:
             if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
                 self._logger.debug('Getting '+str(s.__class__.__name__)+' results')
