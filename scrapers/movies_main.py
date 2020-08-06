@@ -98,12 +98,15 @@ class movies:
                 result = []
                 for s in self._scrapers:
                     #create empty dict
-                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None, 'scraperData': None}
+                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None, 'scraperData': None}
                     if s.__class__.__name__ == self._movies[item]["scraperName"]:
                         result.update(s.getMovie(self._movies[item]["scraperID"]))
                         break
-                data = (result["title"], result["desc"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._movies[item]["idMovie"])
-                cursor.execute("UPDATE movies SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idMovie = %s;", data)
+                data = (result["title"], result["overview"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], item, self._movies[item]["idMovie"])
+                cursor.execute("UPDATE movies SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idMovie = %s;", data)
+                #update tags and people
+                self.scanMovieData(self._movies[item]["scraperName"], self._movies[item]["scraperID"], self._movies[item]["idMovie"])
+                
                 commit = True
 
                 self._logger.debug('Updating database with: '+str(data))
@@ -130,3 +133,61 @@ class movies:
             self._connection.commit()
             self._logger.debug(str(cursor.rowcount)+'were affected')
 
+    def scanMovieData(self, scraperName, scraperID, idMovie):
+        cursor = self._connection.cursor(dictionary=True)
+        #scan tags and persons for a movie
+        for s in self._scrapers:
+            if s.__class__.__name__ == scraperName:
+                self._logger.debug('Getting '+str(s.__class__.__name__)+' results')
+
+                #tags part
+                newTags = []
+                for t in s.getTags(scraperID):
+                    cursor.execute("SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;", {'name': t[0], 'value': t[1]})
+                    idTag = cursor.fetchone()
+                    if idTag == None:
+                        #create tag if new
+                        cursor.execute("INSERT INTO tags (name, value, icon) VALUES (%(name)s, %(value)s, %(icon)s);", {'name': t[0], 'value': t[1], 'icon': self.encodeImg(t[2])})
+                        #get tag id
+                        cursor.execute("SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;", {'name': t[0], 'value': t[1]})
+                        idTag = cursor.fetchone()
+                        commit = True
+                    newTags.append(idTag['idTag'])
+
+                #get existing tags for this movie
+                cursor.execute("SELECT idTag FROM tags_link WHERE mediaType = 3 AND idMedia = %(idMovie)s;", {'idMovie': idMovie})
+                existingTags = []
+                for i in cursor.fetchall():
+                    existingTags.append(i['idTag'])
+                #link new tags to this movie
+                for i in newTags:
+                    if i not in existingTags:
+                        cursor.execute("INSERT INTO tags_link (idTag, idMedia, mediaType) VALUES (%(idTag)s, %(idMovie)s, 3);", {'idTag': i, 'idMovie': idMovie})
+                        commit = True
+                        
+                #persons part
+                movPersonsIDs = []
+                movPersons = s.getPersons(scraperID)
+                for p in movPersons:
+                    cursor.execute("SELECT idPers FROM persons WHERE name = %(name)s;", {'name': p[0]})
+                    idPers = cursor.fetchone()
+                    if idPers == None:
+                        #create person if new
+                        cursor.execute("INSERT INTO persons (name) VALUES (%(name)s);", {'name': p[0]})
+                        #get person id
+                        cursor.execute("SELECT idPers FROM persons WHERE name = %(name)s;", {'name': p[0]})
+                        idPers = cursor.fetchone()
+                        commit = True
+                    movPersonsIDs.append(idPers['idPers'])
+                
+                #get existing persons for this tvs
+                cursor.execute("SELECT idPers FROM persons_link WHERE mediaType = 3 AND idMedia = %(idMovie)s;", {'idMovie': idMovie})
+                existingPers = []
+                for i in cursor.fetchall():
+                    existingPers.append(i['idPers'])
+                #link new tags to this tv_show
+                for i in range(len(movPersonsIDs)):
+                    if movPersonsIDs[i] not in existingPers:
+                        cursor.execute("INSERT INTO persons_link (idPers, idMedia, mediaType, role) VALUES (%(idPers)s, %(idMovie)s, 3, %(role)s);", {'idPers': movPersonsIDs[i], 'idMovie': idMovie, 'role': movPersons[i][1]})
+
+        return True

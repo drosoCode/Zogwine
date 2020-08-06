@@ -127,12 +127,12 @@ class tvs:
                 result = []
                 for s in self._scrapers:
                     #create empty dict
-                    result = {'title': None,'overview': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None,'genres': None, 'scraperData': None}
+                    result = {'title': None,'overview': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None, 'scraperData': None}
                     if s.__class__.__name__ == self._tvs[item]["scraperName"]:
                         result.update(s.getTVS(self._tvs[item]["scraperID"]))
                         break
-                data = (result["title"], result["overview"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], json.dumps(result["genres"]), item, self._tvs[item]["idShow"])
-                cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, genre = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
+                data = (result["title"], result["overview"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], item, self._tvs[item]["idShow"])
+                cursor.execute("UPDATE tv_shows SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idShow = %s;", data)
                 commit = True
 
                 self._logger.debug('Updating database with: '+str(data))
@@ -252,7 +252,6 @@ class tvs:
             existingSeasons.append(s['season'])
             if s['forceUpdate'] != 1:
                 noUpdate.append(s['season'])
-        print('SEASONS ===============================================================================')
         for s in self._scrapers:
             if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
                 self._logger.debug('Getting '+str(s.__class__.__name__)+' results')

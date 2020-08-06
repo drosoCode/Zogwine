@@ -474,7 +474,7 @@ def tvs_getShows(token, mr=False):
         mrDat = 'NOT '
     query = "SELECT idShow AS id, title,"\
                 "CONCAT('/cache/image?id=',icon) AS icon,"\
-                "rating, premiered, genre, multipleResults,"\
+                "rating, premiered, multipleResults,"\
                 "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"\
                 "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"\
                 "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode) "\
@@ -501,7 +501,7 @@ def tvs_getShow():
                 "title, overview, " \
                 "CONCAT('/cache/image?id=',icon) AS icon, " \
                 "CONCAT('/cache/image?id=',fanart) AS fanart, " \
-                "rating, premiered, genre, scraperName, scraperID, path," \
+                "rating, premiered, scraperName, scraperID, path," \
                 "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons," \
                 "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes," \
                 "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)" \
@@ -600,14 +600,14 @@ def mov_getData(token, mr=False):
     mrDat = ''
     if mr:
         mrDat = 'NOT '
-    cursor.execute("SELECT idMovie AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, genre, scraperName, scraperID, path, multipleResults, (SELECT COUNT(st.idStatus) FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3) AS viewCount, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 'movies'),scraperID) AS scraperLink FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;", {'idUser': idUser})
+    cursor.execute("SELECT idMovie AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, scraperName, scraperID, path, multipleResults, (SELECT COUNT(st.idStatus) FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3) AS watchCount, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 'movies'),scraperID) AS scraperLink FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;", {'idUser': idUser})
     return cursor.fetchall()
 
 @app.route('/api/movies/getMovies', methods=['GET'])
 def mov_getDataFlask():
     return jsonify(mov_getData(request.args['token']))
 
-@app.route('/api/movies/getShowsMultipleResults', methods=['GET'])
+@app.route('/api/movies/getMultipleResults', methods=['GET'])
 def mov_getDataMr():
     return jsonify(mov_getData(request.args['token'], True))
 
@@ -615,8 +615,8 @@ def mov_getDataMr():
 def mov_setID():
     checkUser('admin')
     checkArgs(['idMovie', 'id'])
-    idMovie = reques.args['idMovie']
-    resultID = reques.args['id']
+    idMovie = request.args['idMovie']
+    resultID = request.args['id']
     #the resultID is the one from the json list of multipleResults entry
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute("SELECT multipleResults FROM movies WHERE idMovie = "+str(idMovie)+";")
