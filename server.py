@@ -39,7 +39,7 @@ app.config["DEBUG"] = True
 
 @app.before_request
 def before_request():
-    if request.endpoint not in ['authenticateUser', 'getImage'] and ('token' not in request.args or not request.args['token'] in userTokens):
+    if request.endpoint not in ['authenticateUser', 'getImage', 'home', 'static'] and ('token' not in request.args or not request.args['token'] in userTokens):
         abort(401)
 
 def checkArgs(args):
