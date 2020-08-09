@@ -138,8 +138,21 @@ class tvs:
                 self._logger.debug('Updating database with: '+str(data))
 
             elif self._tvs[item]["multipleResults"]:
-                #there are multiple matches for scraper, cannot create entries
-                self._logger.debug('D- Item match multipleResults, ignoring')
+                if self._tvs[item]["multipleResults"][0] == '[':
+                    #there are multiple matches for scraper, cannot create entries
+                    self._logger.debug('D- Item match multipleResults, ignoring')
+                else:
+                    #the multipleResults field stores a new "search title"
+                    self._logger.debug('New search')
+                    results = []
+                    for s in self._scrapers:
+                        data = s.searchTVS(item)
+                        if isinstance(data, dict):
+                            data = [data]
+                        results += data
+                    self._logger.debug('The multipleResults are: '+str(results))
+                    cursor.execute("UPDATE tv_shows SET multipleResults = %(mR)s WHERE idShow = %(idShow)s;", {'mR': json.dumps(results), 'idShow': self._tvs[item]["idShow"]})
+                    commit = True
             else:
                 #tvs is ok, call scan on tvs folder
                 self._seasons = []
@@ -157,16 +170,17 @@ class tvs:
             #entries for this tvs doesn't exists, create entry with multipleResults
             self._logger.debug('Entries for this item doesn\'t exists in database')
 
-            results = []
-            for s in self._scrapers:
-                data = s.searchTVS(item)
-                if isinstance(data, dict):
-                    data = [data]
-                results += data
+            if item[item.rfind('.')+1:] in self._supportedFiles:
+                results = []
+                for s in self._scrapers:
+                    data = s.searchTVS(item)
+                    if isinstance(data, dict):
+                        data = [data]
+                    results += data
 
-            self._logger.debug('The multipleResults are: '+str(results))
-            cursor.execute("INSERT INTO tv_shows (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
-            commit = True
+                self._logger.debug('The multipleResults are: '+str(results))
+                cursor.execute("INSERT INTO tv_shows (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
+                commit = True
 
         if commit:
             self._connection.commit()

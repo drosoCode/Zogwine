@@ -112,22 +112,36 @@ class movies:
                 self._logger.debug('Updating database with: '+str(data))
 
             elif self._movies[item]["multipleResults"]:
-                #there are multiple matches for scraper, cannot create entries
-                self._logger.debug('Item match multipleResults, ignoring')
+                if self._movies[item]["multipleResults"][0] == '[':
+                    #there are multiple matches for scraper, cannot create entries
+                    self._logger.debug('Item match multipleResults, ignoring')
+                else:
+                    #the multipleResults field stores a new "search title"
+                    self._logger.debug('New search')
+                    results = []
+                    for s in self._scrapers:
+                        data = s.searchMovie(self._movies[item]["multipleResults"])
+                        if isinstance(data, dict):
+                            data = [data]
+                        results += data
+                    self._logger.debug('The multipleResults are: '+str(results))
+                    cursor.execute("UPDATE movies SET multipleResults = %(mR)s WHERE idMovie = %(idMovie)s;", {'mR': json.dumps(results), 'idMovie': self._movies[item]["idMovie"]})
+                    commit = True
         else:
             #entries for this tvs doesn't exists, create entry with multipleResults
             self._logger.debug('Entries for this item doesn\'t exists in database')
 
-            results = []
-            for s in self._scrapers:
-                data = s.searchMovie(*self.getName(item))
-                if isinstance(data, dict):
-                    data = [data]
-                results += data
+            if item[item.rfind('.')+1:] in self._supportedFiles:
+                results = []
+                for s in self._scrapers:
+                    data = s.searchMovie(*self.getName(item))
+                    if isinstance(data, dict):
+                        data = [data]
+                    results += data
 
-            self._logger.debug('The multipleResults are: '+str(results))
-            cursor.execute("INSERT INTO movies (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
-            commit = True
+                self._logger.debug('The multipleResults are: '+str(results))
+                cursor.execute("INSERT INTO movies (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
+                commit = True
 
         if commit:
             self._connection.commit()
