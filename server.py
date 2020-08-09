@@ -22,7 +22,6 @@ DB:
     mediaType: 1=tv_show ep
                2=tv_show
                3=movie
-               
 """
 
 with open('config/config_dev.json') as f:
@@ -132,9 +131,21 @@ def getStatistics():
     dat1 = cursor.fetchone()
     cursor.execute("SELECT COUNT(DISTINCT idShow) AS tvsCount, COUNT(idEpisode) AS epCount FROM episodes;")
     dat2 = cursor.fetchone()
+    cursor.execute("SELECT COUNT(idStatus) AS watchedMovies FROM status WHERE watchCount > 0 AND mediaType = 3 AND idUser = %(idUser)s;", {'idUser': userTokens[request.args['token']]})
+    watchedMov = cursor.fetchone()['watchedMovies']
+    cursor.execute("SELECT COUNT(*) AS movCount FROM movies;")
+    movCount = cursor.fetchone()['movCount']
     if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
         dat1["watchedEpSum"] = 0
-    return {"watchedEpCount":int(dat1["watchedEpCount"]), "watchedEpSum":int(dat1["watchedEpSum"]), "tvsCount":int(dat2["tvsCount"]), "epCount": int(dat2["epCount"]), "lostTime": avgEpTime * int(dat1["watchedEpSum"])}
+    return {
+        "watchedEpCount":int(dat1["watchedEpCount"]),
+        "watchedEpSum":int(dat1["watchedEpSum"]),
+        "tvsCount":int(dat2["tvsCount"]),
+        "epCount": int(dat2["epCount"]),
+        "moviesCount":int(movCount),
+        "watchedMoviesCount":int(watchedMov),
+        "lostTime": avgEpTime * int(dat1["watchedEpSum"])
+    }
 
 @app.route('/api/core/getLogs')
 def getServerLogs():
@@ -254,6 +265,10 @@ def startPlayer():
         userFiles[uid].setStartTime(request.args.get('startFrom'))
     if 'resize' in request.args:
         userFiles[uid].resize(request.args.get('resize'))
+    if 'remove3D' in request.args:
+        r3 = request.args['remove3D']
+        if r3 == 'tab' or r3 == 'sbs':
+            userFiles[uid].remove3D(r3)
 
     userFiles[uid].start()
     return jsonify({'response':'ok'})
@@ -297,7 +312,7 @@ def getMediaPath(token, mediaType, mediaData):
         return tvs_getEpPath(mediaData)
     elif mediaType == '3':
         #movie
-        pass
+        return mov_getPath(mediaData)
     else:
         return None
 
@@ -313,17 +328,18 @@ def player_getFile():
 def getFileInfos(token, mediaType, mediaData):
     uid = userTokens[token]
     path = getMediaPath(token, mediaType, mediaData)
+    logger.info('Media path for type: '+str(mediaType)+' and id: '+str(mediaData)+' -> '+str(path))
     tr = transcoder(path, configData['config']['outDir']+'/'+token, configData['config']['encoder'], configData['config']['crf'])
 
     #get last view end if available
     st = None
-    if mediaType == 1:
+    if mediaType == 1 or mediaType == 3:
         cursor = sqlConnection.cursor(dictionary=True)
-        cursor.execute("SELECT viewTime FROM tvs_status WHERE idUser = %(idUser)s AND idEpisode = %(idEpisode)s;", {'idUser': userTokens[token], 'idEpisode': mediaData})
+        cursor.execute("SELECT watchTime FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;", {'idUser': userTokens[token], 'mediaType': mediaType, 'idMedia': mediaData})
         data = cursor.fetchone()
         if data != None and "viewTime" in data:
             st = float(data["viewTime"])
-    
+
     if st is not None:
         tr.setStartTime(st)
 
@@ -342,14 +358,36 @@ def player_stop():
     mediaData = request.args['mediaData']
     endTime = request.args.get('endTime')
     #set watch time
-    if mediaType == '1':
-        tvs_setWatchTime(token, mediaData, endTime)
+    player_setWatchTime(token, mediaType, mediaData, endTime)
     #stop transcoder
     logger.info('Stopping transcoder for user '+str(userTokens[token]))
     userFiles[userTokens[token]].stop()
     del userFiles[userTokens[token]]
     
     return jsonify({'response':'ok'})
+
+def player_setWatchTime(token, mediaType, idMedia, endTime=None):
+    uid = userTokens[token]
+    if endTime is not None:
+        endTime = userFiles[uid].getWatchedDuration(endTime)
+        duration = float(userFiles[uid].getFileInfos()['general']['duration'])
+
+        cursor = sqlConnection.cursor(dictionary=True)
+        cursor.execute("SELECT idStatus, watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;", {'idUser': uid, 'mediaType': mediaType, 'idMedia': idMedia})
+        data = cursor.fetchone()
+        viewAdd = 0
+    
+        if endTime > duration * configData['config']['watchedThreshold']:
+            viewAdd = 1
+
+        if data != None and "watchCount" in data:
+            cursor.execute("UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s WHERE idStatus = %(idStatus)s;", {'watchCount':str(data["watchCount"]+viewAdd), 'watchTime': str(endTime), 'idStatus': str(data["idStatus"])})
+        else:
+            cursor.execute("INSERT INTO status (idUser, mediaType, idMedia, watchCount, watchTime) VALUES (%(idUser)s, %(mediaType)s, %(idMedia)s, %(watchCount)s, %(watchTime)s);", {'idUser': str(uid), 'mediaType': mediaType, 'idMedia': str(idMedia), 'watchCount': str(viewAdd), 'watchTime': str(endTime)})
+
+        return True
+    else:
+        return False
 
 #endregion
 
@@ -386,29 +424,6 @@ def tvs_refreshCache():
     for d in data:
         if d["icon"] != None:
             addCache(d["icon"])
-
-def tvs_setWatchTime(token, idEpisode, endTime=None):
-    uid = userTokens[token]
-    if endTime is not None:
-        endTime = userFiles[uid].getWatchedDuration(endTime)
-        duration = float(userFiles[uid].getFileInfos()['general']['duration'])
-
-        cursor = sqlConnection.cursor(dictionary=True)
-        cursor.execute("SELECT idStatus, watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;", {'idUser': uid, 'idEpisode': idEpisode})
-        data = cursor.fetchone()
-        viewAdd = 0
-    
-        if endTime > duration * configData['config']['watchedThreshold']:
-            viewAdd = 1
-
-        if data != None and "watchCount" in data:
-            cursor.execute("UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s WHERE idStatus = %(idStatus)s;", {'watchCount':str(data["watchCount"]+viewAdd), 'watchTime': str(endTime), 'idStatus': str(data["idStatus"])})
-        else:
-            cursor.execute("INSERT INTO tvs_status (idUser, idEpisode, watchCount, watchTime) VALUES (%s, %s, 1, %s);", (str(uid), str(idEpisode), str(viewAdd), str(endTime)))
-
-        return True
-    else:
-        return False
 
 @app.route('/api/tvs/getUpcomingEpisodes', methods=['GET'])
 def tvs_getUpcomingEpisodes():
@@ -506,7 +521,7 @@ def tvs_getShow():
                 "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes," \
                 "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)" \
                     "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes," \
-                "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 'tv_shows'),scraperID) AS scraperLink " \
+                "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 1),scraperID) AS scraperLink " \
                 "FROM tv_shows t " \
                 "WHERE multipleResults IS NULL AND idShow = %(idShow)s ORDER BY title;"
     cursor.execute(query, {'idUser': str(idUser), 'idShow': str(request.args['idShow'])})
@@ -578,6 +593,16 @@ def tvs_toggleWatchedSeason():
    
     return jsonify({'response':'ok'})
 
+@app.route('/api/tvs/setNewSearch', methods=['GET'])
+def tvs_setNewSearch():
+    checkUser('admin')
+    checkArgs(['idShow', 'title'])
+    idShow = request.args['idShow']
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("UPDATE tv_shows SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idShow = %(idShow)s;", {'newTitle': request.args['title'], 'idShow': idShow})
+    sqlConnection.commit()
+    return jsonify({'result': 'ok'})
+
 @app.route('/api/tvs/runScan', methods=['GET'])
 def tvs_runScan():
     checkUser('admin')
@@ -587,6 +612,35 @@ def tvs_runScan():
 #endregion
 
 #region movies
+
+def mov_getPath(idMovie):
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT path FROM movies WHERE idMovie = %(idMovie)s;", {'idMovie': idMovie})
+    path = configData["config"]["moviesDirectory"]+'/'+cursor.fetchone()['path']
+    logger.debug('Getting movie path for id:'+str(idMovie)+' -> '+path)
+    return path
+
+@app.route('/api/movies/toggleStatus', methods=['GET'])
+def mov_toggleStatus():
+    checkArgs(['idMovie'])
+    idUser = userTokens[request.args['token']]
+    idMovie = request.args['idMovie']
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 3 AND idMedia = %(idMovie)s;", {'idMovie': idMovie, 'idUser': idUser})
+    data = cursor.fetchone()
+    count = 0
+    if data != None and "watchCount" in data:
+        #update
+        count = int(data["watchCount"])
+        if count > 0:
+            count = 0
+        else:
+            count = 1
+        cursor.execute("UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 3 AND idMedia = %(idMedia)s;", {'watchCount': count, 'idUser': idUser, 'idMedia': idMovie})
+    else:
+        cursor.execute("INSERT INTO status (idUser, mediaType, idMedia, watchCount) VALUES (%(idUser)s, 3, %(idMedia)s, 1);", {'idUser': idUser, 'idMedia': idMovie})
+    sqlConnection.commit()
+    return jsonify({'response': 'ok'})
 
 @app.route('/api/movies/runScan', methods=['GET'])
 def mov_runScan():
@@ -600,8 +654,30 @@ def mov_getData(token, mr=False):
     mrDat = ''
     if mr:
         mrDat = 'NOT '
-    cursor.execute("SELECT idMovie AS id, title, overview, CONCAT('/cache/image?id=',icon) AS icon, CONCAT('/cache/image?id=',fanart) AS fanart, rating, premiered, scraperName, scraperID, path, multipleResults, (SELECT COUNT(st.idStatus) FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3) AS watchCount, CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 'movies'),scraperID) AS scraperLink FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;", {'idUser': idUser})
+    cursor.execute("SELECT idMovie AS id, title, overview, " \
+                   "CONCAT('/cache/image?id=',icon) AS icon, " \
+                   "CONCAT('/cache/image?id=',fanart) AS fanart, " \
+                   "rating, premiered, scraperName, scraperID, path, multipleResults, "\
+                   "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "\
+                   "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "\
+                   "FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;", {'idUser': idUser})
     return cursor.fetchall()
+
+@app.route('/api/movies/getMovie', methods=['GET'])
+def mov_getMovie():
+    checkArgs(['idMovie'])
+    idUser = userTokens[request.args['token']]
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT idMovie AS id, title, overview, " \
+                   "CONCAT('/cache/image?id=',icon) AS icon, " \
+                   "CONCAT('/cache/image?id=',fanart) AS fanart, " \
+                   "rating, premiered, scraperName, scraperID, path, "\
+                   "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "\
+                   "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "\
+                   "FROM movies t WHERE idMovie = %(idMovie)s;", {'idUser': idUser, 'idMovie': request.args['idMovie']})
+    a = cursor.fetchone()
+    print(a)
+    return jsonify(a)
 
 @app.route('/api/movies/getMovies', methods=['GET'])
 def mov_getDataFlask():
@@ -625,6 +701,17 @@ def mov_setID():
     sqlConnection.commit()
     return jsonify({'result': 'ok'})
 
+
+@app.route('/api/movies/setNewSearch', methods=['GET'])
+def mov_setNewSearch():
+    checkUser('admin')
+    checkArgs(['idMovie', 'title'])
+    idMovie = request.args['idMovie']
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("UPDATE movies SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idMovie = %(idMovie)s;", {'newTitle': request.args['title'], 'idMovie': idMovie})
+    sqlConnection.commit()
+    return jsonify({'result': 'ok'})
+    
 def mov_refreshCache():
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute("SELECT icon, fanart FROM movies;")
