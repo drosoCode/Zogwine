@@ -57,6 +57,8 @@ class tvs:
     def scanDir(self, path, recursive=False, addPath=""):
         self._logger.info('Scan Dir Triggered, recursive: '+str(recursive)+' ; current TVS: '+str(self._currentTVS)+' ; additionnalPath: '+addPath)
         dirContent = os.listdir(path)
+        if not recursive:
+            print(dirContent)
         self._existingEp = []
         self._forceUpdateEp = []
         self._idUpdateEp = {}
@@ -170,17 +172,16 @@ class tvs:
             #entries for this tvs doesn't exists, create entry with multipleResults
             self._logger.debug('Entries for this item doesn\'t exists in database')
 
-            if item[item.rfind('.')+1:] in self._supportedFiles:
-                results = []
-                for s in self._scrapers:
-                    data = s.searchTVS(item)
-                    if isinstance(data, dict):
-                        data = [data]
-                    results += data
+            results = []
+            for s in self._scrapers:
+                data = s.searchTVS(item)
+                if isinstance(data, dict):
+                    data = [data]
+                results += data
 
-                self._logger.debug('The multipleResults are: '+str(results))
-                cursor.execute("INSERT INTO tv_shows (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
-                commit = True
+            self._logger.debug('The multipleResults are: '+str(results))
+            cursor.execute("INSERT INTO tv_shows (multipleResults, path) VALUES (%s, %s);", (json.dumps(results), item))
+            commit = True
 
         if commit:
             self._connection.commit()
