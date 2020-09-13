@@ -4,8 +4,22 @@ SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
 
+DROP DATABASE IF EXISTS `mediaController_dev`;
 CREATE DATABASE `mediaController_dev` /*!40100 DEFAULT CHARACTER SET utf8 */;
 USE `mediaController_dev`;
+
+DROP TABLE IF EXISTS `devices`;
+CREATE TABLE `devices` (
+  `idDevice` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) NOT NULL,
+  `address` varchar(255) NOT NULL,
+  `user` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `deviceData` text NOT NULL,
+  `enabled` tinyint(1) NOT NULL,
+  PRIMARY KEY (`idDevice`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 
 DROP TABLE IF EXISTS `episodes`;
 CREATE TABLE `episodes` (
@@ -26,7 +40,7 @@ CREATE TABLE `episodes` (
   PRIMARY KEY (`idEpisode`),
   KEY `idShow` (`idShow`),
   CONSTRAINT `episodes_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`)
-) ENGINE=InnoDB AUTO_INCREMENT=16956 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=17288 DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `movies`;
@@ -38,7 +52,6 @@ CREATE TABLE `movies` (
   `fanart` varchar(255) DEFAULT NULL,
   `rating` varchar(255) DEFAULT NULL,
   `premiered` varchar(255) DEFAULT NULL,
-  `genre` varchar(255) DEFAULT NULL,
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(10) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
@@ -46,7 +59,7 @@ CREATE TABLE `movies` (
   `multipleResults` longtext DEFAULT NULL,
   `forceUpdate` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idMovie`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=403 DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `persons`;
@@ -58,8 +71,10 @@ CREATE TABLE `persons` (
   `deathdate` date DEFAULT NULL,
   `description` text DEFAULT NULL,
   `icon` text DEFAULT NULL,
+  `known_for` varchar(255) DEFAULT NULL,
+  `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idPers`)
-) ENGINE=InnoDB AUTO_INCREMENT=344 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=29404 DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `persons_link`;
@@ -82,6 +97,11 @@ CREATE TABLE `scrapers` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 
+INSERT INTO `scrapers` (`id`, `scraperName`, `scraperURL`, `mediaType`) VALUES
+(1,	'tmdb',	'https://www.themoviedb.org/tv/',	1),
+(2,	'tvdb',	'https://thetvdb.com/?tab=series&id=',	1),
+(3,	'imdb',	'https://www.imdb.com/title/',	1),
+(4,	'tmdb',	'https://www.themoviedb.org/movie/',	3);
 
 DROP TABLE IF EXISTS `seasons`;
 CREATE TABLE `seasons` (
@@ -109,9 +129,8 @@ CREATE TABLE `status` (
   PRIMARY KEY (`idStatus`),
   KEY `idUser` (`idUser`),
   KEY `idEpisode` (`idMedia`),
-  CONSTRAINT `status_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`),
-  CONSTRAINT `status_ibfk_3` FOREIGN KEY (`idMedia`) REFERENCES `episodes` (`idEpisode`)
-) ENGINE=InnoDB AUTO_INCREMENT=1622 DEFAULT CHARSET=utf8;
+  CONSTRAINT `status_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`)
+) ENGINE=InnoDB AUTO_INCREMENT=2152 DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `tags`;
@@ -121,7 +140,7 @@ CREATE TABLE `tags` (
   `value` varchar(255) NOT NULL,
   `icon` text DEFAULT NULL,
   PRIMARY KEY (`idTag`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=385 DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `tags_link`;
@@ -143,7 +162,6 @@ CREATE TABLE `tv_shows` (
   `fanart` varchar(255) DEFAULT NULL,
   `rating` int(11) DEFAULT NULL,
   `premiered` date DEFAULT NULL,
-  `genre` varchar(255) DEFAULT NULL,
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(11) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
@@ -151,7 +169,21 @@ CREATE TABLE `tv_shows` (
   `multipleResults` longtext DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idShow`)
-) ENGINE=InnoDB AUTO_INCREMENT=159 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=169 DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `upcoming_episodes`;
+CREATE TABLE `upcoming_episodes` (
+  `idEpisode` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) DEFAULT NULL,
+  `overview` text DEFAULT NULL,
+  `season` int(11) DEFAULT NULL,
+  `episode` int(11) DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `icon` varchar(255) DEFAULT NULL,
+  `idShow` int(11) NOT NULL,
+  PRIMARY KEY (`idEpisode`)
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `users`;
@@ -163,9 +195,10 @@ CREATE TABLE `users` (
   `user` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `admin` tinyint(1) unsigned zerofill NOT NULL,
+  `cast` tinyint(1) unsigned zerofill NOT NULL,
   `kodiLinkBase` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`idUser`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;
 
 
--- 2020-07-26 18:08:46
+-- 2020-09-13 22:27:05
