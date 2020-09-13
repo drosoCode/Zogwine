@@ -16,10 +16,10 @@ Web UI to watch movies and tv shows (more upcoming) with integrated transcoder (
 ## Screenshots
 
 ![Home Screen](readme_res/home.jpg)
-![TV Shows List Screen](maquettes/tvshows.jpg)
-![TV Show Screen](maquettes/show.jpg)
-![Episodes Screen](maquettes/eps.jpg)
-![Movie Screen](maquettes/movie.jpg)
-![Player Screen](maquettes/player.jpg)
+![TV Shows List Screen](readme_res/tvshows.png)
+![TV Show Screen](readme_res/show.png)
+![Episodes Screen](readme_res/eps.png)
+![Movie Screen](readme_res/movie.png)
+![Player Screen](readme_res/player.png)
 
 ![Python application](https://github.com/drosoCode/Transcoder/workflows/Python%20application/badge.svg)
