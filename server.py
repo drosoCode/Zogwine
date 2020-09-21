@@ -159,6 +159,9 @@ def getServerLogs():
 @app.route('/cache/image')
 def getImage():
     id = request.args['id']
+    if 'http' in id:
+        return redirect(id, code=302)
+
     url = b64decode(id).decode()
     file = 'out/cache/'+id
     ext = url[url.rfind('.')+1:]
@@ -182,13 +185,13 @@ def refreshCache():
     cursor.execute("SELECT icon FROM tags;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
     #refresh persons cache
     cursor.execute("SELECT icon FROM persons;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
     return jsonify({'response': 'ok'})
 
@@ -405,24 +408,24 @@ def tvs_refreshCache():
     cursor.execute("SELECT icon, fanart FROM tv_shows;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
-        if d["fanart"] != None:
+        if d["fanart"] != None and 'http' not in d['fanart']:
             addCache(d["fanart"])
     cursor.execute("SELECT icon FROM episodes;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
     cursor.execute("SELECT icon FROM seasons;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
     cursor.execute("SELECT icon FROM upcoming_episodes;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
 
 @app.route('/api/tvs/getUpcomingEpisodes', methods=['GET'])
@@ -717,9 +720,9 @@ def mov_refreshCache():
     cursor.execute("SELECT icon, fanart FROM movies;")
     data = cursor.fetchall()
     for d in data:
-        if d["icon"] != None:
+        if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
-        if d["fanart"] != None:
+        if d["fanart"] != None and 'http' not in d['fanart']:
             addCache(d["fanart"])
 
 #endregion
