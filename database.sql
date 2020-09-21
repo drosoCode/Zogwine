@@ -52,14 +52,33 @@ CREATE TABLE `movies` (
   `fanart` varchar(255) DEFAULT NULL,
   `rating` varchar(255) DEFAULT NULL,
   `premiered` varchar(255) DEFAULT NULL,
+  `idCollection` int(11) DEFAULT NULL,
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(10) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
   `path` varchar(255) DEFAULT NULL,
   `multipleResults` longtext DEFAULT NULL,
   `forceUpdate` tinyint(1) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`idMovie`)
-) ENGINE=InnoDB AUTO_INCREMENT=403 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`idMovie`),
+  KEY `idCollection` (`idCollection`),
+  CONSTRAINT `movies_ibfk_1` FOREIGN KEY (`idCollection`) REFERENCES `movie_collections` (`idCollection`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `movie_collections`;
+CREATE TABLE `movie_collections` (
+  `idCollection` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) DEFAULT NULL,
+  `overview` text DEFAULT NULL,
+  `premiered` varchar(255) DEFAULT NULL,
+  `icon` text DEFAULT NULL,
+  `fanart` text DEFAULT NULL,
+  `scraperName` varchar(255) NOT NULL,
+  `scraperID` int(11) NOT NULL,
+  `scraperData` text DEFAULT NULL,
+  `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`idCollection`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `persons`;

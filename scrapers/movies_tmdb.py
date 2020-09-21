@@ -19,6 +19,10 @@ class tmdb:
 
     def getMovie(self, id):
         resp = json.loads(requests.get(self._endpoint+"movie/"+str(id)+"?api_key="+self._apikey).text)
+        print(resp)
+        c = None
+        if 'belongs_to_collection' in resp and resp['belongs_to_collection'] is not None and 'id' in resp['belongs_to_collection']:
+            c = resp['belongs_to_collection']['id']
         return {
                 'title': resp.get('title'),
                 'overview': resp.get('overview'),
@@ -27,6 +31,20 @@ class tmdb:
                 'rating': resp.get('vote_average'),
                 'id': resp.get('id'),
                 'premiered': resp.get('release_date'),
+                'scraperName': 'tmdb',
+                'scraperData': None,
+                'collection': c
+            }
+
+    def getCollection(self, id):
+        resp = json.loads(requests.get(self._endpoint+"collection/"+str(id)+"?api_key="+self._apikey).text)
+        return {
+                'title': resp.get('name'),
+                'overview': resp.get('overview'),
+                'icon': self.getImg(resp.get('poster_path')),
+                'fanart': self.getImg(resp.get('backdrop_path')),
+                'id': resp.get('id'),
+                'premiered': resp['parts'][0].get('release_date'),
                 'scraperName': 'tmdb',
                 'scraperData': None
             }

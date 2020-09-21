@@ -657,7 +657,7 @@ def mov_getData(token, mr=False):
     mrDat = ''
     if mr:
         mrDat = 'NOT '
-    cursor.execute("SELECT idMovie AS id, title, overview, " \
+    cursor.execute("SELECT idMovie AS id, title, overview, idCollection, " \
                    "CONCAT('/cache/image?id=',icon) AS icon, " \
                    "CONCAT('/cache/image?id=',fanart) AS fanart, " \
                    "rating, premiered, scraperName, scraperID, path, multipleResults, "\
@@ -671,16 +671,14 @@ def mov_getMovie():
     checkArgs(['idMovie'])
     idUser = userTokens[request.args['token']]
     cursor = sqlConnection.cursor(dictionary=True)
-    cursor.execute("SELECT idMovie AS id, title, overview, " \
+    cursor.execute("SELECT idMovie AS id, title, overview, idCollection, " \
                    "CONCAT('/cache/image?id=',icon) AS icon, " \
                    "CONCAT('/cache/image?id=',fanart) AS fanart, " \
                    "rating, premiered, scraperName, scraperID, path, "\
                    "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "\
                    "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "\
                    "FROM movies t WHERE idMovie = %(idMovie)s;", {'idUser': idUser, 'idMovie': request.args['idMovie']})
-    a = cursor.fetchone()
-    print(a)
-    return jsonify(a)
+    return jsonify(cursor.fetchone())
 
 @app.route('/api/movies/getMovies', methods=['GET'])
 def mov_getDataFlask():
@@ -689,6 +687,42 @@ def mov_getDataFlask():
 @app.route('/api/movies/getMultipleResults', methods=['GET'])
 def mov_getDataMr():
     return jsonify(mov_getData(request.args['token'], True))
+
+@app.route('/api/movies/getCollections', methods=['GET'])
+def mov_getCollections():
+    idUser = userTokens[request.args['token']]
+    queryData = {'idUser': idUser}
+    c = ''
+    if 'idCollection' in request.args and request.args['idCollection'] != None:
+        c = ' WHERE idCollection = %(idCollection)s'
+        queryData = {'idUser': idUser, 'idCollection': request.args['idCollection']}
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT idCollection AS id, title, overview, " \
+                    "CONCAT('/cache/image?id=',icon) AS icon, " \
+                    "CONCAT('/cache/image?id=',fanart) AS fanart, " \
+                    "premiered, scraperName, scraperID, " \
+                    "(SELECT COUNT(*) FROM movies m WHERE m.idCollection = t.idCollection) movieCount, " \
+                    "(SELECT COUNT(watchCount) FROM movies m LEFT JOIN status st ON (st.idMedia = m.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND m.idCollection = t.idCollection) AS watchedMovies, " \
+                    "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink " \
+                    "FROM movie_collections t " + c + "" \
+                    "ORDER BY title;", queryData)
+    if c != '':
+        return jsonify(cursor.fetchone())
+    return jsonify(cursor.fetchall())
+
+@app.route('/api/movies/getCollectionMovies', methods=['GET'])
+def mov_getCollectionMovies():
+    checkArgs(['idCollection'])
+    idUser = userTokens[request.args['token']]
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute("SELECT idMovie AS id, title, overview, " \
+                "CONCAT('/cache/image?id=',icon) AS icon, " \
+                "CONCAT('/cache/image?id=',fanart) AS fanart, " \
+                "rating, premiered, scraperName, scraperID, path, multipleResults, "\
+                "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "\
+                "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "\
+                "FROM movies t WHERE multipleResults IS NULL AND idCollection = %(idCollection)s ORDER BY premiered;", {'idUser': idUser, 'idCollection': request.args['idCollection']})
+    return jsonify(cursor.fetchall())
 
 @app.route('/api/movies/setID', methods=['GET'])
 def mov_setID():
@@ -718,6 +752,13 @@ def mov_setNewSearch():
 def mov_refreshCache():
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute("SELECT icon, fanart FROM movies;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None and 'http' not in d['icon']:
+            addCache(d["icon"])
+        if d["fanart"] != None and 'http' not in d['fanart']:
+            addCache(d["fanart"])
+    cursor.execute("SELECT icon, fanart FROM movie_collections;")
     data = cursor.fetchall()
     for d in data:
         if d["icon"] != None and 'http' not in d['icon']:

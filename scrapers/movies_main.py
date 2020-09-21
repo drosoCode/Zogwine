@@ -83,7 +83,8 @@ class movies:
                 self.scanMovie(os.path.join(addPath, item))
                 
         self._logger.debug('End of scan (recursive: '+str(recursive)+')')
-    
+        self.scanCollections()
+        self._connection.commit()
 
     def scanMovie(self, item):
         cursor = self._connection.cursor(dictionary=True)
@@ -98,12 +99,35 @@ class movies:
                 result = []
                 for s in self._scrapers:
                     #create empty dict
-                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None, 'scraperData': None}
+                    result = {'title': None,'desc': None, 'icon': None, 'fanart': None, 'premiered': None, 'rating': None, 'scraperData': None, 'collection': None}
                     if s.__class__.__name__ == self._movies[item]["scraperName"]:
                         result.update(s.getMovie(self._movies[item]["scraperID"]))
                         break
-                data = (result["title"], result["overview"], self.encodeImg(result["icon"]), self.encodeImg(result["fanart"]), result["rating"], result["premiered"], item, self._movies[item]["idMovie"])
-                cursor.execute("UPDATE movies SET title = %s, overview = %s, icon = %s, fanart = %s, rating = %s, premiered = %s, path = %s, forceUpdate = 0, multipleResults = NULL WHERE idMovie = %s;", data)
+
+                idCollection = None
+                if result['collection'] is not None:
+                    queryData = {'id': result['collection'], 'name': self._movies[item]["scraperName"]}
+                    cursor.execute("SELECT idCollection FROM movie_collections WHERE scraperID = %(id)s AND scraperName = %(name)s;", queryData)
+                    data = cursor.fetchone()
+                    if data is not None and 'idCollection' in data:
+                        idCollection = data['idCollection']
+                    else:
+                        cursor.execute("INSERT INTO movie_collections (scraperID, scraperName, forceUpdate) VALUES (%(id)s, %(name)s, 1);", queryData)
+                        cursor.execute("SELECT idCollection FROM movie_collections WHERE scraperID = %(id)s AND scraperName = %(name)s;", queryData)
+                        idCollection = cursor.fetchone()['idCollection']
+
+                data = {
+                    'title': result["title"],
+                    'overview': result["overview"],
+                    'icon': self.encodeImg(result["icon"]),
+                    'fanart': self.encodeImg(result["fanart"]),
+                    'rating': result["rating"],
+                    'premiered': result["premiered"],
+                    'path': item,
+                    'idCollection': idCollection,
+                    'idMovie': self._movies[item]["idMovie"]
+                }
+                cursor.execute("UPDATE movies SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, fanart = %(fanart)s, rating = %(rating)s, premiered = %(premiered)s, path = %(path)s, idCollection = %(idCollection)s, forceUpdate = 0, multipleResults = NULL WHERE idMovie = %(idMovie)s;", data)
                 #update tags and people
                 self.scanMovieData(self._movies[item]["scraperName"], self._movies[item]["scraperID"], self._movies[item]["idMovie"])
                 
@@ -147,6 +171,22 @@ class movies:
             self._connection.commit()
             self._logger.debug(str(cursor.rowcount)+'were affected')
 
+    def scanCollections(self):
+        #scan collections for movies
+        self._logger.debug('Updating collections ...')
+        cursor = self._connection.cursor(dictionary=True)
+        cursor.execute("SELECT idCollection, scraperID, scraperName FROM movie_collections WHERE forceUpdate = 1 OR title IS NULL;")
+        for c in cursor.fetchall():
+            for s in self._scrapers:
+                if s.__class__.__name__ == c["scraperName"]:
+                    self._logger.debug('Getting '+str(s.__class__.__name__)+' results for id'+str(c['scraperID']))
+                    data = s.getCollection(c['scraperID'])
+                    queryData = {'idCollection': c['idCollection'], 'title': data['title'], 'overview': data['overview'], 'icon': self.encodeImg(data['icon']), 'fanart': self.encodeImg(data['fanart']), 'premiered': data['premiered'], 'forceUpdate': 0}
+                    cursor.execute("UPDATE movie_collections SET title = %(title)s, icon = %(icon)s, fanart = %(fanart)s,premiered  = %(premiered)s, overview = %(overview)s, forceUpdate = %(forceUpdate)s WHERE idCollection = %(idCollection)s;", queryData)
+                    break
+        self._logger.debug('End of collections update')
+            
+
     def scanMovieData(self, scraperName, scraperID, idMovie):
         cursor = self._connection.cursor(dictionary=True)
         #scan tags and persons for a movie
@@ -165,7 +205,6 @@ class movies:
                         #get tag id
                         cursor.execute("SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;", {'name': t[0], 'value': t[1]})
                         idTag = cursor.fetchone()
-                        commit = True
                     newTags.append(idTag['idTag'])
 
                 #get existing tags for this movie
