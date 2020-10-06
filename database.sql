@@ -81,8 +81,8 @@ CREATE TABLE `movie_collections` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-DROP TABLE IF EXISTS `persons`;
-CREATE TABLE `persons` (
+DROP TABLE IF EXISTS `people`;
+CREATE TABLE `people` (
   `idPers` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `gender` int(11) DEFAULT NULL,
@@ -96,14 +96,14 @@ CREATE TABLE `persons` (
 ) ENGINE=InnoDB AUTO_INCREMENT=29404 DEFAULT CHARSET=utf8;
 
 
-DROP TABLE IF EXISTS `persons_link`;
-CREATE TABLE `persons_link` (
+DROP TABLE IF EXISTS `people_link`;
+CREATE TABLE `people_link` (
   `idPers` int(11) NOT NULL,
   `idMedia` int(11) NOT NULL,
   `mediaType` int(11) NOT NULL,
   `role` varchar(255) NOT NULL,
   KEY `idPers` (`idPers`),
-  CONSTRAINT `persons_link_ibfk_1` FOREIGN KEY (`idPers`) REFERENCES `persons` (`idPers`)
+  CONSTRAINT `people_link_ibfk_1` FOREIGN KEY (`idPers`) REFERENCES `people` (`idPers`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 

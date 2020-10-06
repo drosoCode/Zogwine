@@ -6,7 +6,7 @@ import urllib.parse
 from importlib import import_module
 from base64 import b64encode
 
-class persons:
+class people:
 
     def __init__(self, logger, dbConnection, apiKeys):
         self._logger = logger
@@ -15,7 +15,7 @@ class persons:
         self._scrapers = []
         self.importScrapers()
         self._currentMovie = None
-        logger.info('Persons Indexer Initialised Successfully')
+        logger.info('People Indexer Initialised Successfully')
 
     def encodeImg(self, img):
         if img is not None and img != "":
@@ -25,10 +25,10 @@ class persons:
 
     def importScrapers(self):
         for i in os.listdir('scrapers/'):
-            if 'persons_' in i and i[i.rfind('.')+1:] == 'py' and 'main' not in i:
+            if 'people_' in i and i[i.rfind('.')+1:] == 'py' and 'main' not in i:
                 try:
                     scraperName = i[i.rfind('_')+1:i.rfind('.')]
-                    module = import_module('persons_'+scraperName)
+                    module = import_module('people_'+scraperName)
                     my_class = getattr(module, scraperName)
                     if my_class.__name__ in self._apiKeys:
                         instance = my_class(self._apiKeys[my_class.__name__])
@@ -41,7 +41,7 @@ class persons:
 
     def scan(self):
         cursor = self._connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM persons WHERE forceUpdate = 1 OR gender IS NULL")
+        cursor.execute("SELECT * FROM people WHERE forceUpdate = 1 OR gender IS NULL")
 
         for p in cursor.fetchall():
             self._logger.info('Person: '+str(p['name']))
@@ -72,7 +72,7 @@ class persons:
                 'icon': self.pickImage(data['icon']),
                 'idPers': p['idPers']
             }
-            cursor.execute("UPDATE persons SET gender = %(gender)s, birthdate = %(birthdate)s, deathdate = %(deathdate)s, description = %(description)s, known_for = %(known_for)s, icon = %(icon)s, forceUpdate = 0 WHERE idPers = %(idPers)s;", queryData)
+            cursor.execute("UPDATE people SET gender = %(gender)s, birthdate = %(birthdate)s, deathdate = %(deathdate)s, description = %(description)s, known_for = %(known_for)s, icon = %(icon)s, forceUpdate = 0 WHERE idPers = %(idPers)s;", queryData)
             
         self._connection.commit()
         self._logger.debug(str(cursor.rowcount)+'were affected')

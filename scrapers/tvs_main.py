@@ -287,7 +287,7 @@ class tvs:
         return commit
 
     def scanShowData(self):
-        #scan tags and persons for a tv_show
+        #scan tags and people for a tv_show
         commit = False
         scraperID = self._tvs[self._currentTVS]["scraperID"]
         idShow = self._tvs[self._currentTVS]["idShow"]
@@ -322,30 +322,30 @@ class tvs:
                         cursor.execute("INSERT INTO tags_link (idTag, idMedia, mediaType) VALUES (%(idTag)s, %(idShow)s, 2);", {'idTag': i, 'idShow': idShow})
                         commit = True
                         
-                #persons part
-                tvsPersons = s.getPersons(scraperID)
-                tvsPersonsIDs = []
-                for p in tvsPersons:
-                    cursor.execute("SELECT idPers FROM persons WHERE name = %(name)s;", {'name': p[0]})
+                #people part
+                tvsPeople = s.getPeople(scraperID)
+                tvsPeopleIDs = []
+                for p in tvsPeople:
+                    cursor.execute("SELECT idPers FROM people WHERE name = %(name)s;", {'name': p[0]})
                     idPers = cursor.fetchone()
                     if idPers == None:
                         #create person if new
-                        cursor.execute("INSERT INTO persons (name) VALUES (%(name)s);", {'name': p[0]})
+                        cursor.execute("INSERT INTO people (name) VALUES (%(name)s);", {'name': p[0]})
                         #get person id
-                        cursor.execute("SELECT idPers FROM persons WHERE name = %(name)s;", {'name': p[0]})
+                        cursor.execute("SELECT idPers FROM people WHERE name = %(name)s;", {'name': p[0]})
                         idPers = cursor.fetchone()
                         commit = True
-                    tvsPersonsIDs.append(idPers['idPers'])
+                    tvsPeopleIDs.append(idPers['idPers'])
                 
-                #get existing persons for this tvs
-                cursor.execute("SELECT idPers FROM persons_link WHERE mediaType = 2 AND idMedia = %(idShow)s;", {'idShow': idShow})
+                #get existing people for this tvs
+                cursor.execute("SELECT idPers FROM people_link WHERE mediaType = 2 AND idMedia = %(idShow)s;", {'idShow': idShow})
                 existingPers = []
                 for i in cursor.fetchall():
                     existingPers.append(i['idPers'])
                 #link new tags to this tv_show
-                for i in range(len(tvsPersonsIDs)):
-                    if tvsPersonsIDs[i] not in existingPers:
-                        cursor.execute("INSERT INTO persons_link (idPers, idMedia, mediaType, role) VALUES (%(idPers)s, %(idShow)s, 2, %(role)s);", {'idPers': tvsPersonsIDs[i], 'idShow': idShow, 'role': tvsPersons[i][1]})
+                for i in range(len(tvsPeopleIDs)):
+                    if tvsPeopleIDs[i] not in existingPers:
+                        cursor.execute("INSERT INTO people_link (idPers, idMedia, mediaType, role) VALUES (%(idPers)s, %(idShow)s, 2, %(role)s);", {'idPers': tvsPeopleIDs[i], 'idShow': idShow, 'role': tvsPeople[i][1]})
 
         return commit
 

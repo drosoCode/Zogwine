@@ -187,18 +187,18 @@ def refreshCache():
     for d in data:
         if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
-    #refresh persons cache
-    cursor.execute("SELECT icon FROM persons;")
+    #refresh people cache
+    cursor.execute("SELECT icon FROM people;")
     data = cursor.fetchall()
     for d in data:
         if d["icon"] != None and 'http' not in d['icon']:
             addCache(d["icon"])
     return jsonify({'response': 'ok'})
 
-@app.route('/api/core/runPersonsScan', methods=['GET'])
-def runPersonsScan():
+@app.route('/api/core/runPeopleScan', methods=['GET'])
+def runPeopleScan():
     checkUser('admin')
-    scanner(sqlConnection, 'persons', configData["api"]).getObject().scan()
+    scanner(sqlConnection, 'people', configData["api"]).getObject().scan()
     return jsonify({'response': 'ok'})
 
 @app.route('/api/users/authenticate', methods=['GET','POST'])
@@ -230,12 +230,12 @@ def getUserData(token):
 def getUserDataFlask():
     return jsonify(getUserData(request.args['token']))
 
-@app.route('/api/core/getPersons', methods=['GET'])
-def getPersons():
+@app.route('/api/core/getPeople', methods=['GET'])
+def getPeople():
     checkArgs(['mediaType', 'mediaData'])
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute("SELECT p.idPers, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/cache/image?id=',icon) AS icon " \
-                    "FROM persons p, persons_link l " \
+                    "FROM people p, people_link l " \
                     "WHERE p.idPers = l.idPers" \
                     " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;", {'mediaType': request.args['mediaType'], 'mediaData': request.args['mediaData']})
     return jsonify(cursor.fetchall())

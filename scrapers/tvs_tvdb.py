@@ -85,12 +85,12 @@ class tvdb:
                    'icon': ic
                 }
 
-    def getPersons(self, id):
+    def getPeople(self, id):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/actors", headers=self._headers).text)
-        persons = []
+        people = []
         for p in d['data']:
-            persons.append([p.get('name'), p.get('role')])
-        return persons
+            people.append([p.get('name'), p.get('role')])
+        return people
         
     def getUpcomingEpisode(self, id):
         d = json.loads(requests.get(self._endpoint+"/series/"+str(id)+"/episodes", headers=self._headers).text)

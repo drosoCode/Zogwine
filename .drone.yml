@@ -1,0 +1,52 @@
+kind: pipeline
+type: docker
+name: test
+
+steps:
+    - name: lint
+      image: python:3.8.6-slim
+      commands:
+        - python -m pip install --upgrade pip
+        - pip install -r requirements.txt
+        - pip install flake8
+        - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: test
+      image: python:3.8.6-slim
+      commands:
+        - python -m pip install --upgrade pip
+        - pip install -r requirements.txt
+        - pip install pytest
+        - pytest
+    
+    - name: discord_notification
+      image: appleboy/drone-discord
+      when:
+        status:
+          - success
+          - failure
+      settings:
+        webhook_id: "760868686193754133"
+        webhook_token: vuW2yJOLCvxvXdRat1y_Zt0QiiMWttkKjxh3Y3FZL9f2y7IOG6CrIErlWYdmuqb8M9pG
+        message: >
+          {{#success build.status}}
+          ✅ Build #{{build.number}} of `{{repo.name}}` succeeded.
+          📝 Commit by {{commit.author}} on `{{commit.branch}}`:
+          ```
+          {{commit.message}}
+          ```
+          {{else}}
+          ❌ Build #{{build.number}} of `{{repo.name}}` failed.
+          📝 Commit by {{commit.author}} on `{{commit.branch}}`:
+          ```
+          {{commit.message}}
+          ```
+          {{/success}}
+
+services:
+  - name: mariadb
+    image: mariadb:10.2
+    ports:
+      - 3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password

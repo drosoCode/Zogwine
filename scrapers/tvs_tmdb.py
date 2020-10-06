@@ -46,14 +46,14 @@ class tmdb:
                    'icon': self.getImg(resp.get('poster_path'))
                 }
 
-    def getPersons(self, idTvs):
+    def getPeople(self, idTvs):
         resp = json.loads(requests.get(self._endpoint+"tv/"+str(idTvs)+"/credits?api_key="+self._apikey).text)
-        persons = []
+        people = []
         for p in resp['cast']:
-            persons.append([p.get('name'), p.get('character')])
+            people.append([p.get('name'), p.get('character')])
         for p in resp['crew']:
-            persons.append([p.get('name'), p.get('department')])
-        return persons
+            people.append([p.get('name'), p.get('department')])
+        return people
 
     def getUpcomingEpisode(self, idTvs):
         d = json.loads(requests.get(self._endpoint+"tv/"+str(idTvs)+"?api_key="+self._apikey).text)
