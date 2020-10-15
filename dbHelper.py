@@ -7,12 +7,7 @@ class sql(MySQLConnection):
         try:
             c = super().cursor(**kwargs)
         except OperationalError:
-            try:
-                super().reconnect()
-                c = super().cursor(**kwargs)
-            except Exception as e: 
-                raise e
-        except Exception as e: 
-            raise e
+            super().reconnect()
+            c = super().cursor(**kwargs)
         return c
 

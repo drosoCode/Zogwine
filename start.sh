@@ -1,3 +1,4 @@
 #!/bin/bash
 ldconfig
-python3 main.py
+service nginx start
+uwsgi --ini uwsgi.ini

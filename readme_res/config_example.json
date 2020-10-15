@@ -5,6 +5,13 @@
         "password":"DATABASE_PASSWORD",
         "name":"DATABASE_NAME"
     },
+    "redis":{
+        "host":"redis",
+        "port": 6379,
+        "filesDB": 0,
+        "usersDB": 1,
+        "threadsDB": 2
+    },
     "api":{
         "tmdb":"YOURAPIKEY",
         "tvdb":"YOURAPIKEY"

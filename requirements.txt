@@ -2,4 +2,6 @@ requests
 mysql-connector-python
 flask
 flask_cors
-tornado
+uwsgi
+uwsgidecorators
+redis
