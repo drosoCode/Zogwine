@@ -5,18 +5,9 @@ import re
 import requests
 from base64 import b64decode
 
+from conf import sqlConnectionData
 from log import logger
 from dbHelper import sql
-
-
-def getUserData(sqlConnectionData, token):
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT name, icon, admin, kodiLinkBase FROM users WHERE idUser = %(idUser)s",
-        {"idUser": "1"},
-    )
-    return cursor.fetchone()
 
 
 def checkArgs(args):
@@ -27,9 +18,15 @@ def checkArgs(args):
     return True
 
 
-def checkUser(sqlConnectionData, prop):
+def checkUser(uid, prop):
     if prop == "admin":
-        d = getUserData(sqlConnectionData, request.args["token"])
+        sqlConnection = sql(**sqlConnectionData)
+        cursor = sqlConnection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT name, icon, admin, kodiLinkBase FROM users WHERE idUser = %(idUser)s",
+            {"idUser": uid},
+        )
+        d = cursor.fetchone()
         if "admin" in d and d["admin"]:
             return True
         else:

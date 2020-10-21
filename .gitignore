@@ -9,3 +9,4 @@ docker-compose.yml
 .vs/*
 static/*
 *.pyc
+conf.py

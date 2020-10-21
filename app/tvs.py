@@ -8,37 +8,21 @@ from log import logger
 from utils import checkArgs, checkUser, addCache
 from dbHelper import sql
 from indexer import scanner
+from conf import configData, sqlConnectionData
 
 
 tvs = Blueprint("tvs", __name__)
 allowedMethods = ["GET", "POST"]
-sqlConnectionData = {}
-r_userTokens = redis.Redis
-r_runningThreads = redis.Redis
-configData = {}
-
-
-def tvs_configure(conf):
-    global allowedMethods, sqlConnectionData, r_userTokens, r_runningThreads, configData
-    configData = conf
-    sqlConnectionData = {
-        "host": configData["db"]["host"],
-        "user": configData["db"]["user"],
-        "password": configData["db"]["password"],
-        "database": configData["db"]["name"],
-        "use_unicode": True,
-        "charset": "utf8",
-    }
-    r_userTokens = redis.Redis(
-        host=configData["redis"]["host"],
-        port=configData["redis"]["port"],
-        db=configData["redis"]["usersDB"],
-    )
-    r_runningThreads = redis.Redis(
-        host=configData["redis"]["host"],
-        port=configData["redis"]["port"],
-        db=configData["redis"]["threadsDB"],
-    )
+r_userTokens = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["usersDB"],
+)
+r_runningThreads = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["threadsDB"],
+)
 
 
 def tvs_getEpPath(idEpisode):
@@ -96,7 +80,7 @@ def tvs_getUpcomingEpisodes():
 
 @tvs.route("/api/tvs/runUpcomingScan", methods=allowedMethods)
 def tvs_runUpcomingScanThreaded():
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
     tvs_runUpcomingScan()
     return jsonify({"status": "ok"})
 
@@ -230,7 +214,7 @@ def tvs_getShow():
 def tvs_setID():
     sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idShow", "id"])
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
 
     idShow = request.args["idShow"]
     resultID = request.args["id"]
@@ -331,7 +315,7 @@ def tvs_toggleWatchedSeason():
 @tvs.route("/api/tvs/setNewSearch", methods=allowedMethods)
 def tvs_setNewSearch():
     sqlConnection = sql(**sqlConnectionData)
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
     checkArgs(["idShow", "title"])
     idShow = request.args["idShow"]
     cursor = sqlConnection.cursor(dictionary=True)
@@ -345,7 +329,7 @@ def tvs_setNewSearch():
 
 @tvs.route("/api/tvs/runScan", methods=allowedMethods)
 def tvs_runScanThreaded():
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
     tvs_runScan()
     return jsonify({"response": "ok"})
 

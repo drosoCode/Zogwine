@@ -6,11 +6,12 @@ import json
 import redis
 
 from log import logger
-from tvs import tvs, tvs_configure
-from movie import movie, movie_configure
-from user import user, user_configure
-from core import core, core_configure
-from player import player, player_configure
+from tvs import tvs
+from movie import movie
+from user import user
+from core import core
+from player import player
+from conf import configData
 
 """
 DB:
@@ -19,19 +20,16 @@ DB:
                3=movie
 """
 
-with open("../config/config_dev.json") as f:
-    configData = json.load(f)
-    r_runningThreads = redis.Redis(
-        host=configData["redis"]["host"],
-        port=configData["redis"]["port"],
-        db=configData["redis"]["threadsDB"],
-    )
-    r_userTokens = redis.Redis(
-        host=configData["redis"]["host"],
-        port=configData["redis"]["port"],
-        db=configData["redis"]["usersDB"],
-    )
-    logger.info("Server Started Successfully")
+r_runningThreads = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["threadsDB"],
+)
+r_userTokens = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["usersDB"],
+)
 
 r_runningThreads.set("tvs", 0)
 r_runningThreads.set("movies", 0)
@@ -42,12 +40,6 @@ r_runningThreads.set("people", 0)
 app = Flask(__name__, static_url_path="")
 CORS(app)
 
-tvs_configure(configData)
-movie_configure(configData)
-user_configure(configData)
-core_configure(configData)
-player_configure(configData)
-
 app.register_blueprint(tvs)
 app.register_blueprint(movie)
 app.register_blueprint(user)
@@ -55,6 +47,8 @@ app.register_blueprint(core)
 app.register_blueprint(player)
 
 app.config["DEBUG"] = True
+
+logger.info("Server Started Successfully")
 
 
 @app.before_request

@@ -8,36 +8,20 @@ from log import logger
 from utils import checkArgs, checkUser, addCache
 from dbHelper import sql
 from indexer import scanner
+from conf import configData, sqlConnectionData
 
 movie = Blueprint("movie", __name__)
 allowedMethods = ["GET", "POST"]
-sqlConnectionData = {}
-r_userTokens = redis.Redis
-r_runningThreads = redis.Redis
-configData = {}
-
-
-def movie_configure(conf):
-    global allowedMethods, sqlConnectionData, r_userTokens, r_runningThreads, configData
-    configData = conf
-    sqlConnectionData = {
-        "host": configData["db"]["host"],
-        "user": configData["db"]["user"],
-        "password": configData["db"]["password"],
-        "database": configData["db"]["name"],
-        "use_unicode": True,
-        "charset": "utf8",
-    }
-    r_userTokens = redis.Redis(
-        host=configData["redis"]["host"],
-        port=configData["redis"]["port"],
-        db=configData["redis"]["usersDB"],
-    )
-    r_runningThreads = redis.Redis(
-        host=configData["redis"]["host"],
-        port=configData["redis"]["port"],
-        db=configData["redis"]["threadsDB"],
-    )
+r_userTokens = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["usersDB"],
+)
+r_runningThreads = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["threadsDB"],
+)
 
 
 def mov_getPath(idMovie):
@@ -86,7 +70,7 @@ def mov_toggleStatus():
 
 @movie.route("/api/movies/runScan", methods=allowedMethods)
 def mov_runScanThreaded():
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
     mov_runScan()
     return jsonify({"response": "ok"})
 
@@ -198,7 +182,7 @@ def mov_getCollectionMovies():
 @movie.route("/api/movies/setID", methods=allowedMethods)
 def mov_setID():
     sqlConnection = sql(**sqlConnectionData)
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
     checkArgs(["idMovie", "id"])
     idMovie = request.args["idMovie"]
     resultID = request.args["id"]
@@ -224,7 +208,7 @@ def mov_setID():
 @movie.route("/api/movies/setNewSearch", methods=allowedMethods)
 def mov_setNewSearch():
     sqlConnection = sql(**sqlConnectionData)
-    checkUser(sqlConnectionData, "admin")
+    checkUser(r_userTokens.get(request.args["token"]), "admin")
     checkArgs(["idMovie", "title"])
     idMovie = request.args["idMovie"]
     cursor = sqlConnection.cursor(dictionary=True)
