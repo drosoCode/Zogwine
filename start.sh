@@ -1,4 +1,4 @@
 #!/bin/bash
 ldconfig
 service nginx start
-uwsgi --ini uwsgi.ini
+cd app && uwsgi --ini uwsgi.ini

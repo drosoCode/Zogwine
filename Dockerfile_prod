@@ -11,7 +11,7 @@ ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64:/lib:/l
 ENV C_INCLUDE_PATH="/usr/include/libxml2/"
 RUN locale-gen en_US.UTF-8
 
-RUN pip3 install --no-cache-dir -r requirements.txt && chmod +x start.sh main.py
+RUN pip3 install --no-cache-dir -r requirements.txt && chmod +x start.sh
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en

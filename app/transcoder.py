@@ -78,12 +78,12 @@ class transcoder:
         cmd = (
             'ffprobe -v quiet -print_format json -show_format -show_streams "'
             + self._file
-            + '" > out/data.json'
+            + '" > ../out/data.json'
         )
         logger.debug("FFprobe: " + cmd)
         os.system(cmd)
 
-        with open("out/data.json", "r", encoding="utf-8") as f:
+        with open("../out/data.json", "r", encoding="utf-8") as f:
             dat = json.load(f, encoding="UTF8")
 
         data = {
