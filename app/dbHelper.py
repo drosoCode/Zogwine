@@ -1,13 +1,41 @@
-from mysql.connector import MySQLConnection, OperationalError
+from mysql.connector.pooling import MySQLConnectionPool
+import redis
+import json
+from log import logger
 
-class sql(MySQLConnection):
+with open("../config/config_dev.json") as f:
+    configData = json.load(f)
+    logger.info("Configuration loaded")
 
-    def cursor(self, **kwargs):
-        kwargs.update({'dictionary': True, 'buffered': True})
-        try:
-            c = super().cursor(**kwargs)
-        except OperationalError:
-            super().reconnect()
-            c = super().cursor(**kwargs)
-        return c
+_sqlPool = MySQLConnectionPool(
+    pool_name="zogwine",
+    pool_reset_session=False,
+    **configData["db"],
+    use_unicode=True,
+    charset="utf8"
+)
 
+r_userTokens = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["usersDB"],
+)
+r_runningThreads = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["threadsDB"],
+)
+r_userFiles = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["filesDB"],
+)
+
+
+def getSqlConnection(with_cursor=True):
+    sqlConnection = _sqlPool.get_connection()
+    sqlConnection.connect()
+    if not with_cursor:
+        return sqlConnection
+    cursor = sqlConnection.cursor(dictionary=True, buffered=True)
+    return (sqlConnection, cursor)

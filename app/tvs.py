@@ -6,40 +6,28 @@ from uwsgidecorators import thread
 from transcoder import transcoder
 from log import logger
 from utils import checkArgs, checkUser, addCache
-from dbHelper import sql
-from indexer import scanner
-from conf import configData, sqlConnectionData
 
+from dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from indexer import scanner
 
 tvs = Blueprint("tvs", __name__)
 allowedMethods = ["GET", "POST"]
-r_userTokens = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["usersDB"],
-)
-r_runningThreads = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["threadsDB"],
-)
 
 
 def tvs_getEpPath(idEpisode):
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = %(idEpisode)s;",
         {"idEpisode": idEpisode},
     )
     path = configData["config"]["tvsDirectory"] + "/" + cursor.fetchone()["path"]
     logger.debug("Getting episode path for id:" + str(idEpisode) + " -> " + path)
+    sqlConnection.close()
     return path
 
 
 def tvs_refreshCache():
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute("SELECT icon, fanart FROM tv_shows;")
     data = cursor.fetchall()
     for d in data:
@@ -62,12 +50,12 @@ def tvs_refreshCache():
     for d in data:
         if d["icon"] != None and "http" not in d["icon"]:
             addCache(d["icon"])
+    sqlConnection.close()
 
 
 @tvs.route("/api/tvs/getUpcomingEpisodes", methods=allowedMethods)
 def tvs_getUpcomingEpisodes():
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT u.idEpisode AS id, u.title AS title, t.title AS showTitle, u.overview AS overview, CONCAT('/api/image?id=',COALESCE(u.icon, t.fanart)) AS icon,"
         "u.season AS season, u.episode AS episode, u.date AS date, u.idShow AS idShow "
@@ -75,7 +63,9 @@ def tvs_getUpcomingEpisodes():
         "WHERE u.idShow = t.idShow AND u.date >= DATE(SYSDATE())"
         "ORDER BY date;"
     )
-    return jsonify(cursor.fetchall())
+    res = jsonify(cursor.fetchall())
+    sqlConnection.close()
+    return res
 
 
 @tvs.route("/api/tvs/runUpcomingScan", methods=allowedMethods)
@@ -88,16 +78,15 @@ def tvs_runUpcomingScanThreaded():
 @thread
 def tvs_runUpcomingScan():
     r_runningThreads.set("upEpisodes", 1)
-    scanner(
-        sql(**sqlConnectionData), "tvs", configData["api"]
-    ).getObject().scanUpcomingEpisodes()
+    sqlConnection = getSqlConnection(False)
+    scanner(sqlConnection, "tvs", configData["api"]).getObject().scanUpcomingEpisodes()
     r_runningThreads.set("upEpisodes", 0)
+    sqlConnection.close()
 
 
 def tvs_getEps(token, idShow, season=None):
-    sqlConnection = sql(**sqlConnectionData)
     idUser = r_userTokens.get(token)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     s = ""
     dat = {"idUser": idUser, "idShow": idShow}
     if season is not None:
@@ -112,7 +101,9 @@ def tvs_getEps(token, idShow, season=None):
         "ORDER BY season, episode;",
         dat,
     )
-    return cursor.fetchall()
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return res
 
 
 @tvs.route("/api/tvs/getEpisodes", methods=allowedMethods)
@@ -129,10 +120,9 @@ def tvs_getEpsFlask():
 
 @tvs.route("/api/tvs/getSeasons", methods=allowedMethods)
 def tvs_getSeasons():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idShow"])
     idUser = r_userTokens.get(request.args["token"])
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     season = request.args.get("season")
     s = ""
     dat = {"idUser": idUser, "idShow": request.args["idShow"]}
@@ -149,13 +139,14 @@ def tvs_getSeasons():
         "ORDER BY season;",
         dat,
     )
-    return jsonify(cursor.fetchall())
+    res = jsonify(cursor.fetchall())
+    sqlConnection.close()
+    return res
 
 
 def tvs_getShows(token, mr=False):
-    sqlConnection = sql(**sqlConnectionData)
     idUser = r_userTokens.get(token)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     mrDat = ""
     if mr:
         mrDat = "NOT "
@@ -171,7 +162,9 @@ def tvs_getShows(token, mr=False):
         "WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;"
     )
     cursor.execute(query, {"idUser": int(idUser)})
-    return cursor.fetchall()
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return res
 
 
 @tvs.route("/api/tvs/getShows", methods=allowedMethods)
@@ -186,10 +179,9 @@ def tvs_getShowsMr():
 
 @tvs.route("/api/tvs/getShow", methods=allowedMethods)
 def tvs_getShow():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idShow"])
     idUser = r_userTokens.get(request.args["token"])
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     query = (
         "SELECT idShow AS id,"
         "title, overview, "
@@ -207,19 +199,19 @@ def tvs_getShow():
     cursor.execute(
         query, {"idUser": int(idUser), "idShow": str(request.args["idShow"])}
     )
-    return jsonify(cursor.fetchone())
+    res = jsonify(cursor.fetchone())
+    sqlConnection.close()
+    return res
 
 
 @tvs.route("/api/tvs/setID", methods=allowedMethods)
 def tvs_setID():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idShow", "id"])
     checkUser(r_userTokens.get(request.args["token"]), "admin")
-
     idShow = request.args["idShow"]
     resultID = request.args["id"]
     # the resultID is the one from the json list of multipleResults entry
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT multipleResults FROM tv_shows WHERE idShow = %(idShow)s;",
         {"idShow": str(idShow)},
@@ -235,12 +227,12 @@ def tvs_setID():
         },
     )
     sqlConnection.commit()
+    sqlConnection.close()
     return jsonify({"status": "ok"})
 
 
 def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;",
         {"idEpisode": str(idEpisode), "idUser": int(r_userTokens.get(token))},
@@ -268,6 +260,7 @@ def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
             {"idUser": int(r_userTokens.get(token)), "idMedia": str(idEpisode)},
         )
     sqlConnection.commit()
+    sqlConnection.close()
     return True
 
 
@@ -281,11 +274,10 @@ def tvs_toggleWatchedEpisodeFlask():
 
 @tvs.route("/api/tvs/toggleSeasonStatus", methods=allowedMethods)
 def tvs_toggleWatchedSeason():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idShow"])
     token = request.args["token"]
     idShow = request.args["idShow"]
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     dat = {"idUser": r_userTokens.get(token), "idShow": idShow}
     watched = True
 
@@ -309,21 +301,22 @@ def tvs_toggleWatchedSeason():
         if season is None or int(season) == int(i["season"]):
             tvs_toggleWatchedEpisode(token, i["id"], watched)
 
+    sqlConnection.close()
     return jsonify({"response": "ok"})
 
 
 @tvs.route("/api/tvs/setNewSearch", methods=allowedMethods)
 def tvs_setNewSearch():
-    sqlConnection = sql(**sqlConnectionData)
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     checkArgs(["idShow", "title"])
     idShow = request.args["idShow"]
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "UPDATE tv_shows SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idShow = %(idShow)s;",
         {"newTitle": request.args["title"], "idShow": idShow},
     )
     sqlConnection.commit()
+    sqlConnection.close()
     return jsonify({"result": "ok"})
 
 
@@ -336,8 +329,10 @@ def tvs_runScanThreaded():
 
 @thread
 def tvs_runScan():
+    sqlConnection = getSqlConnection(False)
     r_runningThreads.set("tvs", 1)
-    scanner(sql(**sqlConnectionData), "tvs", configData["api"]).scanDir(
+    scanner(sqlConnection, "tvs", configData["api"]).scanDir(
         configData["config"]["tvsDirectory"]
     )
     r_runningThreads.set("tvs", 0)
+    sqlConnection.close()

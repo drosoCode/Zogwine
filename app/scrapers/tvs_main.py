@@ -44,7 +44,7 @@ class tvs:
                     self._logger.warning('Failed to import scraper '+str(my_class.__name__))
 
     def getTVSData(self):
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
         cursor.execute("SELECT * FROM tv_shows ORDER BY title;")
         dat = cursor.fetchall()
         paths = []
@@ -63,7 +63,7 @@ class tvs:
         self._forceUpdateEp = []
         self._idUpdateEp = {}
         self._paths, self._tvs = self.getTVSData()
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
         
         for item in dirContent:
             #try:
@@ -117,7 +117,7 @@ class tvs:
     
 
     def scanTVS(self, path, item):
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
         commit = False
 
         if item in self._paths:
@@ -191,7 +191,7 @@ class tvs:
     def scanEpisode(self, path, item):
         extension = item[item.rfind('.')+1:]
         self._logger.debug('The extension for: '+self._currentTVS+' is: '+extension)
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
         commit = False
 
         if extension in self._supportedFiles and self._currentTVS:
@@ -259,7 +259,7 @@ class tvs:
         commit = False
         scraperID = self._tvs[self._currentTVS]["scraperID"]
         idShow = self._tvs[self._currentTVS]["idShow"]
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
         noUpdate = []
         existingSeasons = []
         cursor.execute("SELECT season, forceUpdate FROM seasons WHERE idShow = %(idShow)s;", {'idShow': idShow})
@@ -291,7 +291,7 @@ class tvs:
         commit = False
         scraperID = self._tvs[self._currentTVS]["scraperID"]
         idShow = self._tvs[self._currentTVS]["idShow"]
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
 
         for s in self._scrapers:
             if s.__class__.__name__ == self._tvs[self._currentTVS]["scraperName"]:
@@ -350,7 +350,7 @@ class tvs:
         return commit
 
     def scanUpcomingEpisodes(self):
-        cursor = self._connection.cursor(dictionary=True)
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
         cursor.execute('DELETE FROM upcoming_episodes WHERE date < DATE(SYSDATE())')
         cursor.execute("SELECT idShow, scraperName, scraperID " \
                        "FROM tv_shows "\

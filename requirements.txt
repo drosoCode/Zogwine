@@ -5,3 +5,4 @@ flask_cors
 uwsgi
 uwsgidecorators
 redis
+flask-jwt-extended

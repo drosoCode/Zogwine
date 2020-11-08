@@ -11,7 +11,7 @@ from movie import movie
 from user import user
 from core import core
 from player import player
-from conf import configData
+from dbHelper import r_runningThreads, r_userTokens
 
 """
 DB:
@@ -19,17 +19,6 @@ DB:
                2=tv_show
                3=movie
 """
-
-r_runningThreads = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["threadsDB"],
-)
-r_userTokens = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["usersDB"],
-)
 
 r_runningThreads.set("tvs", 0)
 r_runningThreads.set("movies", 0)

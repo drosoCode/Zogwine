@@ -2,38 +2,27 @@ from flask import request, Blueprint, jsonify
 import redis
 import json
 import hashlib
-import secrets
+from flask_jwt_extended import create_access_token
 
 from transcoder import transcoder
 from log import logger, getLogs
 from utils import checkArgs
-from dbHelper import sql
+
+from dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
 from indexer import scanner
-from conf import configData, sqlConnectionData
 
 
 user = Blueprint("user", __name__)
 allowedMethods = ["GET", "POST"]
-r_userFiles = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["filesDB"],
-)
-r_userTokens = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["usersDB"],
-)
 
 
 @user.route("/api/users/authenticate", methods=["GET", "POST"])
 def authenticateUser():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["user", "password"])
     user = request.args["user"]
     password = hashlib.sha256(bytes(request.args["password"], "utf-8")).hexdigest()
-    cursor = sqlConnection.cursor(dictionary=True)
     if user != "" and password != "":
+        sqlConnection, cursor = getSqlConnection()
         r = (
             "SELECT idUser FROM users WHERE user = '"
             + str(user)
@@ -43,6 +32,7 @@ def authenticateUser():
         )
         cursor.execute(r)
         dat = cursor.fetchone()
+        sqlConnection.close()
         if dat != None and "idUser" in dat:
             logger.info("User: " + str(user) + " successfully authenticated")
             return jsonify({"response": generateToken(dat["idUser"])})
@@ -55,17 +45,18 @@ def authenticateUser():
 
 
 def getUserData(token):
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT name, admin, cast, kodiLinkBase FROM users WHERE idUser = %(idUser)s",
         {"idUser": r_userTokens.get(token).decode("utf-8")},
     )
-    return cursor.fetchone()
+    res = cursor.fetchone()
+    sqlConnection.close()
+    return res
 
 
 def generateToken(userID):
-    t = secrets.token_hex(20)
+    t = create_access_token(identity=userID)
     r_userTokens.set(str(t), str(userID))
     return t
 

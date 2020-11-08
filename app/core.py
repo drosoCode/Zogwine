@@ -8,29 +8,17 @@ import os
 from transcoder import transcoder
 from log import logger, getLogs
 from utils import checkArgs, checkUser, addCache
-from dbHelper import sql
+from dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
 from indexer import scanner
-from conf import configData, sqlConnectionData
 
 core = Blueprint("core", __name__)
 allowedMethods = ["GET", "POST"]
-r_userTokens = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["usersDB"],
-)
-r_runningThreads = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["threadsDB"],
-)
 
 
 @core.route("/api/core/getStatistics")
 def getStatistics():
-    sqlConnection = sql(**sqlConnectionData)
+    sqlConnection, cursor = getSqlConnection()
     avgEpTime = 0.5  # h
-    cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute(
         "SELECT COUNT(idStatus) AS watchedEpCount, SUM(watchCount) AS watchedEpSum FROM status WHERE watchCount > 0 AND mediaType = 1 AND idUser = %(idUser)s;",
         {"idUser": r_userTokens.get(request.args["token"])},
@@ -49,6 +37,7 @@ def getStatistics():
     movCount = cursor.fetchone()["movCount"]
     if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
         dat1["watchedEpSum"] = 0
+    sqlConnection.close()
     return {
         "watchedEpCount": int(dat1["watchedEpCount"]),
         "watchedEpSum": int(dat1["watchedEpSum"]),
@@ -119,8 +108,7 @@ def refreshCache():
     tvs_refreshCache()
     mov_refreshCache()
 
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     # refresh tags cache
     cursor.execute("SELECT icon FROM tags;")
     data = cursor.fetchall()
@@ -134,6 +122,7 @@ def refreshCache():
         if d["icon"] != None and "http" not in d["icon"]:
             addCache(d["icon"])
     r_runningThreads.set("cache", 0)
+    sqlConnection.close()
 
 
 @core.route("/api/core/runPeopleScan", methods=allowedMethods)
@@ -146,15 +135,16 @@ def runPeopleScanThreaded():
 @thread
 def runPeopleScan():
     r_runningThreads.set("people", 1)
-    scanner(sql(**sqlConnectionData), "people", configData["api"]).getObject().scan()
+    sqlConnection = getSqlConnection(False)
+    scanner(sqlConnection, "people", configData["api"]).getObject().scan()
     r_runningThreads.set("people", 0)
+    sqlConnection.close()
 
 
 @core.route("/api/core/getPeople", methods=allowedMethods)
 def getPeople():
-    sqlConnection = sql(**sqlConnectionData)
+    sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])
-    cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute(
         "SELECT p.idPers, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/image?id=',icon) AS icon "
         "FROM people p, people_link l "
@@ -165,14 +155,15 @@ def getPeople():
             "mediaData": request.args["mediaData"],
         },
     )
-    return jsonify(cursor.fetchall())
+    res = jsonify(cursor.fetchall())
+    sqlConnection.close()
+    return res
 
 
 @core.route("/api/core/getTags", methods=allowedMethods)
 def getTags():
-    sqlConnection = sql(**sqlConnectionData)
+    sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])
-    cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute(
         "SELECT t.idTag, name, value, CONCAT('/api/image?id=',icon) AS icon "
         "FROM tags t, tags_link l "
@@ -183,4 +174,6 @@ def getTags():
             "mediaData": request.args["mediaData"],
         },
     )
-    return jsonify(cursor.fetchall())
+    res = jsonify(cursor.fetchall())
+    sqlConnection.close()
+    return res

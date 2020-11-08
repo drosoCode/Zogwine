@@ -206,6 +206,10 @@ class transcoder:
                     + '"'
                 )
 
+        if self._remove3D:
+            cmd += " -aspect 16:9"
+        # display_aspect_ratio
+
         if self._audioStream != "0":
             cmd += " -map 0:a:" + self._audioStream
         cmd += " -c:a aac -ar 48000 -b:a 128k -ac 2"

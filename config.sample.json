@@ -3,7 +3,7 @@
         "host":"DATABASE_HOST",
         "user":"DATABASE_USER",
         "password":"DATABASE_PASSWORD",
-        "name":"DATABASE_NAME"
+        "database":"DATABASE_NAME"
     },
     "redis":{
         "host":"redis",

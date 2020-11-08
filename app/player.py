@@ -6,21 +6,11 @@ import os
 from transcoder import transcoder
 from log import logger
 from utils import checkArgs, getFile, getMediaPath
-from dbHelper import sql
-from conf import configData, sqlConnectionData
+
+from dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
 
 player = Blueprint("player", __name__)
 allowedMethods = ["GET", "POST"]
-r_userFiles = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["filesDB"],
-)
-r_userTokens = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["usersDB"],
-)
 
 
 @player.route("/api/player/start")
@@ -102,7 +92,7 @@ def player_getFile():
 
 
 def getFileInfos(token, mediaType, mediaData):
-    sqlConnection = sql(**sqlConnectionData)
+    sqlConnection, cursor = getSqlConnection()
     uid = r_userTokens.get(token)
     path = getMediaPath(token, mediaType, mediaData)
     logger.info(
@@ -123,7 +113,6 @@ def getFileInfos(token, mediaType, mediaData):
     # get last view end if available
     st = None
     if mediaType == 1 or mediaType == 3:
-        cursor = sqlConnection.cursor(dictionary=True)
         cursor.execute(
             "SELECT watchTime FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;",
             {
@@ -140,7 +129,9 @@ def getFileInfos(token, mediaType, mediaData):
         tr.setStartTime(st)
 
     r_userFiles.set(uid, tr.toJSON())
-    return tr.getFileInfos()
+    res = tr.getFileInfos()
+    sqlConnection.close()
+    return res
 
 
 @player.route("/api/player/getInfos", methods=allowedMethods)
@@ -176,9 +167,9 @@ def player_stop():
 
 
 def player_setWatchTime(token, mediaType, idMedia, endTime=None):
-    sqlConnection = sql(**sqlConnectionData)
     uid = r_userTokens.get(token)
     if endTime is not None:
+        sqlConnection, cursor = getSqlConnection()
         tr = transcoder.fromJSON(r_userFiles.get(uid))
 
         endTime = tr.getWatchedDuration(endTime)
@@ -215,6 +206,7 @@ def player_setWatchTime(token, mediaType, idMedia, endTime=None):
                     "watchTime": str(endTime),
                 },
             )
+        sqlConnection.close()
 
         return True
     else:

@@ -6,42 +6,31 @@ from uwsgidecorators import thread
 from transcoder import transcoder
 from log import logger
 from utils import checkArgs, checkUser, addCache
-from dbHelper import sql
+
+from dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
 from indexer import scanner
-from conf import configData, sqlConnectionData
 
 movie = Blueprint("movie", __name__)
 allowedMethods = ["GET", "POST"]
-r_userTokens = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["usersDB"],
-)
-r_runningThreads = redis.Redis(
-    host=configData["redis"]["host"],
-    port=configData["redis"]["port"],
-    db=configData["redis"]["threadsDB"],
-)
 
 
 def mov_getPath(idMovie):
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT path FROM movies WHERE idMovie = %(idMovie)s;", {"idMovie": idMovie}
     )
     path = configData["config"]["moviesDirectory"] + "/" + cursor.fetchone()["path"]
     logger.debug("Getting movie path for id:" + str(idMovie) + " -> " + path)
+    sqlConnection.close()
     return path
 
 
 @movie.route("/api/movies/toggleStatus", methods=allowedMethods)
 def mov_toggleStatus():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idMovie"])
     idUser = r_userTokens.get(request.args["token"])
     idMovie = request.args["idMovie"]
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 3 AND idMedia = %(idMovie)s;",
         {"idMovie": idMovie, "idUser": idUser},
@@ -65,6 +54,7 @@ def mov_toggleStatus():
             {"idUser": idUser, "idMedia": idMovie},
         )
     sqlConnection.commit()
+    sqlConnection.close()
     return jsonify({"response": "ok"})
 
 
@@ -78,16 +68,17 @@ def mov_runScanThreaded():
 @thread
 def mov_runScan():
     r_runningThreads.set("movies", 1)
-    scanner(sql(**sqlConnectionData), "movies", configData["api"]).scanDir(
+    sqlConnection = getSqlConnection(False)
+    scanner(sqlConnection, "movies", configData["api"]).scanDir(
         configData["config"]["moviesDirectory"]
     )
     r_runningThreads.set("movies", 0)
+    sqlConnection.close()
 
 
 def mov_getData(token, mr=False):
-    sqlConnection = sql(**sqlConnectionData)
     idUser = r_userTokens.get(token)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     mrDat = ""
     if mr:
         mrDat = "NOT "
@@ -101,15 +92,16 @@ def mov_getData(token, mr=False):
         "FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;",
         {"idUser": idUser},
     )
-    return cursor.fetchall()
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return res
 
 
 @movie.route("/api/movies/getMovie", methods=allowedMethods)
 def mov_getMovie():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idMovie"])
     idUser = r_userTokens.get(request.args["token"])
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idMovie AS id, title, overview, idCollection, "
         "CONCAT('/api/image?id=',icon) AS icon, "
@@ -120,7 +112,9 @@ def mov_getMovie():
         "FROM movies t WHERE idMovie = %(idMovie)s;",
         {"idUser": idUser, "idMovie": request.args["idMovie"]},
     )
-    return jsonify(cursor.fetchone())
+    res = jsonify(cursor.fetchone())
+    sqlConnection.close()
+    return res
 
 
 @movie.route("/api/movies/getMovies", methods=allowedMethods)
@@ -135,14 +129,13 @@ def mov_getDataMr():
 
 @movie.route("/api/movies/getCollections", methods=allowedMethods)
 def mov_getCollections():
-    sqlConnection = sql(**sqlConnectionData)
     idUser = r_userTokens.get(request.args["token"])
     queryData = {"idUser": idUser}
     c = ""
     if "idCollection" in request.args and request.args["idCollection"] != None:
         c = " WHERE idCollection = %(idCollection)s"
         queryData = {"idUser": idUser, "idCollection": request.args["idCollection"]}
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idCollection AS id, title, overview, "
         "CONCAT('/api/image?id=',icon) AS icon, "
@@ -156,16 +149,18 @@ def mov_getCollections():
         queryData,
     )
     if c != "":
-        return jsonify(cursor.fetchone())
-    return jsonify(cursor.fetchall())
+        res = jsonify(cursor.fetchone())
+    else:
+        res = jsonify(cursor.fetchall())
+    sqlConnection.close()
+    return res
 
 
 @movie.route("/api/movies/getCollectionMovies", methods=allowedMethods)
 def mov_getCollectionMovies():
-    sqlConnection = sql(**sqlConnectionData)
     checkArgs(["idCollection"])
     idUser = r_userTokens.get(request.args["token"])
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idMovie AS id, title, overview, "
         "CONCAT('/api/image?id=',icon) AS icon, "
@@ -176,18 +171,19 @@ def mov_getCollectionMovies():
         "FROM movies t WHERE multipleResults IS NULL AND idCollection = %(idCollection)s ORDER BY premiered;",
         {"idUser": idUser, "idCollection": request.args["idCollection"]},
     )
-    return jsonify(cursor.fetchall())
+    res = jsonify(cursor.fetchall())
+    sqlConnection.close()
+    return res
 
 
 @movie.route("/api/movies/setID", methods=allowedMethods)
 def mov_setID():
-    sqlConnection = sql(**sqlConnectionData)
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     checkArgs(["idMovie", "id"])
     idMovie = request.args["idMovie"]
     resultID = request.args["id"]
     # the resultID is the one from the json list of multipleResults entry
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT multipleResults FROM movies WHERE idMovie = " + str(idMovie) + ";"
     )
@@ -202,27 +198,27 @@ def mov_setID():
         },
     )
     sqlConnection.commit()
+    sqlConnection.close()
     return jsonify({"result": "ok"})
 
 
 @movie.route("/api/movies/setNewSearch", methods=allowedMethods)
 def mov_setNewSearch():
-    sqlConnection = sql(**sqlConnectionData)
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     checkArgs(["idMovie", "title"])
     idMovie = request.args["idMovie"]
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "UPDATE movies SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idMovie = %(idMovie)s;",
         {"newTitle": request.args["title"], "idMovie": idMovie},
     )
     sqlConnection.commit()
+    sqlConnection.close()
     return jsonify({"result": "ok"})
 
 
 def mov_refreshCache():
-    sqlConnection = sql(**sqlConnectionData)
-    cursor = sqlConnection.cursor(dictionary=True)
+    sqlConnection, cursor = getSqlConnection()
     cursor.execute("SELECT icon, fanart FROM movies;")
     data = cursor.fetchall()
     for d in data:
@@ -237,3 +233,4 @@ def mov_refreshCache():
             addCache(d["icon"])
         if d["fanart"] != None and "http" not in d["fanart"]:
             addCache(d["fanart"])
+    sqlConnection.close()
