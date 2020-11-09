@@ -36,7 +36,7 @@ def startPlayer():
     obj.start()
 
     r_userFiles.set(uid, obj.toJSON())
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @player.route("/api/player/m3u8")
@@ -138,11 +138,14 @@ def getFileInfos(token, mediaType, mediaData):
 def player_getFileInfos():
     checkArgs(["mediaType", "mediaData"])
     return jsonify(
-        getFileInfos(
-            request.args["token"],
-            request.args["mediaType"],
-            request.args["mediaData"],
-        )
+        {
+            "status": "ok",
+            "data": getFileInfos(
+                request.args["token"],
+                request.args["mediaType"],
+                request.args["mediaData"],
+            ),
+        }
     )
 
 
@@ -163,7 +166,7 @@ def player_stop():
     del obj
     r_userFiles.delete(uid)
 
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 def player_setWatchTime(token, mediaType, idMedia, endTime=None):
