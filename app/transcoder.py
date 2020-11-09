@@ -5,6 +5,8 @@ import re
 from subprocess import Popen
 from log import logger
 
+# format[varchar], duration[float], extension(?), audio[json], subtitles[json], 3D[int], ratio[varchar], size[int], resolution
+
 
 class transcoder:
     def __init__(

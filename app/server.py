@@ -42,7 +42,7 @@ logger.info("Server Started Successfully")
 
 @app.before_request
 def before_request():
-    if request.endpoint not in ["user.authenticateUser", "core.getImage",] and (
+    if request.endpoint not in ["user.signin", "core.getImage",] and (
         "token" not in request.args or not r_userTokens.exists(request.args["token"])
     ):
         abort(401)

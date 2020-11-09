@@ -63,16 +63,16 @@ def tvs_getUpcomingEpisodes():
         "WHERE u.idShow = t.idShow AND u.date >= DATE(SYSDATE())"
         "ORDER BY date;"
     )
-    res = jsonify(cursor.fetchall())
+    res = cursor.fetchall()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 @tvs.route("/api/tvs/runUpcomingScan", methods=allowedMethods)
 def tvs_runUpcomingScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     tvs_runUpcomingScan()
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @thread
@@ -110,11 +110,14 @@ def tvs_getEps(token, idShow, season=None):
 def tvs_getEpsFlask():
     checkArgs(["idShow"])
     return jsonify(
-        tvs_getEps(
-            request.args["token"],
-            request.args["idShow"],
-            request.args.get("season"),
-        )
+        {
+            "status": "ok",
+            "data": tvs_getEps(
+                request.args["token"],
+                request.args["idShow"],
+                request.args.get("season"),
+            ),
+        }
     )
 
 
@@ -139,9 +142,9 @@ def tvs_getSeasons():
         "ORDER BY season;",
         dat,
     )
-    res = jsonify(cursor.fetchall())
+    res = cursor.fetchall()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 def tvs_getShows(token, mr=False):
@@ -169,12 +172,12 @@ def tvs_getShows(token, mr=False):
 
 @tvs.route("/api/tvs/getShows", methods=allowedMethods)
 def tvs_getShowsFlask():
-    return jsonify(tvs_getShows(request.args["token"], False))
+    return jsonify({"status": "ok", "data": tvs_getShows(request.args["token"], False)})
 
 
 @tvs.route("/api/tvs/getShowsMultipleResults", methods=allowedMethods)
 def tvs_getShowsMr():
-    return jsonify(tvs_getShows(request.args["token"], True))
+    return jsonify({"status": "ok", "data": tvs_getShows(request.args["token"], True)})
 
 
 @tvs.route("/api/tvs/getShow", methods=allowedMethods)
@@ -199,9 +202,9 @@ def tvs_getShow():
     cursor.execute(
         query, {"idUser": int(idUser), "idShow": str(request.args["idShow"])}
     )
-    res = jsonify(cursor.fetchone())
+    res = cursor.fetchone()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 @tvs.route("/api/tvs/setID", methods=allowedMethods)
@@ -228,7 +231,7 @@ def tvs_setID():
     )
     sqlConnection.commit()
     sqlConnection.close()
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
@@ -269,7 +272,7 @@ def tvs_toggleWatchedEpisodeFlask():
     checkArgs(["idEpisode"])
     # set episode as watched for user
     tvs_toggleWatchedEpisode(request.args["token"], request.args["idEpisode"])
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @tvs.route("/api/tvs/toggleSeasonStatus", methods=allowedMethods)
@@ -302,7 +305,7 @@ def tvs_toggleWatchedSeason():
             tvs_toggleWatchedEpisode(token, i["id"], watched)
 
     sqlConnection.close()
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @tvs.route("/api/tvs/setNewSearch", methods=allowedMethods)
@@ -317,14 +320,14 @@ def tvs_setNewSearch():
     )
     sqlConnection.commit()
     sqlConnection.close()
-    return jsonify({"result": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @tvs.route("/api/tvs/runScan", methods=allowedMethods)
 def tvs_runScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     tvs_runScan()
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @thread

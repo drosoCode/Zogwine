@@ -2,7 +2,8 @@ from flask import request, Blueprint, jsonify
 import redis
 import json
 import hashlib
-from flask_jwt_extended import create_access_token
+import jwt
+import time
 
 from transcoder import transcoder
 from log import logger, getLogs
@@ -16,8 +17,8 @@ user = Blueprint("user", __name__)
 allowedMethods = ["GET", "POST"]
 
 
-@user.route("/api/users/authenticate", methods=["GET", "POST"])
-def authenticateUser():
+@user.route("/api/user/signin", methods=["GET", "POST"])
+def signin():
     checkArgs(["user", "password"])
     user = request.args["user"]
     password = hashlib.sha256(bytes(request.args["password"], "utf-8")).hexdigest()
@@ -35,43 +36,66 @@ def authenticateUser():
         sqlConnection.close()
         if dat != None and "idUser" in dat:
             logger.info("User: " + str(user) + " successfully authenticated")
-            return jsonify({"response": generateToken(dat["idUser"])})
+            return jsonify({"status": "ok", "data": generateToken(dat["idUser"])})
         else:
             logger.warning("Bad Authentication for user: " + str(user))
-            return jsonify({"response": "error"})
+            return jsonify({"status": "error", "data": "error"})
     else:
         logger.warning("Empty User or Password for authentication")
-        return jsonify({"response": "error"})
+        return jsonify({"status": "error", "data": "error"})
 
 
-def getUserData(token):
+def getUserData(userID):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT name, admin, cast, kodiLinkBase FROM users WHERE idUser = %(idUser)s",
-        {"idUser": r_userTokens.get(token).decode("utf-8")},
+        {"idUser": userID},
     )
     res = cursor.fetchone()
     sqlConnection.close()
     return res
 
 
+@user.route("/api/user/data", methods=["GET", "POST"])
+def getUserDataFlask():
+    return jsonify(
+        {
+            "status": "ok",
+            "data": getUserData(
+                r_userTokens.get(request.args["token"]).decode("utf-8")
+            ),
+        }
+    )
+
+
 def generateToken(userID):
-    t = create_access_token(identity=userID)
+    t = jwt.encode(
+        {"creation": time.time(), "idUser": userID}, "zogwine", algorithm="HS512"
+    ).decode("utf8")
     r_userTokens.set(str(t), str(userID))
     return t
 
 
-def removeToken(token):
-    uid = r_userTokens.get(token)
-    r_userTokens.delete(token)
-    if sum(r_userTokens.get(u) == uid for u in r_userTokens.scan_iter()) == 0:
+@user.route("/api/user/signout", methods=["GET", "POST"])
+def signout():
+    uid = str(r_userTokens.get(request.args["token"]))
+    r_userTokens.delete(request.args["token"])
+    s = 0
+    for u in r_userTokens.scan_iter():
+        if r_userTokens.get(str(u)) == uid:
+            s += 1
+
+    if s == 0:
         if r_userFiles.exists(uid):
             obj = transcoder.fromJSON(r_userFiles.get(uid))
             obj.stop()
             del obj
             r_userFiles.delete(uid)
+    return jsonify({"status": "ok", "data": "ok"})
 
 
+"""
 @user.route("/api/users/data", methods=["GET", "POST"])
 def getUserDataFlask():
     return jsonify(getUserData(request.args["token"]))
+"""

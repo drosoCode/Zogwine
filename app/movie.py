@@ -55,14 +55,14 @@ def mov_toggleStatus():
         )
     sqlConnection.commit()
     sqlConnection.close()
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @movie.route("/api/movies/runScan", methods=allowedMethods)
 def mov_runScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     mov_runScan()
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @thread
@@ -112,19 +112,19 @@ def mov_getMovie():
         "FROM movies t WHERE idMovie = %(idMovie)s;",
         {"idUser": idUser, "idMovie": request.args["idMovie"]},
     )
-    res = jsonify(cursor.fetchone())
+    res = cursor.fetchone()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 @movie.route("/api/movies/getMovies", methods=allowedMethods)
 def mov_getDataFlask():
-    return jsonify(mov_getData(request.args["token"]))
+    return jsonify({"status": "ok", "data": mov_getData(request.args["token"])})
 
 
 @movie.route("/api/movies/getMultipleResults", methods=allowedMethods)
 def mov_getDataMr():
-    return jsonify(mov_getData(request.args["token"], True))
+    return jsonify({"status": "ok", "data": mov_getData(request.args["token"], True)})
 
 
 @movie.route("/api/movies/getCollections", methods=allowedMethods)
@@ -149,11 +149,11 @@ def mov_getCollections():
         queryData,
     )
     if c != "":
-        res = jsonify(cursor.fetchone())
+        res = cursor.fetchone()
     else:
-        res = jsonify(cursor.fetchall())
+        res = cursor.fetchall()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 @movie.route("/api/movies/getCollectionMovies", methods=allowedMethods)
@@ -171,9 +171,9 @@ def mov_getCollectionMovies():
         "FROM movies t WHERE multipleResults IS NULL AND idCollection = %(idCollection)s ORDER BY premiered;",
         {"idUser": idUser, "idCollection": request.args["idCollection"]},
     )
-    res = jsonify(cursor.fetchall())
+    res = cursor.fetchall()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 @movie.route("/api/movies/setID", methods=allowedMethods)
@@ -199,7 +199,7 @@ def mov_setID():
     )
     sqlConnection.commit()
     sqlConnection.close()
-    return jsonify({"result": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @movie.route("/api/movies/setNewSearch", methods=allowedMethods)
@@ -214,7 +214,7 @@ def mov_setNewSearch():
     )
     sqlConnection.commit()
     sqlConnection.close()
-    return jsonify({"result": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 def mov_refreshCache():

@@ -38,15 +38,20 @@ def getStatistics():
     if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
         dat1["watchedEpSum"] = 0
     sqlConnection.close()
-    return {
-        "watchedEpCount": int(dat1["watchedEpCount"]),
-        "watchedEpSum": int(dat1["watchedEpSum"]),
-        "tvsCount": int(dat2["tvsCount"]),
-        "epCount": int(dat2["epCount"]),
-        "moviesCount": int(movCount),
-        "watchedMoviesCount": int(watchedMov),
-        "lostTime": avgEpTime * int(dat1["watchedEpSum"]),
-    }
+    return jsonify(
+        {
+            "status": "ok",
+            "data": {
+                "watchedEpCount": int(dat1["watchedEpCount"]),
+                "watchedEpSum": int(dat1["watchedEpSum"]),
+                "tvsCount": int(dat2["tvsCount"]),
+                "epCount": int(dat2["epCount"]),
+                "moviesCount": int(movCount),
+                "watchedMoviesCount": int(watchedMov),
+                "lostTime": avgEpTime * int(dat1["watchedEpSum"]),
+            },
+        }
+    )
 
 
 @core.route("/api/core/getThreads")
@@ -54,11 +59,14 @@ def getThreadsStatus():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     return jsonify(
         {
-            "tvs": bool(r_runningThreads.get("tvs") == b"1"),
-            "movies": bool(r_runningThreads.get("movies") == b"1"),
-            "upEpisodes": bool(r_runningThreads.get("upEpisodes") == b"1"),
-            "cache": bool(r_runningThreads.get("cache") == b"1"),
-            "people": bool(r_runningThreads.get("people") == b"1"),
+            "status": "ok",
+            "data": {
+                "tvs": bool(r_runningThreads.get("tvs") == b"1"),
+                "movies": bool(r_runningThreads.get("movies") == b"1"),
+                "upEpisodes": bool(r_runningThreads.get("upEpisodes") == b"1"),
+                "cache": bool(r_runningThreads.get("cache") == b"1"),
+                "people": bool(r_runningThreads.get("people") == b"1"),
+            },
         }
     )
 
@@ -70,7 +78,7 @@ def getServerLogs():
         l = int(request.args["amount"])
     except Exception:
         l = 20
-    return jsonify(getLogs(l))
+    return jsonify({"status": "ok", "data": getLogs(l)})
 
 
 @core.route("/api/image")
@@ -96,7 +104,7 @@ def getImage():
 def refreshCacheThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     refreshCache()
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @thread
@@ -129,7 +137,7 @@ def refreshCache():
 def runPeopleScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     runPeopleScan()
-    return jsonify({"response": "ok"})
+    return jsonify({"status": "ok", "data": "ok"})
 
 
 @thread
@@ -155,9 +163,9 @@ def getPeople():
             "mediaData": request.args["mediaData"],
         },
     )
-    res = jsonify(cursor.fetchall())
+    res = cursor.fetchall()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
 
 
 @core.route("/api/core/getTags", methods=allowedMethods)
@@ -174,6 +182,6 @@ def getTags():
             "mediaData": request.args["mediaData"],
         },
     )
-    res = jsonify(cursor.fetchall())
+    res = cursor.fetchall()
     sqlConnection.close()
-    return res
+    return jsonify({"status": "ok", "data": res})
