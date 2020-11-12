@@ -2,15 +2,15 @@ from flask import request, Blueprint, jsonify
 import redis
 import json
 import hashlib
-import jwt
 import time
+import secrets
 
-from transcoder import transcoder
-from log import logger, getLogs
-from utils import checkArgs
+from .transcoder import transcoder
+from .log import logger, getLogs
+from .utils import checkArgs
 
-from dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
-from indexer import scanner
+from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
+from .indexer import scanner
 
 
 user = Blueprint("user", __name__)
@@ -69,9 +69,7 @@ def getUserDataFlask():
 
 
 def generateToken(userID):
-    t = jwt.encode(
-        {"creation": time.time(), "idUser": userID}, "zogwine", algorithm="HS512"
-    ).decode("utf8")
+    t = secrets.token_hex(20)
     r_userTokens.set(str(t), str(userID))
     return t
 
@@ -92,10 +90,3 @@ def signout():
             del obj
             r_userFiles.delete(uid)
     return jsonify({"status": "ok", "data": "ok"})
-
-
-"""
-@user.route("/api/users/data", methods=["GET", "POST"])
-def getUserDataFlask():
-    return jsonify(getUserData(request.args["token"]))
-"""

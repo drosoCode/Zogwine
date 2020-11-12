@@ -5,13 +5,13 @@ from flask_cors import CORS
 import json
 import redis
 
-from log import logger
-from tvs import tvs
-from movie import movie
-from user import user
-from core import core
-from player import player
-from dbHelper import r_runningThreads, r_userTokens
+from .log import logger
+from .tvs import tvs
+from .movie import movie
+from .user import user
+from .core import core
+from .player import player
+from .dbHelper import r_runningThreads, r_userTokens
 
 """
 DB:

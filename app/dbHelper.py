@@ -1,9 +1,9 @@
 from mysql.connector.pooling import MySQLConnectionPool
 import redis
 import json
-from log import logger
+from .log import logger
 
-with open("../config/config_dev.json") as f:
+with open("config/config.json") as f:
     configData = json.load(f)
     logger.info("Configuration loaded")
 

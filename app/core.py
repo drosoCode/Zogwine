@@ -5,17 +5,17 @@ from uwsgidecorators import thread
 from base64 import b64decode
 import os
 
-from transcoder import transcoder
-from log import logger, getLogs
-from utils import checkArgs, checkUser, addCache
-from dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
-from indexer import scanner
+from .transcoder import transcoder
+from .log import logger, getLogs
+from .utils import checkArgs, checkUser, addCache
+from .dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from .indexer import scanner
 
 core = Blueprint("core", __name__)
 allowedMethods = ["GET", "POST"]
 
 
-@core.route("/api/core/getStatistics")
+@core.route("/api/core/statistics")
 def getStatistics():
     sqlConnection, cursor = getSqlConnection()
     avgEpTime = 0.5  # h
@@ -54,7 +54,7 @@ def getStatistics():
     )
 
 
-@core.route("/api/core/getThreads")
+@core.route("/api/process/status")
 def getThreadsStatus():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     return jsonify(
@@ -71,7 +71,7 @@ def getThreadsStatus():
     )
 
 
-@core.route("/api/core/getLogs")
+@core.route("/api/core/logs")
 def getServerLogs():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     try:
@@ -88,7 +88,7 @@ def getImage():
         return redirect(id, code=302)
 
     url = b64decode(id).decode()
-    file = "../out/cache/" + id
+    file = os.path.join(configData["config"]["outDir"], "cache", id)
     ext = url[url.rfind(".") + 1 :]
     mime = "image/" + ext
     if ext == "jpg":
@@ -100,7 +100,7 @@ def getImage():
         return redirect(url, code=302)
 
 
-@core.route("/api/core/refreshCache", methods=allowedMethods)
+@core.route("/api/process/cache", methods=allowedMethods)
 def refreshCacheThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     refreshCache()
@@ -109,8 +109,8 @@ def refreshCacheThreaded():
 
 @thread
 def refreshCache():
-    from tvs import tvs_refreshCache
-    from movie import mov_refreshCache
+    from .tvs import tvs_refreshCache
+    from .movie import mov_refreshCache
 
     r_runningThreads.set("cache", 1)
     tvs_refreshCache()
@@ -133,7 +133,7 @@ def refreshCache():
     sqlConnection.close()
 
 
-@core.route("/api/core/runPeopleScan", methods=allowedMethods)
+@core.route("/api/process/people", methods=allowedMethods)
 def runPeopleScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     runPeopleScan()
@@ -149,7 +149,7 @@ def runPeopleScan():
     sqlConnection.close()
 
 
-@core.route("/api/core/getPeople", methods=allowedMethods)
+@core.route("/api/core/people", methods=allowedMethods)
 def getPeople():
     sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])
@@ -168,7 +168,7 @@ def getPeople():
     return jsonify({"status": "ok", "data": res})
 
 
-@core.route("/api/core/getTags", methods=allowedMethods)
+@core.route("/api/core/tags", methods=allowedMethods)
 def getTags():
     sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])

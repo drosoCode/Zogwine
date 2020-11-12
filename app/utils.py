@@ -5,8 +5,8 @@ import re
 import requests
 from base64 import b64decode
 
-from dbHelper import getSqlConnection
-from log import logger
+from .dbHelper import getSqlConnection, configData
+from .log import logger
 
 
 def checkArgs(args):
@@ -33,22 +33,8 @@ def checkUser(uid, prop):
             abort(403)
 
 
-def getMediaPath(token, mediaType, mediaData):
-    from tvs import tvs_getEpPath
-    from movie import mov_getPath
-
-    if mediaType == "1":
-        # tvs episode
-        return tvs_getEpPath(mediaData)
-    elif mediaType == "3":
-        # movie
-        return mov_getPath(mediaData)
-    else:
-        return None
-
-
 def addCache(data):
-    file = "../out/cache/" + data
+    file = os.path.join(configData["config"]["outDir"], "cache", data)
     if not os.path.exists(file):
         with open(file, "wb") as f:
             logger.debug("Adding " + file + " to cache")
