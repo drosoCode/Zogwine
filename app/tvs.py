@@ -3,27 +3,15 @@ import redis
 import json
 from uwsgidecorators import thread
 
-from transcoder import transcoder
-from log import logger
-from utils import checkArgs, checkUser, addCache
+from .transcoder import transcoder
+from .log import logger
+from .utils import checkArgs, checkUser, addCache
 
-from dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
-from indexer import scanner
+from .dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from .indexer import scanner
 
 tvs = Blueprint("tvs", __name__)
 allowedMethods = ["GET", "POST"]
-
-
-def tvs_getEpPath(idEpisode):
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT CONCAT(t.path, '/', e.path) AS path FROM tv_shows t INNER JOIN episodes e ON t.idShow = e.idShow WHERE e.idEpisode = %(idEpisode)s;",
-        {"idEpisode": idEpisode},
-    )
-    path = configData["config"]["tvsDirectory"] + "/" + cursor.fetchone()["path"]
-    logger.debug("Getting episode path for id:" + str(idEpisode) + " -> " + path)
-    sqlConnection.close()
-    return path
 
 
 def tvs_refreshCache():
@@ -68,7 +56,7 @@ def tvs_getUpcomingEpisodes():
     return jsonify({"status": "ok", "data": res})
 
 
-@tvs.route("/api/tvs/runUpcomingScan", methods=allowedMethods)
+@tvs.route("/api/tvs/upc_scan", methods=allowedMethods)
 def tvs_runUpcomingScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     tvs_runUpcomingScan()
@@ -190,7 +178,7 @@ def tvs_getShow():
         "title, overview, "
         "CONCAT('/api/image?id=',icon) AS icon, "
         "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, path,"
+        "rating, premiered, scraperName, scraperID,"
         "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
         "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
         "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
@@ -199,9 +187,7 @@ def tvs_getShow():
         "FROM tv_shows t "
         "WHERE multipleResults IS NULL AND idShow = %(idShow)s ORDER BY title;"
     )
-    cursor.execute(
-        query, {"idUser": int(idUser), "idShow": str(request.args["idShow"])}
-    )
+    cursor.execute(query, {"idUser": idUser, "idShow": request.args["idShow"]})
     res = cursor.fetchone()
     sqlConnection.close()
     return jsonify({"status": "ok", "data": res})
@@ -238,7 +224,7 @@ def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;",
-        {"idEpisode": str(idEpisode), "idUser": int(r_userTokens.get(token))},
+        {"idEpisode": str(idEpisode), "idUser": r_userTokens.get(token)},
     )
     data = cursor.fetchone()
     count = 0
@@ -253,7 +239,7 @@ def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
             "UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idMedia)s;",
             {
                 "watchCount": str(count),
-                "idUser": int(r_userTokens.get(token)),
+                "idUser": r_userTokens.get(token),
                 "idMedia": str(idEpisode),
             },
         )
@@ -323,7 +309,7 @@ def tvs_setNewSearch():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-@tvs.route("/api/tvs/runScan", methods=allowedMethods)
+@tvs.route("/api/tvs/scan", methods=allowedMethods)
 def tvs_runScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     tvs_runScan()

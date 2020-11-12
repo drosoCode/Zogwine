@@ -3,26 +3,15 @@ import redis
 import json
 from uwsgidecorators import thread
 
-from transcoder import transcoder
-from log import logger
-from utils import checkArgs, checkUser, addCache
+from .transcoder import transcoder
+from .log import logger
+from .utils import checkArgs, checkUser, addCache
 
-from dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
-from indexer import scanner
+from .dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from .indexer import scanner
 
 movie = Blueprint("movie", __name__)
 allowedMethods = ["GET", "POST"]
-
-
-def mov_getPath(idMovie):
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT path FROM movies WHERE idMovie = %(idMovie)s;", {"idMovie": idMovie}
-    )
-    path = configData["config"]["moviesDirectory"] + "/" + cursor.fetchone()["path"]
-    logger.debug("Getting movie path for id:" + str(idMovie) + " -> " + path)
-    sqlConnection.close()
-    return path
 
 
 @movie.route("/api/movies/toggleStatus", methods=allowedMethods)
@@ -58,7 +47,7 @@ def mov_toggleStatus():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-@movie.route("/api/movies/runScan", methods=allowedMethods)
+@movie.route("/api/movies/scan", methods=allowedMethods)
 def mov_runScanThreaded():
     checkUser(r_userTokens.get(request.args["token"]), "admin")
     mov_runScan()
@@ -86,7 +75,7 @@ def mov_getData(token, mr=False):
         "SELECT idMovie AS id, title, overview, idCollection, "
         "CONCAT('/api/image?id=',icon) AS icon, "
         "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, path, multipleResults, "
+        "rating, premiered, scraperName, scraperID, multipleResults, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
         "FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;",
@@ -106,7 +95,7 @@ def mov_getMovie():
         "SELECT idMovie AS id, title, overview, idCollection, "
         "CONCAT('/api/image?id=',icon) AS icon, "
         "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, path, "
+        "rating, premiered, scraperName, scraperID, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
         "FROM movies t WHERE idMovie = %(idMovie)s;",
@@ -165,7 +154,7 @@ def mov_getCollectionMovies():
         "SELECT idMovie AS id, title, overview, "
         "CONCAT('/api/image?id=',icon) AS icon, "
         "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, path, multipleResults, "
+        "rating, premiered, scraperName, scraperID, multipleResults, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
         "FROM movies t WHERE multipleResults IS NULL AND idCollection = %(idCollection)s ORDER BY premiered;",

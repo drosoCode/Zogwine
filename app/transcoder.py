@@ -3,17 +3,22 @@ import signal
 import json
 import re
 from subprocess import Popen
-from log import logger
 
-# format[varchar], duration[float], extension(?), audio[json], subtitles[json], 3D[int], ratio[varchar], size[int], resolution
+from .log import logger
+from .files import getFileInfos, getMediaPath
 
 
 class transcoder:
     def __init__(
-        self, filePath, outDir="./", encoder="h264_nvenc", crf=23, skipProbe=False
+        self,
+        mediaType: int,
+        mediaData: int,
+        outDir: str = "./",
+        encoder: str = "h264_nvenc",
+        crf: int = 23,
     ):
-        self._file = None
-        self._fileInfos = None
+        self._file = getMediaPath(mediaType, mediaData)
+        self._fileInfos = getFileInfos(mediaType, mediaData)
         self._audioStream = "0"
         self._subStream = "-1"
         self._subFile = ""
@@ -24,26 +29,14 @@ class transcoder:
         self._encoder = encoder
         self._crf = crf
         self._outDir = outDir
-        self._outFile = outDir + "/stream"
-        self._remove3D = None
+        self._outFile = outDir.encode("utf-8") + b"/stream"
+        self._remove3D = 0
         self._runningProcess = None
-        self._file = filePath
-        if not skipProbe:
-            self._fileInfos = self.ffprobe()
 
-    @classmethod
-    def fromJSON(transcoder, data):
-        tr = transcoder("", "", "", 23, True)
-        tr.__dict__.update(json.loads(data))
-        return tr
-
-    def toJSON(self):
-        return json.dumps(self.__dict__)
-
-    def setAudioStream(self, audioStream):
+    def setAudioStream(self, audioStream: str):
         self._audioStream = str(audioStream)
 
-    def setSub(self, subStream, subFile=""):
+    def setSub(self, subStream: str, subFile=""):
         self._subStream = str(subStream)
 
     def enableHLS(self, en, time=-1):
@@ -52,89 +45,31 @@ class transcoder:
 
     def setStartTime(self, time):
         self._startFrom = time
-        self._fileInfos["general"]["startFrom"] = time
 
-    def setOutputFile(self, outFile):
+    def setOutputFile(self, outFile: bytes):
         self.__outFile = outFile
 
-    def getOutputFile(self):
+    def getOutputFile(self) -> bytes:
         if self._enableHLS:
-            return self._outFile + ".m3u8"
+            return self._outFile + b".m3u8"
         else:
-            return self._outFile + "." + self._fileInfos["general"]["extension"]
+            return (
+                self._outFile
+                + b"."
+                + self._fileInfos["general"]["extension"].encode("utf-8")
+            )
 
     def resize(self, size):
         self._resize = size
 
-    def remove3D(self, ttype):
-        # ttype is SBS (side by side) or TAB (top and bottom)
-        self._remove3D = ttype.upper()
-
-    def getFileInfos(self):
-        return self._fileInfos
+    def remove3D(self, stereoType: int):
+        # stereoType is 1 for SBS (side by side) or 2 for TAB (top and bottom)
+        self._remove3D = stereoType
 
     def getWatchedDuration(self, data):
         return float(data) + float(self._startFrom)
 
-    def ffprobe(self):
-        cmd = (
-            'ffprobe -v quiet -print_format json -show_format -show_streams "'
-            + self._file
-            + '" > ../out/data.json'
-        )
-        logger.debug("FFprobe: " + cmd)
-        os.system(cmd)
-
-        with open("../out/data.json", "r", encoding="utf-8") as f:
-            dat = json.load(f, encoding="UTF8")
-
-        data = {
-            "general": {
-                "format": dat["format"]["format_name"],
-                "duration": dat["format"]["duration"],
-                "extension": self._file[self._file.rfind(".") + 1 :],
-                "startFrom": 0,
-            },
-            "audio": [],
-            "subtitles": [],
-        }
-
-        i = 0
-        for stream in dat["streams"]:
-            lang = ""
-            if stream["codec_type"] == "video":
-                data["general"]["video_codec"] = stream["codec_name"]
-            elif stream["codec_type"] == "audio":
-                if "tags" in stream and "language" in stream["tags"]:
-                    lang = stream["tags"]["language"]
-                data["audio"].append(
-                    {
-                        "index": stream["index"],
-                        "codec": stream["codec_name"],
-                        "channels": stream["channels"],
-                        "language": lang,
-                    }
-                )
-            elif stream["codec_type"] == "subtitle":
-                t = "SUB" + str(i)
-                if "tags" in stream:
-                    if "title" in stream["tags"]:
-                        t = stream["tags"]["title"]
-                    if "language" in stream["tags"]:
-                        lang = stream["tags"]["language"]
-                data["subtitles"].append(
-                    {
-                        "index": stream["index"],
-                        "codec": stream["codec_name"],
-                        "language": lang,
-                        "title": t,
-                    }
-                )
-                i += 1
-
-        return data
-
-    def start(self):
+    def start(self) -> dict:
         if not os.path.exists(self._outDir):
             os.makedirs(self._outDir)
 
@@ -144,31 +79,35 @@ class transcoder:
             filePath = self._outDir + "/temp." + ext
 
             cutCmd = (
-                "ffmpeg -hide_banner -loglevel error -ss "
-                + str(self._startFrom)
-                + ' -i "'
-                + self._file
-                + '" -c copy -map 0 '
-                + filePath
+                b"ffmpeg -y -hide_banner -loglevel fatal -ss "
+                + str(self._startFrom).encode("utf-8")
+                + b' -i "'
+                + self._file.encode("utf-8")
+                + b'" -c copy -map 0 '
+                + filePath.encode("utf-8")
             )
-            logger.info("Cutting file with ffmpeg:" + cutCmd)
+            logger.info(b"Cutting file with ffmpeg:" + cutCmd)
             os.system(cutCmd)
 
-        cmd = 'ffmpeg -hide_banner -loglevel error -i "' + filePath + '"'
-        cmd += " -pix_fmt yuv420p -preset medium"
+        cmd = (
+            b'ffmpeg -hide_banner -loglevel fatal -i "'
+            + filePath.encode("utf-8")
+            + b'"'
+        )
+        cmd += b" -pix_fmt yuv420p -preset medium"
 
-        rm3d = ""
-        rm3dMeta = ""
-        if self._remove3D == "SBS":
-            rm3d = "stereo3d=sbsl:ml[v1];[v1]"
-            rm3dMeta = ' -metadata:s:v:0 stereo_mode="mono"'
-        elif self._remove3D == "TAB":
-            rm3d = "stereo3d=tbr:ml[v1];[v1]"
-            rm3dMeta = ' -metadata:s:v:0 stereo_mode="mono"'
+        rm3d = b""
+        rm3dMeta = b""
+        if self._remove3D == 1:
+            rm3d = b"stereo3d=sbsl:ml[v1];[v1]"
+            rm3dMeta = b' -metadata:s:v:0 stereo_mode="mono"'
+        elif self._remove3D == 2:
+            rm3d = b"stereo3d=abl:ml[v1];[v1]"
+            rm3dMeta = b' -metadata:s:v:0 stereo_mode="mono"'
 
-        resize = ""
+        resize = b""
         if int(self._resize) > 0:
-            resize = "[v2];[v2]scale=" + str(self._resize) + ":-1"
+            resize = b"[v2];[v2]scale=" + str(self._resize).encode("utf-8") + b":-1"
 
         if self._subStream != "-1":
             if self._subFile == "":
@@ -177,67 +116,76 @@ class transcoder:
                     "dvd_subtitle",
                 ]:
                     cmd += (
-                        ' -filter_complex "[0:v]'
+                        b' -filter_complex "[0:v]'
                         + rm3d
-                        + "[0:s:"
-                        + self._subStream
-                        + "]overlay"
+                        + b"[0:s:"
+                        + self._subStream.encode("utf-8")
+                        + b"]overlay"
                         + resize
-                        + '"'
+                        + b'"'
                     )
                 else:
                     cmd += (
-                        ' -filter_complex "[0:v:0]'
+                        b' -filter_complex "[0:v:0]'
                         + rm3d
-                        + "subtitles='"
-                        + filePath
-                        + "':si="
-                        + self._subStream
+                        + b"subtitles='"
+                        + filePath.encode("utf-8")
+                        + b"':si="
+                        + self._subStream.encode("utf-8")
                         + resize
-                        + '"'
+                        + b'"'
                     )
             else:
                 cmd += (
-                    ' -filter_complex "[0:v:0]'
+                    b' -filter_complex "[0:v:0]'
                     + rm3d
-                    + "subtitles='"
+                    + b"subtitles='"
                     + self._subFile
-                    + "':si="
-                    + self._subStream
+                    + b"':si="
+                    + self._subStream.encode("utf-8")
                     + resize
-                    + '"'
+                    + b'"'
                 )
+        elif self._remove3D:
+            if self._remove3D == 1:
+                cmd += b' -filter_complex "[0:v:0]stereo3d=sbsl:ml"'
+            elif self._remove3D == 2:
+                cmd += b' -filter_complex "[0:v:0]stereo3d=abl:ml"'
 
         if self._remove3D:
-            cmd += " -aspect 16:9"
-        # display_aspect_ratio
+            if "ratio" in self._fileInfos:
+                cmd += b" -aspect " + self._fileInfos.get("ratio").encode("utf-8")
+            else:
+                cmd += b" -aspect 16:9"
 
         if self._audioStream != "0":
-            cmd += " -map 0:a:" + self._audioStream
-        cmd += " -c:a aac -ar 48000 -b:a 128k -ac 2"
+            cmd += b" -map 0:a:" + self._audioStream.encode("utf-8")
+        cmd += b" -c:a aac -ar 48000 -b:a 128k -ac 2"
         cmd += rm3dMeta
-        cmd += " -c:v " + self._encoder
-        cmd += " -crf " + str(self._crf)
+        cmd += b" -c:v " + self._encoder.encode("utf-8")
+        cmd += b" -crf " + str(self._crf).encode("utf-8")
 
         if self._enableHLS:
             cmd += (
-                " -hls_time "
-                + str(self._hlsTime)
-                + " -hls_playlist_type event -hls_segment_filename "
+                b" -hls_time "
+                + str(self._hlsTime).encode("utf-8")
+                + b" -hls_playlist_type event -hls_segment_filename "
                 + self._outFile
-                + "%03d.ts "
+                + b"%03d.ts "
                 + self._outFile
-                + ".m3u8"
+                + b".m3u8"
             )
         else:
-            cmd += " " + self._outFile + "." + self._fileInfos["general"]["extension"]
+            cmd += b" " + self._outFile + b"." + self._fileInfos["general"]["extension"]
 
-        logger.info("Starting ffmpeg with:" + cmd)
-        process = Popen("exec " + cmd, shell=True)
-        self._runningProcess = process.pid
+        logger.info(b"Starting ffmpeg with:" + cmd)
+        process = Popen(b"exec " + cmd, shell=True)
 
-    def stop(self):
-        if self._runningProcess is not None:
-            os.kill(self._runningProcess, signal.SIGTERM)
-            self._runningProcess = None
-            os.system('rm -rf "' + self._outDir + '"')
+        return {"pid": process.pid, "outDir": self._outDir}
+
+    @staticmethod
+    def stop(data: dict):
+        if "pid" in data:
+            os.kill(data["pid"], signal.SIGTERM)
+        if "outDir" in data:
+            os.system('rm -rf "' + data["outDir"] + '"')

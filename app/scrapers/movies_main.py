@@ -7,6 +7,8 @@ import urllib.parse
 from importlib import import_module
 from base64 import b64encode
 
+from app.files import addFile
+
 
 class movies:
     def __init__(self, logger, dbConnection, apiKeys):
@@ -22,12 +24,12 @@ class movies:
 
     def encodeImg(self, img):
         if img is not None and img != "":
-            return b64encode(img.encode()).decode()
+            return b64encode(img.encode("utf-8", "surrogateescape")).decode()
         else:
             return None
 
     def importScrapers(self):
-        for i in os.listdir("scrapers/"):
+        for i in os.listdir("app/scrapers/"):
             if "movies_" in i and i[i.rfind(".") + 1 :] == "py" and "main" not in i:
                 try:
                     scraperName = i[i.rfind("_") + 1 : i.rfind(".")]
@@ -51,6 +53,7 @@ class movies:
                     )
 
     def getName(self, fileName):
+        fileName = fileName.decode("utf-8")
         fileName = fileName[fileName.rfind("/") + 1 :]
         regex = "(?i)^(.+?)[._( \\t]*(?:(19\\d{2}|20(?:0\\d|1[0-9]))|(fansub|VOST|bluray|\\d+p|brrip|webrip|hevc|x26|h26)|(\\[.*\\])|(mkv|avi|mpe?g|mp4)$)"
         find = re.findall(regex, fileName)
@@ -63,17 +66,19 @@ class movies:
             name = fileName[: fileName.rfind(".")]
         name = name.replace("_", " ").replace(".", " ")
 
-        return (name, year)
+        return (name.encode("utf-8", "surrogateescape"), year)
 
-    def getMovieData(self):
+    def getMovieData(self) -> tuple:
         cursor = self._connection.cursor(dictionary=True, buffered=True)
-        cursor.execute("SELECT * FROM movies ORDER BY title;")
+        cursor.execute(
+            "SELECT * FROM movies m INNER JOIN video_files v ON (m.idVid = v.idVid) ORDER BY title;"
+        )
         dat = cursor.fetchall()
         paths = []
         movies = {}
         for i in dat:
-            paths.append(i["path"])
-            movies[i["path"]] = i
+            paths.append(i["path"].encode("utf-8", "surrogateescape"))
+            movies[i["path"].encode("utf-8", "surrogateescape")] = i
         return paths, movies
 
     def scanDir(self, path, recursive=False, addPath=""):
@@ -86,14 +91,25 @@ class movies:
         self._paths, self._movies = self.getMovieData()
 
         for item in os.listdir(path):
-            self._logger.debug("New Item: " + str(item))
+            self._logger.debug(b"New Item: " + item.encode("utf-8", "surrogateescape"))
 
             if os.path.isdir(os.path.join(path, item)):
                 self._logger.debug("Item is a directory")
-                self.scanDir(path, True, os.path.join(addPath, item))
+                self.scanDir(
+                    path.encode("utf-8", "surrogateescape"),
+                    True,
+                    os.path.join(
+                        addPath.encode("utf-8", "surrogateescape"),
+                        item.encode("utf-8", "surrogateescape"),
+                    ),
+                )
             else:
                 self._logger.debug("Item is a file")
-                self.scanMovie(os.path.join(addPath, item))
+                self.scanMovie(
+                    addPath.encode("utf-8", "surrogateescape")
+                    + b"/"
+                    + item.encode("utf-8", "surrogateescape")
+                )
 
         self._logger.debug("End of scan (recursive: " + str(recursive) + ")")
         self.scanCollections()
@@ -161,12 +177,11 @@ class movies:
                     "fanart": self.encodeImg(result["fanart"]),
                     "rating": result["rating"],
                     "premiered": result["premiered"],
-                    "path": item,
                     "idCollection": idCollection,
                     "idMovie": self._movies[item]["idMovie"],
                 }
                 cursor.execute(
-                    "UPDATE movies SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, fanart = %(fanart)s, rating = %(rating)s, premiered = %(premiered)s, path = %(path)s, idCollection = %(idCollection)s, forceUpdate = 0, multipleResults = NULL WHERE idMovie = %(idMovie)s;",
+                    "UPDATE movies SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, fanart = %(fanart)s, rating = %(rating)s, premiered = %(premiered)s, idCollection = %(idCollection)s, forceUpdate = 0, multipleResults = NULL WHERE idMovie = %(idMovie)s;",
                     data,
                 )
                 # update tags and people
@@ -193,7 +208,6 @@ class movies:
                         if isinstance(data, dict):
                             data = [data]
                         results += data
-                    self._logger.debug("The multipleResults are: " + str(results))
                     cursor.execute(
                         "UPDATE movies SET multipleResults = %(mR)s WHERE idMovie = %(idMovie)s;",
                         {
@@ -206,7 +220,8 @@ class movies:
             # entries for this tvs doesn't exists, create entry with multipleResults
             self._logger.debug("Entries for this item doesn't exists in database")
 
-            if item[item.rfind(".") + 1 :] in self._supportedFiles:
+            item_s = item.decode("utf-8")
+            if item_s[item_s.rfind(".") + 1 :] in self._supportedFiles:
                 results = []
                 for s in self._scrapers:
                     data = s.searchMovie(*self.getName(item))
@@ -214,10 +229,9 @@ class movies:
                         data = [data]
                     results += data
 
-                self._logger.debug("The multipleResults are: " + str(results))
                 cursor.execute(
-                    "INSERT INTO movies (multipleResults, path) VALUES (%s, %s);",
-                    (json.dumps(results), item),
+                    "INSERT INTO movies (multipleResults, idVid) VALUES (%s, %s);",
+                    (json.dumps(results), addFile(item, 3)),
                 )
                 commit = True
 
