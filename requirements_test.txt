@@ -2,6 +2,6 @@ requests
 mysql-connector-python
 flask
 flask_cors
-uwsgi
 uwsgidecorators
 redis
+pytest

@@ -1,7 +1,6 @@
 transcoder/out/*
 input.mkv
 config.json
-*test*
 __pycache__*
 *.log
 .vscode/*
@@ -9,4 +8,3 @@ docker-compose.yml
 .vs/*
 static/*
 *.pyc
-conf.py
