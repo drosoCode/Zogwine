@@ -97,50 +97,6 @@ def player_getFile():
         abort(404)
 
 
-"""
-def getFileInfos(token, mediaType, mediaData):
-    sqlConnection, cursor = getSqlConnection()
-    uid = r_userTokens.get(token)
-    path = getMediaPath(token, mediaType, mediaData)
-    logger.info(
-        "Media path for type: "
-        + str(mediaType)
-        + " and id: "
-        + str(mediaData)
-        + " -> "
-        + str(path)
-    )
-    tr = transcoder(
-        path,
-        configData["config"]["outDir"] + "/" + token,
-        configData["config"]["encoder"],
-        configData["config"]["crf"],
-    )
-
-    # get last view end if available
-    st = None
-    if mediaType == "1" or mediaType == "3":
-        cursor.execute(
-            "SELECT watchTime FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;",
-            {
-                "idUser": r_userTokens.get(token),
-                "mediaType": mediaType,
-                "idMedia": mediaData,
-            },
-        )
-        data = cursor.fetchone()
-        if data != None and "watchTime" in data:
-            st = float(data["watchTime"])
-
-    if st is not None:
-        tr.setStartTime(st)
-
-    r_userFiles.set(uid, tr.toJSON())
-    sqlConnection.close()
-    return tr.getFileInfos()
-"""
-
-
 @player.route("/api/player/info", methods=allowedMethods)
 def player_getFileInfos():
     checkArgs(["mediaType", "mediaData"])
@@ -149,7 +105,7 @@ def player_getFileInfos():
 
     sqlConnection, cursor = getSqlConnection()
     st = 0
-    if mediaType == "1" or mediaType == "3":
+    if mediaType == 1 or mediaType == 3:
         cursor.execute(
             "SELECT watchTime FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;",
             {
@@ -177,8 +133,8 @@ def player_getFileInfos():
 def player_stop():
     checkArgs(["mediaType", "mediaData", "endTime"])
     token = request.args["token"]
-    mediaType = request.args["mediaType"]
-    mediaData = request.args["mediaData"]
+    mediaType = int(request.args["mediaType"])
+    mediaData = int(request.args["mediaData"])
     endTime = float(request.args.get("endTime"))
     # set watch time
     player_setWatchTime(token, mediaType, mediaData, endTime)
@@ -204,11 +160,10 @@ def player_setWatchTime(token: str, mediaType: int, idMedia: int, endTime: float
         duration = float(cursor.fetchone()["duration"])
     elif mediaType == 3:
         cursor.execute(
-            u"SELECT * FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
+            u"SELECT duration FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
             {"mediaData": idMedia},
         )
         duration = float(cursor.fetchone()["duration"])
-
     cursor.execute(
         "SELECT idStatus, watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;",
         {"idUser": uid, "mediaType": mediaType, "idMedia": idMedia},
@@ -218,6 +173,7 @@ def player_setWatchTime(token: str, mediaType: int, idMedia: int, endTime: float
 
     if endTime > duration * float(configData["config"]["watchedThreshold"]):
         viewAdd = 1
+        endTime = 0
 
     if data != None and "watchCount" in data:
         cursor.execute(
