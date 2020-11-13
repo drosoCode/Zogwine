@@ -6,6 +6,7 @@ import requests
 import urllib.parse
 from importlib import import_module
 from base64 import b64encode
+from datetime import datetime
 
 from app.files import addFile
 
@@ -230,8 +231,12 @@ class movies:
                     results += data
 
                 cursor.execute(
-                    "INSERT INTO movies (multipleResults, idVid) VALUES (%s, %s);",
-                    (json.dumps(results), addFile(item, 3)),
+                    "INSERT INTO movies (multipleResults, idVid, addDate) VALUES (%s, %s, %s);",
+                    (
+                        json.dumps(results),
+                        addFile(item, 3).encode(),
+                        datetime.now().strftime("%Y-%m-%d-%H:%M:%S"),
+                    ),
                 )
                 commit = True
 

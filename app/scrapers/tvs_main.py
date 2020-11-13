@@ -6,6 +6,7 @@ import requests
 import urllib.parse
 from importlib import import_module
 from base64 import b64encode
+from datetime import datetime
 
 from app.files import addFile
 
@@ -333,12 +334,13 @@ class tvs:
                             result["rating"],
                             self._tvs[self._currentTVS]["scraperName"],
                             result["id"],
-                            addFile(filePath, 1),
+                            addFile(filePath.encode(), 1),
+                            datetime.now().strftime("%Y-%m-%d-%H:%M:%S"),
                             self._tvs[self._currentTVS]["idShow"],
                             forceUpdate,
                         )
                         cursor.execute(
-                            "INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, idVid, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                            "INSERT INTO episodes (title, overview, icon, season, episode, rating, scraperName, scraperID, idVid, addDate, idShow, forceUpdate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                             data,
                         )
                         commit = True
@@ -364,7 +366,7 @@ class tvs:
                         )
                         commit = True
 
-                    self._logger.debug("Updating database with: " + str(data))
+                    self._logger.debug(b"Updating database with: " + str(data).encode())
                 else:
                     self._logger.debug("Entries for this episode already exists")
             else:
