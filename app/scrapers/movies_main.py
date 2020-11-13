@@ -72,14 +72,16 @@ class movies:
     def getMovieData(self) -> tuple:
         cursor = self._connection.cursor(dictionary=True, buffered=True)
         cursor.execute(
-            "SELECT * FROM movies m INNER JOIN video_files v ON (m.idVid = v.idVid) ORDER BY title;"
+            "SELECT idMovie, scraperName, scraperID, scraperData, multipleResults, forceUpdate, path FROM movies m INNER JOIN video_files v ON (m.idVid = v.idVid) ORDER BY title;"
         )
         dat = cursor.fetchall()
         paths = []
         movies = {}
         for i in dat:
-            paths.append(i["path"].encode("utf-8", "surrogateescape"))
-            movies[i["path"].encode("utf-8", "surrogateescape")] = i
+            p = i["path"].encode("utf-8", "surrogateescape")
+            paths.append(p)
+            i.update({"path": p})
+            movies[p] = i
         return paths, movies
 
     def scanDir(self, path, recursive=False, addPath=""):
@@ -106,11 +108,15 @@ class movies:
                 )
             else:
                 self._logger.debug("Item is a file")
-                self.scanMovie(
-                    addPath.encode("utf-8", "surrogateescape")
-                    + b"/"
-                    + item.encode("utf-8", "surrogateescape")
-                )
+                if addPath != "":
+                    p = (
+                        addPath.encode("utf-8", "surrogateescape")
+                        + b"/"
+                        + item.encode("utf-8", "surrogateescape")
+                    )
+                else:
+                    p = item.encode("utf-8", "surrogateescape")
+                self.scanMovie(p)
 
         self._logger.debug("End of scan (recursive: " + str(recursive) + ")")
         self.scanCollections()
@@ -122,7 +128,6 @@ class movies:
 
         if item in self._paths:
             self._logger.debug("Entries for this item exists in database")
-
             if (
                 self._movies[item]["forceUpdate"]
                 and self._movies[item]["scraperName"]
@@ -234,7 +239,7 @@ class movies:
                     "INSERT INTO movies (multipleResults, idVid, addDate) VALUES (%s, %s, %s);",
                     (
                         json.dumps(results),
-                        addFile(item, 3).encode(),
+                        addFile(item.encode(), 3),
                         datetime.now().strftime("%Y-%m-%d-%H:%M:%S"),
                     ),
                 )
