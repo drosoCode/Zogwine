@@ -325,3 +325,20 @@ def tvs_runScan():
     )
     r_runningThreads.set("tvs", 0)
     sqlConnection.close()
+
+
+"""
+delete episode:
+DELETE FROM status WHERE mediaType = 1 AND idMedia = (SELECT idEpisode FROM episodes WHERE idShow = 172 AND episode = 9)
+DELETE FROM video_files WHERE idVid = (SELECT idVid FROM episodes WHERE idShow = 172 AND episode = 9)
+DELETE FROM episodes WHERE idShow = 172 AND episode = 9
+"""
+
+"""
+delete show:
+DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = 172)
+DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = 172)
+DELETE FROM episodes WHERE idShow = 172
+DELETE FROM seasons WHERE idShow = 172
+DELETE FROM tv_shows WHERE idShow = 172
+"""
