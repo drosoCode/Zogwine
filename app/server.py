@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 from flask import request, abort, Flask
-from flask_cors import CORS
 import json
 import redis
 
@@ -27,7 +26,6 @@ r_runningThreads.set("cache", 0)
 r_runningThreads.set("people", 0)
 
 app = Flask(__name__, static_url_path="")
-CORS(app)
 
 app.register_blueprint(tvs)
 app.register_blueprint(movie)
