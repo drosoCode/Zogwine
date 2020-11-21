@@ -12,7 +12,8 @@ _sqlPool = MySQLConnectionPool(
     pool_reset_session=False,
     **configData["db"],
     use_unicode=True,
-    charset="utf8"
+    charset="utf8",
+    pool_size=10
 )
 
 r_userTokens = redis.Redis(
