@@ -17,11 +17,11 @@ allowedMethods = ["GET", "POST"]
 
 @core.route("/api/core/statistics")
 def getStatistics():
+    uid = r_userTokens.get(request.args["token"])
     sqlConnection, cursor = getSqlConnection()
-    avgEpTime = 0.5  # h
     cursor.execute(
         "SELECT COUNT(idStatus) AS watchedEpCount, SUM(watchCount) AS watchedEpSum FROM status WHERE watchCount > 0 AND mediaType = 1 AND idUser = %(idUser)s;",
-        {"idUser": r_userTokens.get(request.args["token"])},
+        {"idUser": uid},
     )
     dat1 = cursor.fetchone()
     cursor.execute(
@@ -30,13 +30,39 @@ def getStatistics():
     dat2 = cursor.fetchone()
     cursor.execute(
         "SELECT COUNT(idStatus) AS watchedMovies FROM status WHERE watchCount > 0 AND mediaType = 3 AND idUser = %(idUser)s;",
-        {"idUser": r_userTokens.get(request.args["token"])},
+        {"idUser": uid},
     )
     watchedMov = cursor.fetchone()["watchedMovies"]
     cursor.execute("SELECT COUNT(*) AS movCount FROM movies;")
     movCount = cursor.fetchone()["movCount"]
     if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
         dat1["watchedEpSum"] = 0
+
+    cursor.execute(
+        "SELECT SUM(duration*watchCount) AS epTime "
+        "FROM video_files v, episodes e, status s "
+        "WHERE v.mediaType = 1 "
+        "AND s.mediaType = 1 "
+        "AND v.idVid = e.idVid "
+        "AND e.idEpisode = s.idMedia "
+        "AND watchCount > 0 "
+        "AND s.idUser = %(user)s",
+        {"user": uid},
+    )
+    lostTime = cursor.fetchone()["epTime"]
+    cursor.execute(
+        "SELECT SUM(duration*watchCount) AS movTime "
+        "FROM video_files v, movies m, status s "
+        "WHERE v.mediaType = 3 "
+        "AND s.mediaType = 3 "
+        "AND v.idVid = m.idVid "
+        "AND m.idMovie = s.idMedia "
+        "AND watchCount > 0 "
+        "AND s.idUser = %(user)s",
+        {"user": uid},
+    )
+    lostTime += cursor.fetchone()["movTime"]
+
     sqlConnection.close()
     return jsonify(
         {
@@ -48,7 +74,7 @@ def getStatistics():
                 "epCount": int(dat2["epCount"]),
                 "moviesCount": int(movCount),
                 "watchedMoviesCount": int(watchedMov),
-                "lostTime": avgEpTime * int(dat1["watchedEpSum"]),
+                "lostTime": round(lostTime / 3600),
             },
         }
     )
