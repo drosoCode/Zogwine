@@ -69,6 +69,19 @@ class transcoder:
     def getWatchedDuration(self, data):
         return float(data) + float(self._startFrom)
 
+    def configure(self, args: dict):
+        if "audioStream" in args:
+            self.setAudioStream(args.get("audioStream"))
+        if "subStream" in args:
+            self.setSub(args.get("subStream"))
+        if "startFrom" in args:
+            self.setStartTime(args.get("startFrom"))
+        if "resize" in args:
+            self.resize(args.get("resize"))
+        if "remove3D" in args:
+            r3 = args["remove3D"]
+            self.remove3D(int(r3))
+
     def start(self) -> dict:
         if not os.path.exists(self._outDir):
             os.makedirs(self._outDir)
