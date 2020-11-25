@@ -159,13 +159,16 @@ class transcoder:
                     + resize
                     + b'"'
                 )
-        elif self._remove3D:
+        elif self._remove3D and self._remove3D > 0:
             if self._remove3D == 1:
-                cmd += b' -filter_complex "[0:v:0]stereo3d=sbsl:ml"'
+                cmd += b' -filter_complex "[0:v:0]stereo3d=sbsl:ml' + resize + b'"'
             elif self._remove3D == 2:
-                cmd += b' -filter_complex "[0:v:0]stereo3d=abl:ml"'
+                cmd += b' -filter_complex "[0:v:0]stereo3d=abl:ml' + resize + b'"'
 
-        if self._remove3D:
+        elif self._resize and int(self._resize) > 0:
+            cmd += b' -filter_complex "' + resize[9:] + b'"'
+
+        if self._remove3D and self._remove3D > 0:
             if "ratio" in self._fileInfos:
                 cmd += b" -aspect " + self._fileInfos.get("ratio").encode("utf-8")
             else:
