@@ -49,7 +49,7 @@ def getStatistics():
         "AND s.idUser = %(user)s",
         {"user": uid},
     )
-    lostTime = cursor.fetchone()["epTime"]
+    lostTime = cursor.fetchone()["epTime"] or 0
     cursor.execute(
         "SELECT SUM(duration*watchCount) AS movTime "
         "FROM video_files v, movies m, status s "
@@ -61,7 +61,7 @@ def getStatistics():
         "AND s.idUser = %(user)s",
         {"user": uid},
     )
-    lostTime += cursor.fetchone()["movTime"]
+    lostTime += cursor.fetchone()["movTime"] or 0
 
     sqlConnection.close()
     return jsonify(
