@@ -3,6 +3,7 @@ import json
 import re
 
 from .dbHelper import getSqlConnection, configData
+from .urlResolver import getInfos
 
 
 def _getFileInfos(path: bytes) -> dict:
@@ -27,54 +28,66 @@ def _getFileInfos(path: bytes) -> dict:
     dat = json.loads(proc.communicate()[0].decode("utf-8"))
 
     data = {
-        "format": dat["format"]["format_name"],
-        "duration": dat["format"]["duration"],
         "extension": fileName[fileName.rfind(u".") + 1 :],
-        "size": dat["format"]["size"],
         "stereo3d": stereo3d,
         "audio": [],
         "subtitles": [],
     }
 
+    if "format" not in dat:
+        data["format"] = ""
+        data["duration"] = -1
+        data["size"] = -1
+    else:
+        data["format"] = dat["format"]["format_name"]
+        data["duration"] = dat["format"]["duration"]
+        data["size"] = dat["format"]["size"]
+
     i = 0
-    for stream in dat["streams"]:
-        lang = u""
-        if stream["codec_type"] == u"video":
-            data["video_codec"] = stream.get(u"codec_name")
-            data["pix_fmt"] = stream.get(u"pix_fmt")
-            data["ratio"] = stream.get(u"display_aspect_ratio")
-            data["dimension"] = (
-                str(stream.get(u"width")) + "x" + str(stream.get(u"height"))
-            )
+    if "streams" in dat:
+        for stream in dat["streams"]:
+            lang = u""
+            if stream["codec_type"] == u"video":
+                data["video_codec"] = stream.get(u"codec_name")
+                data["pix_fmt"] = stream.get(u"pix_fmt")
+                data["ratio"] = stream.get(u"display_aspect_ratio")
+                data["dimension"] = (
+                    str(stream.get(u"width")) + "x" + str(stream.get(u"height"))
+                )
 
-        elif stream["codec_type"] == u"audio":
-            if u"tags" in stream and u"language" in stream["tags"]:
-                lang = stream["tags"]["language"]
-            data["audio"].append(
-                {
-                    u"index": stream["index"],
-                    u"codec": stream["codec_name"],
-                    u"channels": stream["channels"],
-                    u"language": lang,
-                }
-            )
-
-        elif stream[u"codec_type"] == u"subtitle":
-            t = u"SUB" + str(i)
-            if u"tags" in stream:
-                if u"title" in stream["tags"]:
-                    t = stream["tags"]["title"]
-                if u"language" in stream["tags"]:
+            elif stream["codec_type"] == u"audio":
+                if u"tags" in stream and u"language" in stream["tags"]:
                     lang = stream["tags"]["language"]
-            data[u"subtitles"].append(
-                {
-                    u"index": stream["index"],
-                    u"codec": stream["codec_name"],
-                    u"language": lang,
-                    u"title": t,
-                }
-            )
-            i += 1
+                data["audio"].append(
+                    {
+                        u"index": stream["index"],
+                        u"codec": stream["codec_name"],
+                        u"channels": stream["channels"],
+                        u"language": lang,
+                    }
+                )
+
+            elif stream[u"codec_type"] == u"subtitle":
+                t = u"SUB" + str(i)
+                if u"tags" in stream:
+                    if u"title" in stream["tags"]:
+                        t = stream["tags"]["title"]
+                    if u"language" in stream["tags"]:
+                        lang = stream["tags"]["language"]
+                data[u"subtitles"].append(
+                    {
+                        u"index": stream["index"],
+                        u"codec": stream["codec_name"],
+                        u"language": lang,
+                        u"title": t,
+                    }
+                )
+                i += 1
+    else:
+        data["video_codec"] = ""
+        data["pix_fmt"] = ""
+        data["ratio"] = ""
+        data["dimension"] = ""
 
     return data
 
@@ -143,6 +156,8 @@ def getFileInfos(mediaType: int, mediaData: int) -> dict:
             {"mediaData": mediaData},
         )
         dat = cursor.fetchone()
+    elif mediaType == 4:
+        dat = getInfos(mediaData)
 
     if "audio" in dat:
         dat["audio"] = json.loads(dat["audio"].encode("utf-8"))
