@@ -3,11 +3,14 @@ from flask import request, Blueprint, jsonify, abort, Response, send_file
 import redis
 import os
 import json
+from uwsgidecorators import thread
 
 from .transcoder import transcoder
 from .log import logger
 from .utils import checkArgs, getFile
 from .files import getMediaPath, getFileInfos
+from .device import importDevice
+from app.devices.PlayerBase import PlayerBase
 
 from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
 
@@ -20,6 +23,7 @@ def startPlayer():
     checkArgs(["mediaType", "mediaData"])
     uid = r_userTokens.get(request.args["token"])
     logger.info("Starting transcoder for user " + str(uid))
+
     obj = transcoder(
         int(request.args["mediaType"]),
         int(request.args["mediaData"]),
@@ -27,22 +31,41 @@ def startPlayer():
         configData["config"]["encoder"],
         configData["config"]["crf"],
     )
-
     obj.enableHLS(True, configData["config"]["hlsTime"])
-    if "audioStream" in request.args:
-        obj.setAudioStream(request.args.get("audioStream"))
-    if "subStream" in request.args:
-        obj.setSub(request.args.get("subStream"))
-    if "startFrom" in request.args:
-        obj.setStartTime(request.args.get("startFrom"))
-    if "resize" in request.args:
-        obj.resize(request.args.get("resize"))
-    if "remove3D" in request.args:
-        r3 = request.args["remove3D"]
-        obj.remove3D(int(r3))
+    obj.configure(request.args)
 
-    r_userFiles.set(uid, json.dumps(obj.start()))
+    if "idDevice" in request.args and request.args["idDevice"] != "-1":
+        sqlConnection, cursor = getSqlConnection()
+        cursor.execute(
+            "SELECT * FROM devices WHERE idDevice = %(idDevice)s",
+            {"idDevice": request.args["idDevice"]},
+        )
+        data = cursor.fetchone()
+        sqlConnection.close()
+        if data["enabled"] == 0:
+            return False
+        dev = importDevice(data["type"])
+        device = dev(
+            request.args["token"],
+            data["address"],
+            data["port"],
+            data["user"],
+            data["password"],
+            data["device"],
+        )
+        startData = device.playMedia(obj)
+        if hasattr(device, "doWork"):
+            doWork(device)
+    else:
+        startData = obj.start()
+
+    r_userFiles.set(uid, json.dumps(startData))
     return jsonify({"status": "ok", "data": "ok"})
+
+
+@thread
+def doWork(obj: PlayerBase):
+    obj.doWork()
 
 
 @player.route("/api/player/m3u8")
@@ -142,6 +165,30 @@ def player_stop():
     logger.info("Stopping transcoder for user " + str(r_userTokens.get(token)))
 
     uid = r_userTokens.get(token)
+
+    if "idDevice" in request.args and request.args["idDevice"] != "-1":
+        sqlConnection, cursor = getSqlConnection()
+        cursor.execute(
+            "SELECT * FROM devices WHERE idDevice = %(idDevice)s",
+            {"idDevice": request.args["idDevice"]},
+        )
+        data = cursor.fetchone()
+        sqlConnection.close()
+        if data["enabled"] == 0:
+            return False
+        dev = importDevice(data["type"])
+        device = dev(
+            request.args["token"],
+            data["address"],
+            data["port"],
+            data["user"],
+            data["password"],
+            data["device"],
+        )
+        device.stop()
+    else:
+        transcoder.stop(json.loads(r_userFiles.get(uid)))
+
     r_userFiles.delete(uid)
 
     return jsonify({"status": "ok", "data": "ok"})

@@ -10,6 +10,7 @@ from .movie import movie
 from .user import user
 from .core import core
 from .player import player
+from .device import device
 from .dbHelper import r_runningThreads, r_userTokens
 
 """
@@ -17,6 +18,7 @@ DB:
     mediaType: 1=tv_show ep
                2=tv_show
                3=movie
+               4=url (youtube, twitch, direct video ...)
 """
 
 r_runningThreads.set("tvs", 0)
@@ -32,6 +34,7 @@ app.register_blueprint(movie)
 app.register_blueprint(user)
 app.register_blueprint(core)
 app.register_blueprint(player)
+app.register_blueprint(device)
 
 app.config["DEBUG"] = True
 
