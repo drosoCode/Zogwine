@@ -3,20 +3,22 @@
 SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
+SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
-DROP DATABASE IF EXISTS `mediaController_dev`;
-CREATE DATABASE `mediaController_dev` /*!40100 DEFAULT CHARACTER SET utf8 */;
-USE `mediaController_dev`;
+CREATE DATABASE `zogwine_dev` /*!40100 DEFAULT CHARACTER SET utf8 */;
+USE `zogwine_dev`;
 
 DROP TABLE IF EXISTS `devices`;
 CREATE TABLE `devices` (
   `idDevice` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
   `type` varchar(255) NOT NULL,
   `address` varchar(255) NOT NULL,
-  `user` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `deviceData` text NOT NULL,
-  `enabled` tinyint(1) NOT NULL,
+  `port` int(11) DEFAULT NULL,
+  `user` varchar(255) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `device` text DEFAULT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`idDevice`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -33,14 +35,17 @@ CREATE TABLE `episodes` (
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(11) DEFAULT NULL,
   `scraperData` text DEFAULT NULL,
-  `path` varchar(255) NOT NULL,
+  `filler` int(11) DEFAULT 0,
   `idShow` int(11) DEFAULT NULL,
+  `idVid` int(11) DEFAULT NULL,
   `addDate` datetime DEFAULT NULL ON UPDATE current_timestamp(),
   `forceUpdate` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idEpisode`),
   KEY `idShow` (`idShow`),
-  CONSTRAINT `episodes_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`)
-) ENGINE=InnoDB AUTO_INCREMENT=17288 DEFAULT CHARSET=utf8;
+  KEY `idVid` (`idVid`),
+  CONSTRAINT `episodes_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`),
+  CONSTRAINT `episodes_ibfk_2` FOREIGN KEY (`idVid`) REFERENCES `video_files` (`idVid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `movies`;
@@ -56,12 +61,15 @@ CREATE TABLE `movies` (
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(10) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
-  `path` varchar(255) DEFAULT NULL,
+  `idVid` int(11) DEFAULT NULL,
+  `addDate` datetime DEFAULT NULL ON UPDATE current_timestamp(),
   `multipleResults` longtext DEFAULT NULL,
   `forceUpdate` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idMovie`),
   KEY `idCollection` (`idCollection`),
-  CONSTRAINT `movies_ibfk_1` FOREIGN KEY (`idCollection`) REFERENCES `movie_collections` (`idCollection`)
+  KEY `idVid` (`idVid`),
+  CONSTRAINT `movies_ibfk_1` FOREIGN KEY (`idCollection`) REFERENCES `movie_collections` (`idCollection`),
+  CONSTRAINT `movies_ibfk_2` FOREIGN KEY (`idVid`) REFERENCES `video_files` (`idVid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -93,7 +101,7 @@ CREATE TABLE `people` (
   `known_for` varchar(255) DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idPers`)
-) ENGINE=InnoDB AUTO_INCREMENT=29404 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `people_link`;
@@ -114,7 +122,7 @@ CREATE TABLE `scrapers` (
   `scraperURL` varchar(255) NOT NULL,
   `mediaType` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `scrapers` (`id`, `scraperName`, `scraperURL`, `mediaType`) VALUES
 (1,	'tmdb',	'https://www.themoviedb.org/tv/',	1),
@@ -141,15 +149,14 @@ DROP TABLE IF EXISTS `status`;
 CREATE TABLE `status` (
   `idStatus` int(11) NOT NULL AUTO_INCREMENT,
   `idUser` int(11) NOT NULL,
-  `idMedia` int(11) DEFAULT NULL,
-  `mediaType` int(11) DEFAULT NULL,
-  `watchCount` int(10) unsigned zerofill NOT NULL,
-  `watchTime` float NOT NULL DEFAULT 0,
+  `idMedia` int(11) NOT NULL,
+  `mediaType` int(11) NOT NULL,
+  `watchCount` int(11) NOT NULL DEFAULT 0,
+  `watchTime` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idStatus`),
   KEY `idUser` (`idUser`),
-  KEY `idEpisode` (`idMedia`),
   CONSTRAINT `status_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`)
-) ENGINE=InnoDB AUTO_INCREMENT=2152 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `tags`;
@@ -159,7 +166,7 @@ CREATE TABLE `tags` (
   `value` varchar(255) NOT NULL,
   `icon` text DEFAULT NULL,
   PRIMARY KEY (`idTag`)
-) ENGINE=InnoDB AUTO_INCREMENT=385 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `tags_link`;
@@ -184,11 +191,12 @@ CREATE TABLE `tv_shows` (
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(11) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
+  `fillerLink` text DEFAULT NULL,
   `path` varchar(255) DEFAULT NULL,
   `multipleResults` longtext DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idShow`)
-) ENGINE=InnoDB AUTO_INCREMENT=169 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `upcoming_episodes`;
@@ -202,7 +210,7 @@ CREATE TABLE `upcoming_episodes` (
   `icon` varchar(255) DEFAULT NULL,
   `idShow` int(11) NOT NULL,
   PRIMARY KEY (`idEpisode`)
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `users`;
@@ -217,7 +225,27 @@ CREATE TABLE `users` (
   `cast` tinyint(1) unsigned zerofill NOT NULL,
   `kodiLinkBase` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`idUser`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
--- 2020-09-13 22:27:05
+DROP TABLE IF EXISTS `video_files`;
+CREATE TABLE `video_files` (
+  `idVid` int(11) NOT NULL AUTO_INCREMENT,
+  `mediaType` int(11) NOT NULL,
+  `path` text NOT NULL,
+  `format` varchar(255) DEFAULT NULL,
+  `duration` float NOT NULL,
+  `extension` varchar(10) NOT NULL,
+  `audio` longtext NOT NULL,
+  `subtitles` longtext DEFAULT NULL,
+  `stereo3d` tinyint(4) NOT NULL DEFAULT 0,
+  `ratio` varchar(20) DEFAULT NULL,
+  `dimension` varchar(50) DEFAULT NULL,
+  `pix_fmt` varchar(50) DEFAULT NULL,
+  `video_codec` varchar(50) DEFAULT NULL,
+  `size` bigint(20) NOT NULL,
+  PRIMARY KEY (`idVid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- 2020-11-25 14:56:37
