@@ -4,3 +4,6 @@ flask
 uwsgi
 uwsgidecorators
 redis
+bs4
+youtube_dl
+pychromecast
