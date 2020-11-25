@@ -23,6 +23,7 @@
         "hlsTime": 60,
         "encoder": "h264_nvenc",
         "outDir": "out/",
-        "watchedThreshold": 0.9
+        "watchedThreshold": 0.9,
+        "baseUrl": "http://yourip:port"
     }
 }
