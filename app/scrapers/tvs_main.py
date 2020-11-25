@@ -9,6 +9,7 @@ from base64 import b64encode
 from datetime import datetime
 
 from app.files import addFile
+from app.scrapers.fillers import getFillers, findFillerUrl
 
 
 class tvs:
@@ -140,6 +141,9 @@ class tvs:
                 self._logger.debug(str(cursor.rowcount) + " rows affected")
         # except Exception as ex:
         #    self._logger.error('New indexer exception: '+str(ex))
+        if not recursive:
+            # scan potential fillers for all shows
+            self.scanFillers()
 
         self._logger.debug("End of scan (recursive: " + str(recursive) + ")")
 
@@ -562,3 +566,39 @@ class tvs:
 
         self._connection.commit()
         self._logger.debug(str(cursor.rowcount) + "were affected")
+
+    def scanFillers(self):
+        # find url for empty urls
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
+        cursor.execute(
+            "SELECT idShow, title FROM tv_shows WHERE fillerLink IS NULL AND fillerLink != 'none' AND idShow IN (SELECT idMedia FROM tags_link l, tags t WHERE l.idTag = t.idTag AND mediaType = 2 AND name = 'genre' AND value LIKE '%anim%')"
+        )
+        for tvs in cursor.fetchall():
+            u = findFillerUrl(tvs["title"])
+            if u == False:
+                u = "none"
+            cursor.execute(
+                "UPDATE tv_shows SET fillerLink = %(url)s WHERE idShow = %(idShow)s",
+                {"url": u, "idShow": tvs["idShow"]},
+            )
+        self._connection.commit()
+
+        # update fillers for shows with supplied url
+        cursor = self._connection.cursor(dictionary=True, buffered=True)
+        cursor.execute(
+            "SELECT idShow, fillerLink FROM tv_shows WHERE fillerLink IS NOT NULL"
+        )
+        for tvs in cursor.fetchall():
+            cursor.execute(
+                "SELECT idEpisode, filler FROM episodes WHERE idShow = %(idShow)s AND season > 0 ORDER BY season, episode",
+                {"idShow": tvs["idShow"]},
+            )
+            eps = cursor.fetchall()
+            nbEps = len(eps)
+            for f in getFillers(tvs["fillerLink"]):
+                if f[0] - 1 < nbEps and f[1] != eps[f[0] - 1]["filler"]:
+                    cursor.execute(
+                        "UPDATE episodes SET filler = %(filler)s WHERE idEpisode = %(idEpisode)s",
+                        {"filler": f[1], "idEpisode": eps[f[0] - 1]["idEpisode"]},
+                    )
+        self._connection.commit()

@@ -82,7 +82,7 @@ def tvs_getEps(token, idShow, season=None):
         s = "AND season = %(season)s "
     cursor.execute(
         "SELECT idEpisode AS id, title, overview, CONCAT('/api/image?id=',icon) AS icon,"
-        "season, episode, rating, scraperName, scraperID, "
+        "season, episode, rating, scraperName, scraperID, filler, "
         "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount "
         "FROM episodes e "
         "WHERE idShow = %(idShow)s " + s + ""
