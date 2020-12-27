@@ -1,9 +1,37 @@
 import subprocess
 import json
 import re
+import os
+import base64
 
 from .dbHelper import getSqlConnection, configData
 from .urlResolver import getInfos
+
+
+def _getSubtitleFilesList(filePath: bytes) -> list:
+    filePath = filePath.decode("utf-8")
+    subFiles = []
+    path = filePath[: filePath.rfind("/")]
+    fileName = filePath[filePath.rfind("/") + 1 : filePath.rfind(".")]
+    fileNameLen = len(fileName)
+    for p in os.listdir(path):
+        if p.find(fileName) == 0 and len(p[fileNameLen : p.rfind(".")]) > 0:
+            subFiles.append(
+                {
+                    "file": base64.b64encode(p[fileNameLen:].encode("utf-8")).decode(
+                        "utf-8"
+                    ),
+                    "title": "subfile",
+                    "language": p[fileNameLen : p.rfind(".")],
+                    "codec": p[p.rfind(".") + 1 :],
+                }
+            )
+    return subFiles
+
+
+def getSubPathFromName(filePath: bytes, subFile: bytes) -> bytes:
+    filePath = filePath.decode("utf-8")
+    return filePath[: filePath.rfind(".")].encode("utf-8") + base64.b64decode(subFile)
 
 
 def _getFileInfos(path: bytes) -> dict:
@@ -128,7 +156,7 @@ def getMediaPath(mediaType: int, mediaData: int) -> bytes:
         )
         dat = cursor.fetchone()[u"path"]
         sqlConnection.close()
-        return configData[u"config"][u"tvsDirectory"] + "/" + dat
+        return (configData[u"config"][u"tvsDirectory"] + "/" + dat).encode("utf-8")
     elif mediaType == 3:
         cursor.execute(
             u"SELECT path FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
@@ -136,7 +164,7 @@ def getMediaPath(mediaType: int, mediaData: int) -> bytes:
         )
         dat = cursor.fetchone()["path"]
         sqlConnection.close()
-        return configData["config"]["moviesDirectory"] + "/" + dat
+        return (configData["config"]["moviesDirectory"] + "/" + dat).encode("utf-8")
     else:
         return None
 
@@ -164,6 +192,10 @@ def getFileInfos(mediaType: int, mediaData: int) -> dict:
 
     if "subtitles" in dat:
         dat["subtitles"] = json.loads(dat["subtitles"].encode("utf-8"))
+    else:
+        dat["subtitles"] = []
+
+    dat["subtitles"] += _getSubtitleFilesList(getMediaPath(mediaType, mediaData))
 
     sqlConnection.close()
     return dat

@@ -68,6 +68,19 @@ def doWork(obj: PlayerBase):
     obj.doWork()
 
 
+@player.route("/api/player/subtitles")
+def getSubtitles():
+    checkArgs(["mediaType", "mediaData"])
+    if "subStream" in request.args or "subFile" in request.args:
+        obj = transcoder(int(request.args["mediaType"]), int(request.args["mediaData"]))
+        obj.configure(request.args)
+        dat = obj.getSubtitles()
+        print(dat)
+        return Response(dat, mimetype="text/vtt")
+    else:
+        abort(404)
+
+
 @player.route("/api/player/m3u8")
 def getTranscoderM3U8():
     token = request.args["token"]

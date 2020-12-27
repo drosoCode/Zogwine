@@ -2,10 +2,10 @@ import os
 import signal
 import json
 import re
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 from .log import logger
-from .files import getFileInfos, getMediaPath
+from .files import getFileInfos, getMediaPath, getSubPathFromName
 
 
 class transcoder:
@@ -21,7 +21,7 @@ class transcoder:
         self._fileInfos = getFileInfos(mediaType, mediaData)
         self._audioStream = "0"
         self._subStream = "-1"
-        self._subFile = ""
+        self._subFile = b""
         self._enableHLS = True
         self._startFrom = 0
         self._hlsTime = 60
@@ -32,12 +32,21 @@ class transcoder:
         self._outFile = outDir.encode("utf-8") + b"/stream"
         self._remove3D = 0
         self._runningProcess = None
+        self._bitmapSubs = ["hdmv_pgs_subtitle", "dvd_subtitle"]
 
     def setAudioStream(self, audioStream: str):
         self._audioStream = str(audioStream)
 
-    def setSub(self, subStream: str, subFile=""):
-        self._subStream = str(subStream)
+    def setSubStream(self, subStream: str):
+        try:
+            int(subStream)
+            self._subStream = str(subStream)
+        except ValueError:
+            pass
+
+    def setSubFile(self, subFile: str):
+        if subFile != "":
+            self._subFile = getSubPathFromName(self._file, subFile)
 
     def enableHLS(self, en, time=-1):
         self._enableHLS = en
@@ -73,7 +82,9 @@ class transcoder:
         if "audioStream" in args:
             self.setAudioStream(args.get("audioStream"))
         if "subStream" in args:
-            self.setSub(args.get("subStream"))
+            self.setSubStream(args.get("subStream"))
+        if "subFile" in args:
+            self.setSubFile(args.get("subFile"))
         if "startFrom" in args:
             self.setStartTime(args.get("startFrom"))
         if "resize" in args:
@@ -82,31 +93,63 @@ class transcoder:
             r3 = args["remove3D"]
             self.remove3D(int(r3))
 
+    def getSubtitles(self) -> bytes:
+        if self._subStream != "-1":
+            if (
+                self._fileInfos["subtitles"][int(self._subStream)]["codec"]
+                in self._bitmapSubs
+            ):
+                # we can't easily get text content for bitmap-type subtitles
+                return None
+            else:
+                p = Popen(
+                    b'ffmpeg -loglevel panic -i "'
+                    + self._file
+                    + b'" -map 0:s:'
+                    + self._subStream.encode("utf-8")
+                    + b" -f webvtt -",
+                    shell=True,
+                    stdout=PIPE,
+                )
+                return p.stdout.read()
+        elif self._subFile != b"":
+            p = Popen(
+                b'ffmpeg -loglevel panic -i "' + self._subFile + b'" -f webvtt -',
+                shell=True,
+                stdout=PIPE,
+            )
+            return p.stdout.read()
+        else:
+            return None
+
     def start(self) -> dict:
         if not os.path.exists(self._outDir):
             os.makedirs(self._outDir)
 
         filePath = self._file
+        cut = b""
         if int(self._startFrom) > 0:
-            ext = filePath[filePath.rfind(".") + 1 :]
-            filePath = self._outDir + "/temp." + ext
+            if self._subStream != "-1" or self._subFile != b"":
+                filePath = filePath.decode("utf-8")
+                ext = filePath[filePath.rfind(".") + 1 :]
+                filePath = (
+                    self._outDir.encode("utf-8") + b"/temp." + ext.encode("utf-8")
+                )
 
-            cutCmd = (
-                b"ffmpeg -y -hide_banner -loglevel fatal -ss "
-                + str(self._startFrom).encode("utf-8")
-                + b' -i "'
-                + self._file.encode("utf-8")
-                + b'" -c copy -map 0 '
-                + filePath.encode("utf-8")
-            )
-            logger.info(b"Cutting file with ffmpeg:" + cutCmd)
-            os.system(cutCmd)
+                cutCmd = (
+                    b"ffmpeg -y -hide_banner -loglevel fatal -ss "
+                    + str(self._startFrom).encode("utf-8")
+                    + b' -i "'
+                    + self._file
+                    + b'" -c copy -map 0 '
+                    + filePath
+                )
+                logger.info(b"Cutting file with ffmpeg:" + cutCmd)
+                os.system(cutCmd)
+            else:
+                cut = b"-ss " + str(self._startFrom).encode("utf-8")
 
-        cmd = (
-            b'ffmpeg -hide_banner -loglevel fatal -i "'
-            + filePath.encode("utf-8")
-            + b'"'
-        )
+        cmd = b"ffmpeg -hide_banner -loglevel fatal " + cut + b' -i "' + filePath + b'"'
         cmd += b" -pix_fmt yuv420p -preset medium"
 
         rm3d = b""
@@ -123,42 +166,42 @@ class transcoder:
             resize = b"[v2];[v2]scale=" + str(self._resize).encode("utf-8") + b":-1"
 
         if self._subStream != "-1":
-            if self._subFile == "":
-                if self._fileInfos["subtitles"][int(self._subStream)]["codec"] in [
-                    "hdmv_pgs_subtitle",
-                    "dvd_subtitle",
-                ]:
-                    cmd += (
-                        b' -filter_complex "[0:v]'
-                        + rm3d
-                        + b"[0:s:"
-                        + self._subStream.encode("utf-8")
-                        + b"]overlay"
-                        + resize
-                        + b'"'
-                    )
-                else:
-                    cmd += (
-                        b' -filter_complex "[0:v:0]'
-                        + rm3d
-                        + b"subtitles='"
-                        + filePath.encode("utf-8")
-                        + b"':si="
-                        + self._subStream.encode("utf-8")
-                        + resize
-                        + b'"'
-                    )
+            if (
+                self._fileInfos["subtitles"][int(self._subStream)]["codec"]
+                in self._bitmapSubs
+            ):
+                cmd += (
+                    b' -filter_complex "[0:v]'
+                    + rm3d
+                    + b"[0:s:"
+                    + self._subStream.encode("utf-8")
+                    + b"]overlay"
+                    + resize
+                    + b'"'
+                )
             else:
                 cmd += (
                     b' -filter_complex "[0:v:0]'
                     + rm3d
                     + b"subtitles='"
-                    + self._subFile
+                    + filePath
                     + b"':si="
                     + self._subStream.encode("utf-8")
                     + resize
                     + b'"'
                 )
+        elif self._subFile != b"":
+            cmd += (
+                b' -filter_complex "[0:v:0]'
+                + rm3d
+                + b"subtitles='"
+                + self._subFile
+                + b"':si="
+                + self._subStream.encode("utf-8")
+                + resize
+                + b'"'
+            )
+
         elif self._remove3D and self._remove3D > 0:
             if self._remove3D == 1:
                 cmd += b' -filter_complex "[0:v:0]stereo3d=sbsl:ml' + resize + b'"'
