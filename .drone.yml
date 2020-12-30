@@ -1,3 +1,4 @@
+---
 kind: pipeline
 type: docker
 name: test
@@ -10,13 +11,13 @@ steps:
       - pip install flake8
       - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
-  - name: test
-    image: python:3.8.6-slim
-    commands:
-      - apt-get update && apt-get install -y build-essential
-      - python -m pip install --upgrade pip
-      - pip install --no-cache-dir -r requirements_test.txt
-      - pytest
+#  - name: test
+#    image: python:3.8.6-slim
+#    commands:
+#      - apt-get update && apt-get install -y build-essential
+#      - python -m pip install --upgrade pip
+#      - pip install --no-cache-dir -r requirements_test.txt
+#      - pytest
 
   - name: discord_notification
     image: appleboy/drone-discord
@@ -25,8 +26,10 @@ steps:
         - success
         - failure
     settings:
-      webhook_id: "760868686193754133"
-      webhook_token: vuW2yJOLCvxvXdRat1y_Zt0QiiMWttkKjxh3Y3FZL9f2y7IOG6CrIErlWYdmuqb8M9pG
+      webhook_id: 
+        from_secret: webhook_id
+      webhook_token:
+        from_secret: webhook_token
       message: >
         {{#success build.status}}
         ✅ Build #{{build.number}} of `{{repo.name}}` succeeded.
@@ -54,5 +57,81 @@ services:
     image: redis:6.0.8
     ports:
       - 6379
-    environment:
-      MYSQL_ROOT_PASSWORD: password
+
+trigger:
+  event: 
+    - push
+    - pull_request
+
+---
+kind: pipeline
+type: docker
+name: deploy
+
+steps:
+  - name: deploy
+    image: node:14-buster-slim
+    commands:
+      - apt-get update
+      - apt-get install -y curl git
+      - curl -fsSL https://get.docker.com | bash
+      - curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      - chmod +x /usr/local/bin/docker-compose
+      - npm install -g @quasar/cli
+      - docker-compose -f /drone/prod/docker-compose.yml -p Zogwine down
+      - cp /drone/prod/docker-compose.yml /drone/docker-compose.yml
+      - ls /drone
+      - rm -rf /drone/prod/*
+      - cp -R /drone/src/* /drone/prod/
+      - ls /drone/prod
+      - git clone --depth 1 https://github.com/drosoCode/Zogwine_UI /drone/Zogwine_UI
+      - cd /drone/Zogwine_UI && npm i --save-dev && quasar build -m pwa
+      - mkdir -p /drone/prod/static/
+      - cp -R /drone/Zogwine_UI/dist/pwa/* /drone/prod/static/
+      - cp /drone/docker-compose.yml /drone/prod/docker-compose.yml
+      - ls /drone/prod
+      - docker-compose -f /drone/prod/docker-compose.yml -p Zogwine build
+      - docker-compose -f /drone/prod/docker-compose.yml -p Zogwine up -d
+
+    volumes:
+      - name: prod
+        path: /drone/prod
+      - name: sock
+        path: /var/run/docker.sock
+
+  - name: discord_notification
+    image: appleboy/drone-discord
+    when:
+      status:
+        - success
+        - failure
+    settings:
+      webhook_id:
+        from_secret: webhook_id
+      webhook_token:
+        from_secret: webhook_token
+      message: >
+        {{#success build.status}}
+        ✅ Deployment succeeded. 💾 Build #{{build.number}} for `{{repo.name}}`.
+        {{else}}
+        ❌ Deployment failed. 💾 Build #{{build.number}} for `{{repo.name}}`.
+        {{/success}}
+
+volumes:
+  - name: prod
+    host:
+      path: /app/docker/run/Zogwine
+  - name: sock
+    host:
+      path: /var/run/docker.sock
+
+trigger:
+  event:
+  - promote
+  target:
+  - production
+---
+kind: signature
+hmac: db7b76bb891cd094e615009e69fcfdb30fa83293fdbc2bf152701ac8f2351370
+
+...
