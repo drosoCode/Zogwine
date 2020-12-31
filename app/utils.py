@@ -59,8 +59,8 @@ def get_chunk(full_path, byte1=None, byte2=None):
     return chunk, start, length, file_size
 
 
-def getFile(path, requiredMime):
-    mime = mimetypes.guess_type(path, strict=False)[0]
+def getFile(path: bytes, requiredMime: str):
+    mime = mimetypes.guess_type(path.decode("utf-8"), strict=False)[0]
     if requiredMime in mime:
         range_header = request.headers.get("Range", None)
         byte1, byte2 = 0, None
@@ -82,9 +82,9 @@ def getFile(path, requiredMime):
             "bytes {0}-{1}/{2}".format(start, start + length - 1, file_size),
         )
         resp.headers.add("Accept-Ranges", "bytes")
-        resp.headers.add(
-            "Content-Disposition", "attachment", filename=path[path.rfind("/") + 1 :]
-        )
+        name = path.decode("utf-8")
+        name = name[name.rfind("/") + 1 :]
+        resp.headers.add("Content-Disposition", "attachment", filename=name)
         return resp
     else:
         abort(404)
