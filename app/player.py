@@ -126,7 +126,7 @@ def getTranscoderFile():
 @player.route("/api/player/file")
 def player_getFile():
     checkArgs(["mediaType", "mediaData"])
-    path = getMediaPath(request.args["mediaType"], request.args["mediaData"])
+    path = getMediaPath(int(request.args["mediaType"]), int(request.args["mediaData"]))
     if os.path.exists(path):
         return getFile(path, "video")
     else:
