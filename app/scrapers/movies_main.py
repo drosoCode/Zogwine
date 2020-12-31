@@ -122,7 +122,7 @@ class movies:
         self.scanCollections()
         self._connection.commit()
 
-    def scanMovie(self, item):
+    def scanMovie(self, item: bytes):
         cursor = self._connection.cursor(dictionary=True, buffered=True)
         commit = False
 
@@ -236,10 +236,11 @@ class movies:
                     results += data
 
                 cursor.execute(
-                    "INSERT INTO movies (multipleResults, idVid, addDate) VALUES (%s, %s, %s);",
+                    "INSERT INTO movies (title, multipleResults, idVid, addDate) VALUES (%s, %s, %s, %s);",
                     (
+                        item,
                         json.dumps(results),
-                        addFile(item.encode(), 3),
+                        addFile(item, 3),
                         datetime.now().strftime("%Y-%m-%d-%H:%M:%S"),
                     ),
                 )
