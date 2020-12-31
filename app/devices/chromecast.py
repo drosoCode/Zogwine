@@ -21,14 +21,21 @@ class chromecast(PlayerBase):
         self._url = (
             configData["config"]["baseUrl"] + "/api/player/m3u8?token=" + str(token)
         )
-        self._cast = pychromecast.Chromecast(str(address))
-        self._cast.wait()
-        self._mc = self._cast.media_controller
+        try:
+            self._cast = pychromecast.Chromecast(str(address))
+            self._cast.wait()
+            self._mc = self._cast.media_controller
+        except:
+            self._cast = None
 
     def playMedia(self, obj):
+        if self._cast:
+            return False
         return obj.start()
 
     def doWork(self):
+        if self._cast:
+            return False
         d = os.listdir(self._outDir)
         while "stream001.ts" not in d:
             time.sleep(2)
@@ -41,39 +48,59 @@ class chromecast(PlayerBase):
         self._mc.play()
 
     def seek(self, pos: int):
+        if self._cast:
+            return False
         self._mc.seek(pos)
 
     def play(self):
+        if self._cast:
+            return False
         self._mc.play()
 
     def pause(self):
+        if self._cast:
+            return False
         self._mc.pause()
 
     def stop(self):
+        if self._cast:
+            return False
         self._mc.block_until_active()
         self._mc.stop()
 
     def mute(self):
+        if self._cast:
+            return False
         self._cast.set_volume_muted(True)
 
     def unmute(self):
+        if self._cast:
+            return False
         self._cast.set_volume_muted(False)
 
     def setVolume(self, volume: int):
+        if self._cast:
+            return False
         self._cast.set_volume(volume)
 
     @property
     def position(self) -> float:
+        if self._cast:
+            return False
         self._mc.block_until_active()
         return self._mc.status.current_time
 
     @property
     def volume(self) -> int:
+        if self._cast:
+            return False
         self._mc.block_until_active()
         return self._cast.status.volume_level
 
     @property
     def status(self) -> int:
+        if self._cast:
+            return False
         self._mc.block_until_active()
         s = self._mc.status.player_state
         if s == "PLAYING":
@@ -85,4 +112,6 @@ class chromecast(PlayerBase):
 
     @property
     def playingMedia(self) -> str:
+        if self._cast:
+            return False
         return self._mc.status.content_id
