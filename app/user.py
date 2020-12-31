@@ -85,8 +85,6 @@ def signout():
 
     if s == 0:
         if r_userFiles.exists(uid):
-            obj = transcoder.fromJSON(r_userFiles.get(uid))
-            obj.stop()
-            del obj
+            transcoder.stop(r_userFiles.get(uid))
             r_userFiles.delete(uid)
     return jsonify({"status": "ok", "data": "ok"})
