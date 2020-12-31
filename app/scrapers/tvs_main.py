@@ -240,8 +240,8 @@ class tvs:
                 results += data
 
             cursor.execute(
-                "INSERT INTO tv_shows (multipleResults, path) VALUES (%s, %s);",
-                (json.dumps(results), item),
+                "INSERT INTO tv_shows (title, multipleResults, path) VALUES (%s, %s, %s);",
+                (item, json.dumps(results), item),
             )
             commit = True
 
