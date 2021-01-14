@@ -5,9 +5,9 @@ from uwsgidecorators import thread
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, checkUser, addCache
+from .utils import checkArgs, checkUser, addCache, getUID
 
-from .dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
 
 tvs = Blueprint("tvs", __name__)
@@ -58,7 +58,7 @@ def tvs_getUpcomingEpisodes():
 
 @tvs.route("/api/tvs/upc_scan", methods=allowedMethods)
 def tvs_runUpcomingScanThreaded():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     tvs_runUpcomingScan()
     return jsonify({"status": "ok", "data": "ok"})
 
@@ -73,7 +73,7 @@ def tvs_runUpcomingScan():
 
 
 def tvs_getEps(token, idShow, season=None):
-    idUser = r_userTokens.get(token)
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     s = ""
     dat = {"idUser": idUser, "idShow": idShow}
@@ -112,7 +112,7 @@ def tvs_getEpsFlask():
 @tvs.route("/api/tvs/getSeasons", methods=allowedMethods)
 def tvs_getSeasons():
     checkArgs(["idShow"])
-    idUser = r_userTokens.get(request.args["token"])
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     season = request.args.get("season")
     s = ""
@@ -136,7 +136,7 @@ def tvs_getSeasons():
 
 
 def tvs_getShows(token, mr=False):
-    idUser = r_userTokens.get(token)
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     mrDat = ""
     if mr:
@@ -171,7 +171,7 @@ def tvs_getShowsMr():
 @tvs.route("/api/tvs/getShow", methods=allowedMethods)
 def tvs_getShow():
     checkArgs(["idShow"])
-    idUser = r_userTokens.get(request.args["token"])
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     query = (
         "SELECT idShow AS id,"
@@ -196,7 +196,7 @@ def tvs_getShow():
 @tvs.route("/api/tvs/setID", methods=allowedMethods)
 def tvs_setID():
     checkArgs(["idShow", "id"])
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     idShow = request.args["idShow"]
     resultID = request.args["id"]
     # the resultID is the one from the json list of multipleResults entry
@@ -220,11 +220,11 @@ def tvs_setID():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
+def tvs_toggleWatchedEpisode(uid, idEpisode, watched=None):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idEpisode)s;",
-        {"idEpisode": str(idEpisode), "idUser": r_userTokens.get(token)},
+        {"idEpisode": str(idEpisode), "idUser": uid},
     )
     data = cursor.fetchone()
     count = 0
@@ -239,14 +239,14 @@ def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
             "UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idMedia)s;",
             {
                 "watchCount": str(count),
-                "idUser": r_userTokens.get(token),
+                "idUser": uid,
                 "idMedia": str(idEpisode),
             },
         )
     elif watched is not False:
         cursor.execute(
             "INSERT INTO status (idUser, mediaType, idMedia, watchCount) VALUES (%(idUser)s, 1, %(idMedia)s, 1);",
-            {"idUser": int(r_userTokens.get(token)), "idMedia": str(idEpisode)},
+            {"idUser": uid, "idMedia": str(idEpisode)},
         )
     sqlConnection.commit()
     sqlConnection.close()
@@ -257,17 +257,17 @@ def tvs_toggleWatchedEpisode(token, idEpisode, watched=None):
 def tvs_toggleWatchedEpisodeFlask():
     checkArgs(["idEpisode"])
     # set episode as watched for user
-    tvs_toggleWatchedEpisode(request.args["token"], request.args["idEpisode"])
+    tvs_toggleWatchedEpisode(getUID(), request.args["idEpisode"])
     return jsonify({"status": "ok", "data": "ok"})
 
 
 @tvs.route("/api/tvs/toggleSeasonStatus", methods=allowedMethods)
 def tvs_toggleWatchedSeason():
     checkArgs(["idShow"])
-    token = request.args["token"]
+    uid = getUID()
     idShow = request.args["idShow"]
     sqlConnection, cursor = getSqlConnection()
-    dat = {"idUser": r_userTokens.get(token), "idShow": idShow}
+    dat = {"idUser": getUID(), "idShow": idShow}
     watched = True
 
     season = request.args.get("season")
@@ -285,10 +285,10 @@ def tvs_toggleWatchedSeason():
     if isWatched is not None and int(isWatched) > 0:
         watched = False
 
-    ids = tvs_getEps(token, idShow)
+    ids = tvs_getEps(uid, idShow)
     for i in ids:
         if season is None or int(season) == int(i["season"]):
-            tvs_toggleWatchedEpisode(token, i["id"], watched)
+            tvs_toggleWatchedEpisode(uid, i["id"], watched)
 
     sqlConnection.close()
     return jsonify({"status": "ok", "data": "ok"})
@@ -296,7 +296,7 @@ def tvs_toggleWatchedSeason():
 
 @tvs.route("/api/tvs/setNewSearch", methods=allowedMethods)
 def tvs_setNewSearch():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     checkArgs(["idShow", "title"])
     idShow = request.args["idShow"]
     sqlConnection, cursor = getSqlConnection()
@@ -311,7 +311,7 @@ def tvs_setNewSearch():
 
 @tvs.route("/api/tvs/scan", methods=allowedMethods)
 def tvs_runScanThreaded():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     tvs_runScan()
     return jsonify({"status": "ok", "data": "ok"})
 
@@ -327,18 +327,43 @@ def tvs_runScan():
     sqlConnection.close()
 
 
-"""
-delete episode:
-DELETE FROM status WHERE mediaType = 1 AND idMedia = (SELECT idEpisode FROM episodes WHERE idShow = 172 AND episode = 9)
-DELETE FROM video_files WHERE idVid = (SELECT idVid FROM episodes WHERE idShow = 172 AND episode = 9)
-DELETE FROM episodes WHERE idShow = 172 AND episode = 9
-"""
+@tvs.route("/api/tvs/show/<idShow>", methods=["DELETE"])
+def delete_show(idShow: int):
+    checkUser("admin")
 
-"""
-delete show:
-DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = 172)
-DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = 172)
-DELETE FROM episodes WHERE idShow = 172
-DELETE FROM seasons WHERE idShow = 172
-DELETE FROM tv_shows WHERE idShow = 172
-"""
+    sqlConnection, cursor = getSqlConnection()
+    idS = {"id": idShow}
+    cursor.execute(
+        "DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(id)s);",
+        idS,
+    )
+    cursor.execute(
+        "DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(id)s);",
+        idS,
+    )
+    cursor.execute("DELETE FROM episodes WHERE idShow = %(id)s;", idS)
+    cursor.execute("DELETE FROM seasons WHERE idShow = %(id)s;", idS)
+    cursor.execute("DELETE FROM tv_shows WHERE idShow = %(id)s;", idS)
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+@tvs.route("/api/tvs/episode/<idEpisode>", methods=["DELETE"])
+def delete_episode(idEpisode: int):
+    checkUser("admin")
+
+    sqlConnection, cursor = getSqlConnection()
+    idEp = {"id": idEpisode}
+    cursor.execute(
+        "DELETE FROM status WHERE mediaType = 1 AND idMedia = (SELECT idEpisode FROM episodes WHERE idEpisode = %(id)s);",
+        idEp,
+    )
+    cursor.execute(
+        "DELETE FROM video_files WHERE idVid = (SELECT idVid FROM episodes WHERE idEpisode = %(id)s);",
+        idEp,
+    )
+    cursor.execute("DELETE FROM episodes WHERE idEpisode = %(id)s;", idEp)
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
