@@ -24,16 +24,15 @@ def checkUser(prop):
     sqlConnection, cursor = getSqlConnection()
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute(
-        "SELECT name, admin, cast, indexof FROM users WHERE idUser = %(idUser)s",
+        "SELECT name, admin, cast, indexof, allowMovie, allowTvs FROM users WHERE idUser = %(idUser)s",
         {"idUser": getUID()},
     )
     d = cursor.fetchone()
     sqlConnection.close()
-    if prop == "admin" and "admin" in d and d["admin"]:
-        return True
-    if prop == "indexof" and "indexof" in d and d["indexof"]:
-        return True
-    if prop == "cast" and "cast" in d and d["cast"]:
+
+    props = ["admin", "indexof", "cast", "allowMovie", "allowTvs"]
+
+    if prop in props and prop in d and d[prop]:
         return True
     else:
         abort(403)

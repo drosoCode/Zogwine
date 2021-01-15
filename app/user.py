@@ -3,11 +3,11 @@ import redis
 import json
 import hashlib
 import time
-import secrets
+from urllib.parse import urlparse, parse_qs, unquote
 
 from .transcoder import transcoder
 from .log import logger, getLogs
-from .utils import checkArgs
+from .utils import checkArgs, getUID, generateToken, checkUser
 
 from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
 from .indexer import scanner
@@ -48,7 +48,7 @@ def signin():
 def getUserData(userID):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
-        "SELECT name, admin, cast, kodiLinkBase FROM users WHERE idUser = %(idUser)s",
+        "SELECT name, admin, cast, allowMovie, allowTvs FROM users WHERE idUser = %(idUser)s",
         {"idUser": userID},
     )
     res = cursor.fetchone()
@@ -61,17 +61,9 @@ def getUserDataFlask():
     return jsonify(
         {
             "status": "ok",
-            "data": getUserData(
-                r_userTokens.get(request.args["token"]).decode("utf-8")
-            ),
+            "data": getUserData(getUID()),
         }
     )
-
-
-def generateToken(userID):
-    t = secrets.token_hex(20)
-    r_userTokens.set(str(t), str(userID))
-    return t
 
 
 @user.route("/api/user/signout", methods=["GET", "POST"])
@@ -88,3 +80,53 @@ def signout():
             transcoder.stop(r_userFiles.get(uid))
             r_userFiles.delete(uid)
     return jsonify({"status": "ok", "data": "ok"})
+
+
+@user.route("/api/user/nginx", methods=["GET", "POST"])
+def nginx():
+    extensions = [".mkv", ".avi", ".mp4"]
+
+    uid = getUID()
+    if uid == None:
+        # 401 with authorisation popup
+        return (
+            "Unauthorized",
+            401,
+            {"WWW-Authenticate": 'Basic realm="Login Required"'},
+        )
+
+    if "X-Original-Uri" not in request.headers or request.remote_addr != "127.0.0.1":
+        return ("Unauthorized", 401)
+
+    path = unquote(urlparse(request.headers["X-Original-Uri"]).path)
+    path = path[1:]  # strip the initial /
+
+    pos = path.find("/")
+    if pos == -1:
+        return ("Unauthorized", 401)
+    service = path[0:pos]
+
+    if service == "content":
+        if checkUser("indexof"):
+            return "ok"
+        elif path[path.rfind(".") :] in extensions:
+            if path[pos + 1 :].find(
+                configData["config"]["moviePath"]
+            ) == 0 and checkUser("allowMovie"):
+                return "ok"
+
+            elif path[pos + 1 :].find(
+                configData["config"]["tvsPath"]
+            ) == 0 and checkUser("allowTvs"):
+                return "ok"
+
+    elif service == "out":
+        aPath = "out/" + str(uid) + "/"
+        if (
+            path[0 : len(aPath)] == aPath
+            and "/" not in path[len(aPath) :]
+            and path[path.rfind(".") :] == ".ts"
+        ):
+            return "ok"
+
+    return ("Unauthorized", 401)

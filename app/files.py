@@ -155,8 +155,12 @@ def addFile(file: bytes, mediaType: int) -> int:
     return int(dat[u"idVid"])
 
 
-def getMediaPath(mediaType: int, mediaData: int) -> bytes:
+def getMediaPath(mediaType: int, mediaData: int, addBasePath: bool = True) -> bytes:
     sqlConnection, cursor = getSqlConnection()
+    base = b""
+    if addBasePath:
+        base = configData["config"]["contentPath"].encode()
+
     if mediaType == 1:
         cursor.execute(
             u"SELECT path FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) WHERE idEpisode = %(mediaData)s;",
@@ -165,7 +169,7 @@ def getMediaPath(mediaType: int, mediaData: int) -> bytes:
         dat = cursor.fetchone()[u"path"]
         sqlConnection.close()
         return os.path.join(
-            configData["config"]["contentPath"].encode(),
+            base,
             configData["config"]["tvsPath"].encode(),
             dat.encode("utf-8"),
         )
@@ -177,7 +181,7 @@ def getMediaPath(mediaType: int, mediaData: int) -> bytes:
         dat = cursor.fetchone()["path"]
         sqlConnection.close()
         return os.path.join(
-            configData["config"]["contentPath"].encode(),
+            base,
             configData["config"]["moviePath"].encode(),
             dat.encode("utf-8"),
         )

@@ -12,7 +12,7 @@ from .core import core
 from .player import player
 from .device import device
 from .dbHelper import r_runningThreads, r_userTokens
-from .utils import getUID
+from .utils import getUID, checkUser
 
 """
 DB:
@@ -44,8 +44,22 @@ logger.info("Server Started Successfully")
 
 @app.before_request
 def before_request():
-    if request.endpoint not in ["user.signin", "user.nginx", "core.getImage",] and getUID() is None:
+    if (
+        request.endpoint
+        not in [
+            "user.signin",
+            "user.nginx",
+            "core.getImage",
+        ]
+        and getUID() is None
+    ):
         abort(401)
+
+    service = request.endpoint[0 : request.endpoint.find(".")]
+    if service == "tvs" and not checkUser("allowTvs"):
+        abort(403)
+    if service == "movies" and not checkUser("allowMovie"):
+        abort(403)
 
 
 @app.route("/", methods=["GET"])

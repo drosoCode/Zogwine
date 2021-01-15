@@ -1,5 +1,5 @@
 import time
-from flask import request, Blueprint, jsonify, abort, Response, send_file
+from flask import request, Blueprint, jsonify, abort, Response, send_file, redirect
 import redis
 import os
 import json
@@ -7,7 +7,7 @@ from uwsgidecorators import thread
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, getFile, getUID, generateToken
+from .utils import checkArgs, getUID, generateToken
 from .files import getMediaPath, getFileInfos
 from .device import importDevice
 from app.devices.PlayerBase import PlayerBase
@@ -124,11 +124,22 @@ def getTranscoderFile():
 @player.route("/api/player/file")
 def player_getFile():
     checkArgs(["mediaType", "mediaData"])
-    path = getMediaPath(int(request.args["mediaType"]), int(request.args["mediaData"]))
-    if os.path.exists(path):
-        return getFile(path, "video")
-    else:
-        abort(404)
+    path = getMediaPath(
+        int(request.args["mediaType"]), int(request.args["mediaData"]), False
+    )
+    return jsonify(
+        {
+            "status": "ok",
+            "data": (
+                b"../../"
+                + b"content/"
+                + path
+                + b"?token="
+                + (request.args.get("token") or generateToken(getUID())).encode("utf-8")
+            ).decode("utf-8"),
+        }
+    )
+    #    return getFile(path, "video")
 
 
 @player.route("/api/player/info", methods=allowedMethods)
