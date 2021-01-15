@@ -7,8 +7,8 @@ import os
 
 from .transcoder import transcoder
 from .log import logger, getLogs
-from .utils import checkArgs, checkUser, addCache
-from .dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from .utils import checkArgs, checkUser, addCache, getUID
+from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
 
 core = Blueprint("core", __name__)
@@ -17,7 +17,7 @@ allowedMethods = ["GET", "POST"]
 
 @core.route("/api/core/statistics")
 def getStatistics():
-    uid = r_userTokens.get(request.args["token"])
+    uid = getUID()
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT COUNT(idStatus) AS watchedEpCount, SUM(watchCount) AS watchedEpSum FROM status WHERE watchCount > 0 AND mediaType = 1 AND idUser = %(idUser)s;",
@@ -82,7 +82,7 @@ def getStatistics():
 
 @core.route("/api/process/status")
 def getThreadsStatus():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     return jsonify(
         {
             "status": "ok",
@@ -99,7 +99,7 @@ def getThreadsStatus():
 
 @core.route("/api/core/logs")
 def getServerLogs():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     try:
         l = int(request.args["amount"])
     except Exception:
@@ -128,7 +128,7 @@ def getImage():
 
 @core.route("/api/process/cache", methods=allowedMethods)
 def refreshCacheThreaded():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     refreshCache()
     return jsonify({"status": "ok", "data": "ok"})
 
@@ -161,7 +161,7 @@ def refreshCache():
 
 @core.route("/api/process/people", methods=allowedMethods)
 def runPeopleScanThreaded():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     runPeopleScan()
     return jsonify({"status": "ok", "data": "ok"})
 

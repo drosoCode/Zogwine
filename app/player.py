@@ -7,7 +7,7 @@ from uwsgidecorators import thread
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, getFile
+from .utils import checkArgs, getFile, getUID, generateToken
 from .files import getMediaPath, getFileInfos
 from .device import importDevice
 from app.devices.PlayerBase import PlayerBase
@@ -21,13 +21,13 @@ allowedMethods = ["GET", "POST"]
 @player.route("/api/player/start")
 def startPlayer():
     checkArgs(["mediaType", "mediaData"])
-    uid = r_userTokens.get(request.args["token"])
+    uid = getUID()
     logger.info("Starting transcoder for user " + str(uid))
 
     obj = transcoder(
         int(request.args["mediaType"]),
         int(request.args["mediaData"]),
-        os.path.join(configData["config"]["outDir"], request.args["token"]),
+        os.path.join(configData["config"]["outDir"], str(uid)),
         configData["config"]["encoder"],
         configData["config"]["crf"],
     )
@@ -46,7 +46,7 @@ def startPlayer():
             return False
         dev = importDevice(data["type"])
         device = dev(
-            request.args["token"],
+            request.args.get("token") or generateToken(getUID()),
             data["address"],
             data["port"],
             data["user"],
@@ -83,14 +83,12 @@ def getSubtitles():
 
 @player.route("/api/player/m3u8")
 def getTranscoderM3U8():
-    token = request.args["token"]
+    token = request.args.get("token") or generateToken(getUID())
     # add time to fileUrl prevent browser caching
     fileUrl = "/api/player/ts?token=" + token + "&time=" + str(time.time()) + "&name="
     dat = ""
 
-    file = os.path.join(
-        configData["config"]["outDir"], request.args["token"], "stream.m3u8"
-    )
+    file = os.path.join(configData["config"]["outDir"], str(getUID()), "stream.m3u8")
     if os.path.exists(file):
         fileData = open(file, "r").read()
         for i in fileData.split("\n"):
@@ -106,11 +104,11 @@ def getTranscoderM3U8():
 @player.route("/api/player/ts")
 def getTranscoderFile():
     name = request.args["name"]
-    token = request.args["token"]
+    uid = getUID()
     # send transcoded file
-    file = os.path.join(configData["config"]["outDir"], request.args["token"], name)
+    file = os.path.join(configData["config"]["outDir"], str(uid), name)
     if os.path.exists(file):
-        if "/" not in name and "/" not in token:
+        if "/" not in name:
             return send_file(
                 open(file, "rb"),
                 mimetype="video/MP2T",
@@ -145,7 +143,7 @@ def player_getFileInfos():
         cursor.execute(
             "SELECT watchTime FROM status WHERE idUser = %(idUser)s AND mediaType = %(mediaType)s AND idMedia = %(idMedia)s;",
             {
-                "idUser": r_userTokens.get(request.args["token"]),
+                "idUser": getUID(),
                 "mediaType": mediaType,
                 "idMedia": mediaData,
             },
@@ -168,16 +166,14 @@ def player_getFileInfos():
 @player.route("/api/player/stop", methods=allowedMethods)
 def player_stop():
     checkArgs(["mediaType", "mediaData", "endTime"])
-    token = request.args["token"]
+    uid = getUID()
     mediaType = int(request.args["mediaType"])
     mediaData = int(request.args["mediaData"])
     endTime = float(request.args.get("endTime"))
     # set watch time
-    player_setWatchTime(token, mediaType, mediaData, endTime)
+    player_setWatchTime(uid, mediaType, mediaData, endTime)
     # stop transcoder
-    logger.info("Stopping transcoder for user " + str(r_userTokens.get(token)))
-
-    uid = r_userTokens.get(token)
+    logger.info("Stopping transcoder for user " + str(uid))
 
     if "idDevice" in request.args and request.args["idDevice"] != "-1":
         sqlConnection, cursor = getSqlConnection()
@@ -191,7 +187,7 @@ def player_stop():
             return False
         dev = importDevice(data["type"])
         device = dev(
-            request.args["token"],
+            request.args["token"] or "",
             data["address"],
             data["port"],
             data["user"],
@@ -207,8 +203,7 @@ def player_stop():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-def player_setWatchTime(token: str, mediaType: int, idMedia: int, endTime: float):
-    uid = r_userTokens.get(token)
+def player_setWatchTime(uid: str, mediaType: int, idMedia: int, endTime: float):
     sqlConnection, cursor = getSqlConnection()
 
     duration = 1000000000000000000000000

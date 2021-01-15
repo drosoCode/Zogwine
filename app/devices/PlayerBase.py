@@ -5,7 +5,7 @@ class PlayerBase(ABC):
     @abstractmethod
     def __init__(
         self,
-        token: str,
+        uid: int,
         address: str,
         port: int = None,
         user: str = None,

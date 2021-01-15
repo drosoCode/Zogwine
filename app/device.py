@@ -9,7 +9,7 @@ import sys
 from .transcoder import transcoder
 from .log import logger
 from .utils import checkArgs, getFile
-from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
+from .dbHelper import getSqlConnection, r_userFiles, configData
 
 device = Blueprint("device", __name__)
 allowedMethods = ["GET", "POST"]

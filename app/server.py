@@ -12,6 +12,7 @@ from .core import core
 from .player import player
 from .device import device
 from .dbHelper import r_runningThreads, r_userTokens
+from .utils import getUID
 
 """
 DB:
@@ -43,9 +44,7 @@ logger.info("Server Started Successfully")
 
 @app.before_request
 def before_request():
-    if request.endpoint not in ["user.signin", "core.getImage",] and (
-        "token" not in request.args or not r_userTokens.exists(request.args["token"])
-    ):
+    if request.endpoint not in ["user.signin", "user.nginx", "core.getImage",] and getUID() is None:
         abort(401)
 
 

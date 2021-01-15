@@ -4,8 +4,11 @@ import mimetypes
 import re
 import requests
 from base64 import b64decode
+from urllib.parse import urlparse, parse_qs, unquote
+import secrets
+import hashlib
 
-from .dbHelper import getSqlConnection, configData
+from .dbHelper import getSqlConnection, configData, r_userTokens
 from .log import logger
 
 
@@ -17,20 +20,23 @@ def checkArgs(args):
     return True
 
 
-def checkUser(uid, prop):
-    if prop == "admin":
-        sqlConnection, cursor = getSqlConnection()
-        cursor = sqlConnection.cursor(dictionary=True)
-        cursor.execute(
-            "SELECT name, icon, admin, kodiLinkBase FROM users WHERE idUser = %(idUser)s",
-            {"idUser": uid},
-        )
-        d = cursor.fetchone()
-        sqlConnection.close()
-        if "admin" in d and d["admin"]:
-            return True
-        else:
-            abort(403)
+def checkUser(prop):
+    sqlConnection, cursor = getSqlConnection()
+    cursor = sqlConnection.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT name, admin, cast, indexof FROM users WHERE idUser = %(idUser)s",
+        {"idUser": getUID()},
+    )
+    d = cursor.fetchone()
+    sqlConnection.close()
+    if prop == "admin" and "admin" in d and d["admin"]:
+        return True
+    if prop == "indexof" and "indexof" in d and d["indexof"]:
+        return True
+    if prop == "cast" and "cast" in d and d["cast"]:
+        return True
+    else:
+        abort(403)
 
 
 def addCache(data):
@@ -39,6 +45,46 @@ def addCache(data):
         with open(file, "wb") as f:
             logger.debug("Adding " + file + " to cache")
             f.write(requests.get(b64decode(data).decode()).content)
+
+
+def generateToken(userID):
+    t = secrets.token_hex(20)
+    r_userTokens.set(str(t), str(userID))
+    return t
+
+
+def getUID() -> int:
+    if "token" in request.args:
+        d = r_userTokens.get(request.args["token"])
+        if d is not None:
+            return int(d.decode("utf-8"))
+
+    if "X-Original-Uri" in request.headers:
+        parsedUrl = urlparse(request.headers["X-Original-Uri"])
+        args = parse_qs(parsedUrl.query)
+        if "token" in args:
+            d = r_userTokens.get(args["token"][0])
+            if d is not None:
+                return int(d.decode("utf-8"))
+
+    if request.authorization:
+        sqlConnection, cursor = getSqlConnection()
+        cursor = sqlConnection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT idUser FROM users WHERE user = %(username)s AND password = %(password)s",
+            {
+                "username": request.authorization["username"],
+                "password": hashlib.sha256(
+                    bytes(request.authorization["password"], "utf-8")
+                ).hexdigest(),
+            },
+        )
+        d = cursor.fetchone()
+        sqlConnection.close()
+        if d is not None and "idUser" in d and d["idUser"]:
+            return int(d["idUser"])
+
+    return None
 
 
 def get_chunk(full_path, byte1=None, byte2=None):
