@@ -2,6 +2,7 @@ from flask import request, Blueprint, jsonify
 import redis
 import json
 from uwsgidecorators import thread
+import os.path
 
 from .transcoder import transcoder
 from .log import logger
@@ -321,7 +322,10 @@ def tvs_runScan():
     sqlConnection = getSqlConnection(False)
     r_runningThreads.set("tvs", 1)
     scanner(sqlConnection, "tvs", configData["api"]).scanDir(
-        configData["config"]["tvsDirectory"]
+        os.path.join(
+            configData["config"]["contentPath"].encode(),
+            configData["config"]["tvsPath"].encode(),
+        )
     )
     r_runningThreads.set("tvs", 0)
     sqlConnection.close()

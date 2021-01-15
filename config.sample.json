@@ -17,13 +17,14 @@
         "tvdb":"YOURAPIKEY"
     },
     "config":{
-        "tvsDirectory":"/home/server/content/Series",
-        "moviesDirectory":"/home/server/content/Movies",
         "crf": 23,
         "hlsTime": 60,
         "encoder": "h264_nvenc",
         "outDir": "out/",
         "watchedThreshold": 0.9,
-        "baseUrl": "http://yourip:port"
+        "baseUrl": "http://yourip:port",
+        "contentPath": "/home/server/content",
+        "tvsPath":"Series",
+        "moviePath":"Movies"
     }
 }

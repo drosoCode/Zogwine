@@ -122,9 +122,17 @@ def _getFileInfos(path: bytes) -> dict:
 
 def addFile(file: bytes, mediaType: int) -> int:
     if mediaType == 1:
-        filePath = configData["config"]["tvsDirectory"].encode() + b"/" + file
+        filePath = os.path.join(
+            configData["config"]["contentPath"].encode(),
+            configData["config"]["tvsPath"].encode(),
+            file,
+        )
     elif mediaType == 3:
-        filePath = configData["config"]["moviesDirectory"].encode() + b"/" + file
+        filePath = os.path.join(
+            configData["config"]["contentPath"].encode(),
+            configData["config"]["moviePath"].encode(),
+            file,
+        )
     else:
         return -1
 
@@ -156,7 +164,11 @@ def getMediaPath(mediaType: int, mediaData: int) -> bytes:
         )
         dat = cursor.fetchone()[u"path"]
         sqlConnection.close()
-        return (configData[u"config"][u"tvsDirectory"] + "/" + dat).encode("utf-8")
+        return os.path.join(
+            configData["config"]["contentPath"].encode(),
+            configData["config"]["tvsPath"].encode(),
+            dat.encode("utf-8"),
+        )
     elif mediaType == 3:
         cursor.execute(
             u"SELECT path FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
@@ -164,7 +176,11 @@ def getMediaPath(mediaType: int, mediaData: int) -> bytes:
         )
         dat = cursor.fetchone()["path"]
         sqlConnection.close()
-        return (configData["config"]["moviesDirectory"] + "/" + dat).encode("utf-8")
+        return os.path.join(
+            configData["config"]["contentPath"].encode(),
+            configData["config"]["moviePath"].encode(),
+            dat.encode("utf-8"),
+        )
     else:
         return None
 

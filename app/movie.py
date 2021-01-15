@@ -2,12 +2,13 @@ from flask import request, Blueprint, jsonify
 import redis
 import json
 from uwsgidecorators import thread
+import os.path
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, checkUser, addCache
+from .utils import checkArgs, checkUser, addCache, getUID
 
-from .dbHelper import getSqlConnection, r_userTokens, r_runningThreads, configData
+from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
 
 movie = Blueprint("movie", __name__)
@@ -17,7 +18,7 @@ allowedMethods = ["GET", "POST"]
 @movie.route("/api/movies/toggleStatus", methods=allowedMethods)
 def mov_toggleStatus():
     checkArgs(["idMovie"])
-    idUser = r_userTokens.get(request.args["token"])
+    idUser = getUID()
     idMovie = request.args["idMovie"]
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
@@ -49,7 +50,7 @@ def mov_toggleStatus():
 
 @movie.route("/api/movies/scan", methods=allowedMethods)
 def mov_runScanThreaded():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     mov_runScan()
     return jsonify({"status": "ok", "data": "ok"})
 
@@ -59,14 +60,17 @@ def mov_runScan():
     r_runningThreads.set("movies", 1)
     sqlConnection = getSqlConnection(False)
     scanner(sqlConnection, "movies", configData["api"]).scanDir(
-        configData["config"]["moviesDirectory"]
+        os.path.join(
+            configData["config"]["contentPath"].encode(),
+            configData["config"]["moviePath"].encode(),
+        )
     )
     r_runningThreads.set("movies", 0)
     sqlConnection.close()
 
 
 def mov_getData(token, mr=False):
-    idUser = r_userTokens.get(token)
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     mrDat = ""
     if mr:
@@ -89,7 +93,7 @@ def mov_getData(token, mr=False):
 @movie.route("/api/movies/getMovie", methods=allowedMethods)
 def mov_getMovie():
     checkArgs(["idMovie"])
-    idUser = r_userTokens.get(request.args["token"])
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idMovie AS id, title, overview, idCollection, "
@@ -118,7 +122,7 @@ def mov_getDataMr():
 
 @movie.route("/api/movies/getCollections", methods=allowedMethods)
 def mov_getCollections():
-    idUser = r_userTokens.get(request.args["token"])
+    idUser = getUID()
     queryData = {"idUser": idUser}
     c = ""
     if "idCollection" in request.args and request.args["idCollection"] != None:
@@ -148,7 +152,7 @@ def mov_getCollections():
 @movie.route("/api/movies/getCollectionMovies", methods=allowedMethods)
 def mov_getCollectionMovies():
     checkArgs(["idCollection"])
-    idUser = r_userTokens.get(request.args["token"])
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idMovie AS id, title, overview, "
@@ -167,7 +171,7 @@ def mov_getCollectionMovies():
 
 @movie.route("/api/movies/setID", methods=allowedMethods)
 def mov_setID():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     checkArgs(["idMovie", "id"])
     idMovie = request.args["idMovie"]
     resultID = request.args["id"]
@@ -193,7 +197,7 @@ def mov_setID():
 
 @movie.route("/api/movies/setNewSearch", methods=allowedMethods)
 def mov_setNewSearch():
-    checkUser(r_userTokens.get(request.args["token"]), "admin")
+    checkUser("admin")
     checkArgs(["idMovie", "title"])
     idMovie = request.args["idMovie"]
     sqlConnection, cursor = getSqlConnection()
