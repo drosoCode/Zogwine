@@ -85,9 +85,10 @@ steps:
       - cp -R /drone/src/* /drone/prod/
       - ls /drone/prod
       - git clone --depth 1 https://github.com/drosoCode/Zogwine_UI /drone/Zogwine_UI
-      - cd /drone/Zogwine_UI && npm i --save-dev && quasar build -m pwa
+      - cd /drone/Zogwine_UI && npm i --save-dev && quasar build
       - mkdir -p /drone/prod/static/
-      - cp -R /drone/Zogwine_UI/dist/pwa/* /drone/prod/static/
+      - cp -R /drone/Zogwine_UI/dist/spa/* /drone/prod/static/
+      - cp -R /drone/Zogwine_UI/pwa/* /drone/prod/static/
       - cp /drone/docker-compose.yml /drone/prod/docker-compose.yml
       - ls /drone/prod
       - docker-compose -f /drone/prod/docker-compose.yml -p Zogwine build
@@ -132,6 +133,6 @@ trigger:
   - production
 ---
 kind: signature
-hmac: db7b76bb891cd094e615009e69fcfdb30fa83293fdbc2bf152701ac8f2351370
+hmac: 3b046daf94e4504312161771c39e3d46a1d9c0dd887fdb650bc3ef58b1dece97
 
 ...
