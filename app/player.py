@@ -131,8 +131,8 @@ def player_getFile():
         {
             "status": "ok",
             "data": (
-                b"../../"
-                + b"content/"
+                configData["config"]["baseUrl"].encode("utf-8")
+                + b"/content/"
                 + path
                 + b"?token="
                 + (request.args.get("token") or generateToken(getUID())).encode("utf-8")
@@ -207,7 +207,9 @@ def player_stop():
         )
         device.stop()
     else:
-        transcoder.stop(json.loads(r_userFiles.get(uid)))
+        data = r_userFiles.get(uid)
+        if data is not None:
+            transcoder.stop(json.loads(data))
 
     r_userFiles.delete(uid)
 
