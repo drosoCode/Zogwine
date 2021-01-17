@@ -61,8 +61,7 @@ def mov_runScan():
     sqlConnection = getSqlConnection(False)
     scanner(sqlConnection, "movies", configData["api"]).scanDir(
         os.path.join(
-            configData["config"]["contentPath"].encode(),
-            configData["config"]["moviePath"].encode(),
+            configData["config"]["contentPath"], configData["config"]["moviePath"]
         )
     )
     r_runningThreads.set("movies", 0)

@@ -323,8 +323,7 @@ def tvs_runScan():
     r_runningThreads.set("tvs", 1)
     scanner(sqlConnection, "tvs", configData["api"]).scanDir(
         os.path.join(
-            configData["config"]["contentPath"].encode(),
-            configData["config"]["tvsPath"].encode(),
+            configData["config"]["contentPath"], configData["config"]["tvsPath"]
         )
     )
     r_runningThreads.set("tvs", 0)
