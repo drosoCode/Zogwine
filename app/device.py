@@ -8,7 +8,7 @@ import sys
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, getFile
+from .utils import checkArgs, getFile, getUID, generateToken
 from .dbHelper import getSqlConnection, r_userFiles, configData
 
 device = Blueprint("device", __name__)
@@ -94,7 +94,8 @@ def devices_function(function: str):
             return False
         dev = importDevice(data["type"])
         device = dev(
-            request.args["token"],
+            getUID(),
+            request.args.get("token") or generateToken(getUID()),
             data["address"],
             data["port"],
             data["user"],
