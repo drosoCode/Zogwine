@@ -7,7 +7,7 @@ from app.devices.PlayerBase import PlayerBase
 from app.transcoder import transcoder
 from app.dbHelper import configData
 from app.log import logger
-from app.files import getOutputDir
+from app.files import getOutputDir, getMediaFromUrl
 
 
 class xbmc4xbox(PlayerBase):
@@ -38,14 +38,14 @@ class xbmc4xbox(PlayerBase):
         except OSError:
             return False
 
-    def playMedia(self, mediaType: int, mediaData: int, data: dict = None):
+    def playMedia(self, mediaType: int, mediaData: int, data: dict = None) -> tuple:
         obj = transcoder(int(mediaType), int(mediaData))
         obj.enableHLS(True)
         obj.configure(data)
         if int(obj._resize) > 720 or int(obj._resize) < 0:
             obj.resize(720)
         self._startData = obj.start()
-        return self._startData
+        return {}, self._startData
 
     def doWork(self):
         d = os.listdir(self._outDir)
@@ -104,33 +104,110 @@ class xbmc4xbox(PlayerBase):
             dowork = self.activePid(self._startData["pid"])
 
     def seek(self, pos: int):
-        pass
+        data = requests.get(
+            self._endpoint + "GetCurrentlyPlaying", auth=self._auth
+        ).text
+        url = data[20 : data.find("\n", 20)]
+        currentStream = int(url[url.find("/stream") + 7 : url.find(".ts?token=")])
+
+        data = requests.get(
+            self._endpoint + "GetPlaylistContents(1)", auth=self._auth
+        ).text
+        urls = data[12 : len(data) - 8].split("\n<li>")
+
+        posStream = pos // configData["config"]["hlsTime"]
+
+        if pos < configData["config"]["hlsTime"] * currentStream:
+            for i in range(currentStream - posStream):
+                requests.get(self._endpoint + "PlayPrev()", auth=self._auth)
+        else:
+            playlistNum = len(urls) - posStream
+            if playlistNum < 0:
+                for i in range(len(urls) - 1 - currentStream):
+                    requests.get(self._endpoint + "PlayNext()", auth=self._auth)
+            else:
+                for i in range(posStream - currentStream):
+                    requests.get(self._endpoint + "PlayNext()", auth=self._auth)
+
+        percent = round(
+            (pos % configData["config"]["hlsTime"])
+            / configData["config"]["hlsTime"]
+            * 100
+        )
+        requests.get(
+            self._endpoint + "SeekPercentage(" + str(percent) + ")", auth=self._auth
+        )
 
     def play(self):
-        pass
+        requests.get(self._endpoint + "Action(79)", auth=self._auth).text
 
     def pause(self):
-        pass
+        requests.get(self._endpoint + "Pause()", auth=self._auth).text
 
     def stop(self):
-        pass
+        requests.get(self._endpoint + "Stop()", auth=self._auth).text
 
     def mute(self):
-        pass
+        requests.get(self._endpoint + "Mute()", auth=self._auth).text
 
     def unmute(self):
-        pass
+        requests.get(self._endpoint + "Mute()", auth=self._auth).text
 
-    def volume(self, volume: int):
-        pass
-
-    def _position(self) -> float:
-        pass
-
-    @property
-    def _volume(self) -> int:
-        pass
+    def setVolume(self, volume: int) -> bool:
+        if volume > 100 or volume < 0:
+            return False
+        requests.get(
+            self._endpoint + "SetVolume(" + str(volume) + ")", auth=self._auth
+        ).text
+        return True
 
     @property
-    def _status(self) -> str:
-        pass
+    def position(self) -> float:
+        data = requests.get(
+            self._endpoint + "GetCurrentlyPlaying", auth=self._auth
+        ).text
+        url = data[20 : data.find("\n", 20)]
+
+        nb = int(url[url.find("/stream") + 7 : url.find(".ts?token=")])
+
+        p = data.find("Percentage") + 11
+        percentage = int(data[p : data.find("\n", p)])
+
+        return configData["config"]["hlsTime"] * nb + configData["config"][
+            "hlsTime"
+        ] * (percentage / 100)
+
+    @property
+    def length(self):
+        data = requests.get(
+            self._endpoint + "GetPlaylistContents(1)", auth=self._auth
+        ).text
+        urls = data[12 : len(data) - 8].split("\n<li>")
+        return len(urls) * configData["config"]["hlsTime"]
+
+    @property
+    def volume(self) -> int:
+        data = requests.get(self._endpoint + "GetVolume", auth=self._auth).text
+        return int(data[11 : data.find("</html>")])
+
+    @property
+    def status(self) -> int:
+        data = requests.get(
+            self._endpoint + "GetCurrentlyPlaying", auth=self._auth
+        ).text
+        p = data.find("PlayStatus") + 11
+        s = data[p : data.find("\n", p)]
+
+        if s == "Playing":
+            return 2
+        elif s == "Paused":
+            return 1
+        else:
+            return 0
+
+    @property
+    def playingMedia(self) -> tuple:
+        data = requests.get(
+            self._endpoint + "GetCurrentlyPlaying", auth=self._auth
+        ).text
+        return getMediaFromUrl(data[20 : data.find("\n", 20)])

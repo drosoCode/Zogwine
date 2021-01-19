@@ -23,6 +23,7 @@ def startPlayer():
     checkArgs(["mediaType", "mediaData"])
     uid = getUID()
     logger.info("Starting transcoder for user " + str(uid))
+    deviceData = {}
 
     if "idDevice" in request.args and request.args["idDevice"] != "-1":
         sqlConnection, cursor = getSqlConnection()
@@ -44,9 +45,10 @@ def startPlayer():
             data["password"],
             data["device"],
         )
-        startData = device.playMedia(
+        deviceData, startData = device.playMedia(
             int(request.args["mediaType"]), int(request.args["mediaData"]), request.args
         )
+        deviceData.update({"idDevice": request.args["idDevice"]})
         if hasattr(device, "doWork"):
             doWork(device)
     else:
@@ -55,7 +57,17 @@ def startPlayer():
         obj.configure(request.args)
         startData = obj.start()
 
-    r_userFiles.set(uid, json.dumps(startData))
+    r_userFiles.set(
+        uid,
+        json.dumps(
+            {
+                "mediaType": request.args["mediaType"],
+                "mediaData": request.args["mediaData"],
+                "transcoder": startData,
+                "device": deviceData,
+            }
+        ),
+    )
     return jsonify({"status": "ok", "data": "ok"})
 
 
@@ -121,7 +133,19 @@ def getTranscoderFile():
 def player_getFile():
     checkArgs(["mediaType", "mediaData"])
     path = getMediaPath(
-        int(request.args["mediaType"]), int(request.args["mediaData"]), False
+        int(request.args["mediaType"]), str(request.args["mediaData"]), False
+    )
+    uid = getUID()
+    r_userFiles.set(
+        uid,
+        json.dumps(
+            {
+                "mediaType": request.args["mediaType"],
+                "mediaData": request.args["mediaData"],
+                "transcoder": {},
+                "device": {},
+            }
+        ),
     )
     return jsonify(
         {
@@ -131,7 +155,7 @@ def player_getFile():
                 + b"/content/"
                 + path
                 + b"?token="
-                + (request.args.get("token") or generateToken(getUID())).encode("utf-8")
+                + (request.args.get("token") or generateToken(uid)).encode("utf-8")
             ).decode("utf-8"),
         }
     )
@@ -206,7 +230,7 @@ def player_stop():
     else:
         data = r_userFiles.get(uid)
         if data is not None:
-            transcoder.stop(json.loads(data))
+            transcoder.stop(json.loads(data)["transcoder"])
 
     r_userFiles.delete(uid)
 

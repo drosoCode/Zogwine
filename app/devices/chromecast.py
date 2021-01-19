@@ -5,7 +5,7 @@ import time
 from app.devices.PlayerBase import PlayerBase
 from app.transcoder import transcoder
 from app.dbHelper import configData
-from app.files import getOutputDir
+from app.files import getOutputDir, getMediaFromUrl
 
 
 class chromecast(PlayerBase):
@@ -30,13 +30,13 @@ class chromecast(PlayerBase):
         except:
             self._cast = None
 
-    def playMedia(self, mediaType: int, mediaData: int, data: dict = None):
+    def playMedia(self, mediaType: int, mediaData: int, data: dict = None) -> tuple:
         if self._cast:
             return False
         obj = transcoder(int(mediaType), int(mediaData))
         obj.enableHLS(True)
         obj.configure(data)
-        return obj.start()
+        return {}, obj.start()
 
     def doWork(self):
         if self._cast:
@@ -119,4 +119,4 @@ class chromecast(PlayerBase):
     def playingMedia(self) -> tuple:
         if self._cast:
             return None
-        return self._mc.status.content_id
+        return getMediaFromUrl(self._mc.status.content_id)

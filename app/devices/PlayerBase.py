@@ -16,7 +16,8 @@ class PlayerBase(ABC):
         pass
 
     @abstractmethod
-    def playMedia(self, mediaType: int, mediaData: int, data: dict = None):
+    def playMedia(self, mediaType: int, mediaData: int, data: dict = None) -> tuple:
+        # returns (device data, transcoder data)
         pass
 
     @abstractmethod
