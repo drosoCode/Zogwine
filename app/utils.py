@@ -20,7 +20,7 @@ def checkArgs(args):
     return True
 
 
-def checkUser(prop):
+def checkUser(prop, abrt=True):
     sqlConnection, cursor = getSqlConnection()
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute(
@@ -34,8 +34,10 @@ def checkUser(prop):
 
     if prop in props and prop in d and d[prop]:
         return True
-    else:
+    elif abrt:
         abort(403)
+    else:
+        return False
 
 
 def addCache(data):
@@ -84,6 +86,14 @@ def getUID() -> int:
             return int(d["idUser"])
 
     return None
+
+
+def checkAuthorization(mediaType: int, mediaData: str):
+    if (mediaType == 1 or mediaType == 2) and checkUser("allowTvs"):
+        return True
+    elif mediaType == 3 and checkUser("allowMovie"):
+        return True
+    return False
 
 
 def get_chunk(full_path, byte1=None, byte2=None):

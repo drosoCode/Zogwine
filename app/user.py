@@ -8,10 +8,9 @@ from urllib.parse import urlparse, parse_qs, unquote
 from .transcoder import transcoder
 from .log import logger, getLogs
 from .utils import checkArgs, getUID, generateToken, checkUser
-
 from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
 from .indexer import scanner
-
+from .files import getMediaFromUrl
 
 user = Blueprint("user", __name__)
 allowedMethods = ["GET", "POST"]
@@ -85,7 +84,6 @@ def signout():
 @user.route("/api/user/nginx", methods=["GET", "POST"])
 def nginx():
     extensions = [".mkv", ".avi", ".mp4"]
-
     uid = getUID()
     if uid == None:
         # 401 with authorisation popup
@@ -107,19 +105,18 @@ def nginx():
     service = path[0:pos]
 
     if service == "content":
-        if checkUser("indexof"):
+        if checkUser("indexof", False):
             return "ok"
         elif path[path.rfind(".") :] in extensions:
-            if path[pos + 1 :].find(
-                configData["config"]["moviePath"]
-            ) == 0 and checkUser("allowMovie"):
-                return "ok"
-
-            elif path[pos + 1 :].find(
-                configData["config"]["tvsPath"]
-            ) == 0 and checkUser("allowTvs"):
-                return "ok"
-
+            userData = r_userFiles.get(uid)
+            urlData = getMediaFromUrl(path)
+            if userData is not None and urlData is not None:
+                userData = json.loads(userData)
+                if (
+                    urlData["mediaType"] == int(userData["mediaType"])
+                    and urlData["mediaData"] == userData["mediaData"]
+                ):
+                    return "ok"
     elif service == "out":
         aPath = "out/" + str(uid) + "/"
         if (
