@@ -32,6 +32,23 @@ r_userFiles = redis.Redis(
     db=configData["redis"]["filesDB"],
 )
 
+"""
+r_userFiles: contains data about the media currently used by the user
+{
+    "mediaType": type of media [int, requiered],
+    "mediaData": media identifier (usually an id) [str, requiered],
+    "transcoder": transcoder-related data [dict, optionnal]
+    {
+        "pid": ffmpeg process pid,
+        "outDir": output dir
+    },
+    "device": device-related data [dict, optionnal]
+    {
+        "idDevice": id of the device
+    }
+}
+"""
+
 
 def getSqlConnection(with_cursor=True):
     sqlConnection = _sqlPool.get_connection()
