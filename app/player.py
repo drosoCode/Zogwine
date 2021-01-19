@@ -24,16 +24,6 @@ def startPlayer():
     uid = getUID()
     logger.info("Starting transcoder for user " + str(uid))
 
-    obj = transcoder(
-        int(request.args["mediaType"]),
-        int(request.args["mediaData"]),
-        os.path.join(configData["config"]["outDir"], str(uid)),
-        configData["config"]["encoder"],
-        configData["config"]["crf"],
-    )
-    obj.enableHLS(True, configData["config"]["hlsTime"])
-    obj.configure(request.args)
-
     if "idDevice" in request.args and request.args["idDevice"] != "-1":
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
@@ -46,6 +36,7 @@ def startPlayer():
             return False
         dev = importDevice(data["type"])
         device = dev(
+            uid,
             request.args.get("token") or generateToken(getUID()),
             data["address"],
             data["port"],
@@ -53,10 +44,15 @@ def startPlayer():
             data["password"],
             data["device"],
         )
-        startData = device.playMedia(obj)
+        startData = device.playMedia(
+            int(request.args["mediaType"]), int(request.args["mediaData"]), request.args
+        )
         if hasattr(device, "doWork"):
             doWork(device)
     else:
+        obj = transcoder(int(request.args["mediaType"]), int(request.args["mediaData"]))
+        obj.enableHLS(True, configData["config"]["hlsTime"])
+        obj.configure(request.args)
         startData = obj.start()
 
     r_userFiles.set(uid, json.dumps(startData))
@@ -198,7 +194,8 @@ def player_stop():
             return False
         dev = importDevice(data["type"])
         device = dev(
-            request.args["token"] or "",
+            uid,
+            request.args.get("token") or generateToken(getUID()),
             data["address"],
             data["port"],
             data["user"],

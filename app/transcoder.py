@@ -3,9 +3,11 @@ import signal
 import json
 import re
 from subprocess import Popen, PIPE
+import shutil
 
 from .log import logger
-from .files import getFileInfos, getMediaPath, getSubPathFromName
+from .files import getFileInfos, getMediaPath, getSubPathFromName, getOutputDir
+from .utils import configData
 
 
 class transcoder:
@@ -13,10 +15,14 @@ class transcoder:
         self,
         mediaType: int,
         mediaData: int,
-        outDir: str = "./",
-        encoder: str = "h264_nvenc",
-        crf: int = 23,
+        outDir: str = None,
+        encoder: str = configData["config"]["encoder"],
+        crf: int = configData["config"]["crf"],
     ):
+        if outDir is None:
+            self._outDir = getOutputDir()
+        else:
+            self._outDir = outDir
         self._file = getMediaPath(mediaType, mediaData)
         self._fileInfos = getFileInfos(mediaType, mediaData)
         self._audioStream = "0"
@@ -24,12 +30,11 @@ class transcoder:
         self._subFile = b""
         self._enableHLS = True
         self._startFrom = 0
-        self._hlsTime = 60
+        self._hlsTime = configData["config"]["hlsTime"]
         self._resize = -1
         self._encoder = encoder
         self._crf = crf
-        self._outDir = outDir
-        self._outFile = outDir.encode("utf-8") + b"/stream"
+        self._outFile = self._outDir.encode("utf-8") + b"/stream"
         self._remove3D = 0
         self._runningProcess = None
         self._bitmapSubs = ["hdmv_pgs_subtitle", "dvd_subtitle"]
@@ -48,7 +53,7 @@ class transcoder:
         if subFile != "":
             self._subFile = getSubPathFromName(self._file, subFile)
 
-    def enableHLS(self, en, time=-1):
+    def enableHLS(self, en, time=configData["config"]["hlsTime"]):
         self._enableHLS = en
         self._hlsTime = time
 
@@ -79,19 +84,20 @@ class transcoder:
         return float(data) + float(self._startFrom)
 
     def configure(self, args: dict):
-        if "audioStream" in args:
-            self.setAudioStream(args.get("audioStream"))
-        if "subStream" in args:
-            self.setSubStream(args.get("subStream"))
-        if "subFile" in args:
-            self.setSubFile(args.get("subFile"))
-        if "startFrom" in args:
-            self.setStartTime(args.get("startFrom"))
-        if "resize" in args:
-            self.resize(args.get("resize"))
-        if "remove3D" in args:
-            r3 = args["remove3D"]
-            self.remove3D(int(r3))
+        if args is not None:
+            if "audioStream" in args:
+                self.setAudioStream(args.get("audioStream"))
+            if "subStream" in args:
+                self.setSubStream(args.get("subStream"))
+            if "subFile" in args:
+                self.setSubFile(args.get("subFile"))
+            if "startFrom" in args:
+                self.setStartTime(args.get("startFrom"))
+            if "resize" in args:
+                self.resize(args.get("resize"))
+            if "remove3D" in args:
+                r3 = args["remove3D"]
+                self.remove3D(int(r3))
 
     def getSubtitles(self) -> bytes:
         if self._subStream != "-1":
@@ -123,8 +129,9 @@ class transcoder:
             return None
 
     def start(self) -> dict:
-        if not os.path.exists(self._outDir):
-            os.makedirs(self._outDir)
+        if os.path.exists(self._outDir):
+            shutil.rmtree(self._outDir)
+        os.makedirs(self._outDir)
 
         filePath = self._file
         cut = b""

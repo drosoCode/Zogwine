@@ -4,8 +4,9 @@ import re
 import os
 import base64
 
-from .dbHelper import getSqlConnection, configData
+from .dbHelper import getSqlConnection, configData, r_userFiles
 from .urlResolver import getInfos
+from .utils import getUID
 
 
 def _getSubtitleFilesList(filePath: bytes) -> list:
@@ -219,3 +220,9 @@ def getFileInfos(mediaType: int, mediaData: int) -> dict:
 
     sqlConnection.close()
     return dat
+
+
+def getOutputDir(uid: int = None):
+    if uid is None:
+        uid = getUID()
+    return os.path.join(configData["config"]["outDir"], str(uid))

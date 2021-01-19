@@ -7,11 +7,13 @@ from app.devices.PlayerBase import PlayerBase
 from app.transcoder import transcoder
 from app.dbHelper import configData
 from app.log import logger
+from app.files import getOutputDir
 
 
 class xbmc4xbox(PlayerBase):
     def __init__(
         self,
+        uid: int,
         token: str,
         address: str,
         port: int = None,
@@ -19,16 +21,14 @@ class xbmc4xbox(PlayerBase):
         password: str = None,
         device: str = None,
     ):
-        self._outDir = "out/" + token
+        self._token = token
+        self._outDir = getOutputDir()
         self._endpoint = "http://" + str(address) + "/xbmcCmds/xbmcHttp?command="
         if user is not None and password is not None:
             self._auth = (str(user), str(password))
         else:
             self._auth = None
-        self._path = configData["config"]["outDir"]
-        self._baseUrl = (
-            configData["config"]["baseUrl"] + "/api/player/ts?token=" + token + "&name="
-        )
+        self._baseUrl = configData["config"]["baseUrl"] + "/out/" + str(uid) + "/"
         self._startData = None
 
     def activePid(self, pid):
@@ -38,7 +38,10 @@ class xbmc4xbox(PlayerBase):
         except OSError:
             return False
 
-    def playMedia(self, obj):
+    def playMedia(self, mediaType: int, mediaData: int, data: dict = None):
+        obj = transcoder(int(mediaType), int(mediaData))
+        obj.enableHLS(True)
+        obj.configure(data)
         if int(obj._resize) > 720 or int(obj._resize) < 0:
             obj.resize(720)
         self._startData = obj.start()
@@ -58,7 +61,9 @@ class xbmc4xbox(PlayerBase):
             requests.get(
                 self._endpoint
                 + "AddToPlayList("
-                + urllib.parse.quote(self._baseUrl + "stream000.ts", safe="")
+                + urllib.parse.quote(
+                    self._baseUrl + "stream000.ts?token=" + self._token, safe=""
+                )
                 + ";1)",
                 auth=self._auth,
             ).text
@@ -87,7 +92,7 @@ class xbmc4xbox(PlayerBase):
                         self._endpoint
                         + "AddToPlayList("
                         + urllib.parse.quote(
-                            self._baseUrl + "stream" + num + ".ts",
+                            self._baseUrl + "stream" + num + ".ts?token=" + self._token,
                             safe="",
                         )
                         + ";1)",
@@ -126,5 +131,6 @@ class xbmc4xbox(PlayerBase):
     def _volume(self) -> int:
         pass
 
+    @property
     def _status(self) -> str:
         pass
