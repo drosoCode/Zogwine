@@ -156,7 +156,7 @@ def addFile(file: bytes, mediaType: int) -> int:
     return int(dat[u"idVid"])
 
 
-def getMediaPath(mediaType: int, mediaData: int, addBasePath: bool = True) -> bytes:
+def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> bytes:
     sqlConnection, cursor = getSqlConnection()
     base = b""
     if addBasePath:
@@ -226,3 +226,44 @@ def getOutputDir(uid: int = None):
     if uid is None:
         uid = getUID()
     return os.path.join(configData["config"]["outDir"], str(uid))
+
+
+def getMediaFromUrl(url: str) -> dict:
+    pos = url.find("/out/")
+    if pos != -1:
+        pos += 5
+        uid = url[pos : url.find("/", pos + 1)]
+        data = r_userFiles.get(uid)
+        if data is not None:
+            data = json.loads(data)
+            return {
+                "mediaType": int(data["mediaType"]),
+                "mediaData": str(data["mediaData"]),
+            }
+        else:
+            return None
+    else:
+        pos = url.find("content/")
+        if pos == -1:
+            return None
+        pos += 8
+        sqlConnection, cursor = getSqlConnection()
+        if url[pos:].find(configData["config"]["moviePath"]) == 0:
+            # movie
+            cursor.execute(
+                "SELECT idMovie FROM movies m JOIN video_files v ON (v.idVid = m.idVid) WHERE path = %(path)s;",
+                {"path": url[pos + len(configData["config"]["moviePath"]) + 1 :]},
+            )
+            dat = cursor.fetchone()["idMovie"]
+            sqlConnection.close()
+            return {"mediaType": 3, "mediaData": dat}
+
+        elif url[pos:].find(configData["config"]["tvsPath"]) == 0:
+            # tvs
+            cursor.execute(
+                "SELECT idEpisode FROM episodes e JOIN video_files v ON (v.idVid = e.idVid) WHERE path = %(path)s;",
+                {"path": url[pos + len(configData["config"]["tvsPath"]) + 1 :]},
+            )
+            dat = cursor.fetchone()["idEpisode"]
+            sqlConnection.close()
+            return {"mediaType": 1, "mediaData": str(dat)}
