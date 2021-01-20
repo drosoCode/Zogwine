@@ -19,6 +19,14 @@ steps:
 #      - pip install --no-cache-dir -r requirements_test.txt
 #      - pytest
 
+  - name: code_analysis
+    image: aosapps/drone-sonar-plugin
+    settings:
+      sonar_host:
+        from_secret: sonar_host
+      sonar_token:
+        from_secret: sonar_token
+        
   - name: discord_notification
     image: appleboy/drone-discord
     when:
