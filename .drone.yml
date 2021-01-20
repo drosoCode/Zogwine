@@ -26,7 +26,7 @@ steps:
         from_secret: sonar_host
       sonar_token:
         from_secret: sonar_token
-        
+
   - name: discord_notification
     image: appleboy/drone-discord
     when:
@@ -141,6 +141,6 @@ trigger:
   - production
 ---
 kind: signature
-hmac: 3b046daf94e4504312161771c39e3d46a1d9c0dd887fdb650bc3ef58b1dece97
+hmac: 9baeb4098e3c7069e4bb9660693779851e783a6a181b7f12fbaeeae70324c998
 
 ...
