@@ -30,7 +30,7 @@ r_runningThreads.set("people", 0)
 
 app = Flask(__name__, static_url_path="")
 
-app.register_blueprint(tvs)
+app.register_blueprint(tvs, url_prefix="/api/tvs")
 app.register_blueprint(movie)
 app.register_blueprint(user)
 app.register_blueprint(core)

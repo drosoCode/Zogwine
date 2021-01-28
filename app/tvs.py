@@ -12,52 +12,13 @@ from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
 
 tvs = Blueprint("tvs", __name__)
-allowedMethods = ["GET", "POST"]
+
+# region SCAN
+
+################################# GET ####################################################
 
 
-def tvs_refreshCache():
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute("SELECT icon, fanart FROM tv_shows;")
-    data = cursor.fetchall()
-    for d in data:
-        if d["icon"] != None and "http" not in d["icon"]:
-            addCache(d["icon"])
-        if d["fanart"] != None and "http" not in d["fanart"]:
-            addCache(d["fanart"])
-    cursor.execute("SELECT icon FROM episodes;")
-    data = cursor.fetchall()
-    for d in data:
-        if d["icon"] != None and "http" not in d["icon"]:
-            addCache(d["icon"])
-    cursor.execute("SELECT icon FROM seasons;")
-    data = cursor.fetchall()
-    for d in data:
-        if d["icon"] != None and "http" not in d["icon"]:
-            addCache(d["icon"])
-    cursor.execute("SELECT icon FROM upcoming_episodes;")
-    data = cursor.fetchall()
-    for d in data:
-        if d["icon"] != None and "http" not in d["icon"]:
-            addCache(d["icon"])
-    sqlConnection.close()
-
-
-@tvs.route("/api/tvs/getUpcomingEpisodes", methods=allowedMethods)
-def tvs_getUpcomingEpisodes():
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT u.idEpisode AS id, u.title AS title, t.title AS showTitle, u.overview AS overview, CONCAT('/api/image?id=',COALESCE(u.icon, t.fanart)) AS icon,"
-        "u.season AS season, u.episode AS episode, u.date AS date, u.idShow AS idShow "
-        "FROM upcoming_episodes u, tv_shows t "
-        "WHERE u.idShow = t.idShow AND u.date >= DATE(SYSDATE())"
-        "ORDER BY date;"
-    )
-    res = cursor.fetchall()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
-
-
-@tvs.route("/api/tvs/upc_scan", methods=allowedMethods)
+@tvs.route("scan/upcoming", methods=["GET"])
 def tvs_runUpcomingScanThreaded():
     checkUser("admin")
     tvs_runUpcomingScan()
@@ -73,7 +34,121 @@ def tvs_runUpcomingScan():
     sqlConnection.close()
 
 
-def tvs_getEps(token, idShow, season=None):
+@tvs.route("scan/result", methods=["GET"])
+def tvs_getShowsMr():
+    return jsonify({"status": "ok", "data": tvs_getShows(True)})
+
+
+@tvs.route("scan", methods=["GET"])
+def tvs_runScanThreaded():
+    checkUser("admin")
+    tvs_runScan()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+@thread
+def tvs_runScan():
+    sqlConnection = getSqlConnection(False)
+    r_runningThreads.set("tvs", 1)
+    scanner(sqlConnection, "tvs", configData["api"]).scanDir(
+        os.path.join(
+            configData["config"]["contentPath"], configData["config"]["tvsPath"]
+        )
+    )
+    r_runningThreads.set("tvs", 0)
+    sqlConnection.close()
+
+
+# endregion
+
+# region EPISODE
+
+################################# GET ####################################################
+@tvs.route("episode/upcoming", methods=["GET"])
+def get_upcoming_episodes():
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT u.idEpisode AS id, u.title AS title, t.title AS showTitle, u.overview AS overview, CONCAT('/api/image?id=',COALESCE(u.icon, t.fanart)) AS icon,"
+        "u.season AS season, u.episode AS episode, u.date AS date, u.idShow AS idShow "
+        "FROM upcoming_episodes u, tv_shows t "
+        "WHERE u.idShow = t.idShow AND u.date >= DATE(SYSDATE())"
+        "ORDER BY date;"
+    )
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+@tvs.route("episode/<int:idEpisode>", methods=["GET"])
+def get_episode(idEpisode: int):
+    idUser = getUID()
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT idEpisode AS id, title, overview, CONCAT('/api/image?id=',icon) AS icon,"
+        "season, episode, rating, scraperName, scraperID, filler, "
+        "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount "
+        "FROM episodes e "
+        "WHERE idEpisode = %(idEpisode)s",
+        {"idUser": idUser, "idEpisode": idEpisode},
+    )
+    res = cursor.fetchone()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+################################# PUT ####################################################
+
+
+@tvs.route("episode/<int:idEpisode>/status", methods=["PUT"])
+def tvs_toggleWatchedEpisodeFlask(idEpisode: int):
+    # set episode as watched for user
+    tvs_toggleWatchedEpisode(getUID(), idEpisode)
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+################################# DELETE ####################################################
+
+
+@tvs.route("episode/<int:idEpisode>", methods=["DELETE"])
+def delete_episode(idEpisode: int):
+    checkUser("admin")
+
+    sqlConnection, cursor = getSqlConnection()
+    idEp = {"id": idEpisode}
+    cursor.execute(
+        "DELETE FROM status WHERE mediaType = 1 AND idMedia = (SELECT idEpisode FROM episodes WHERE idEpisode = %(id)s);",
+        idEp,
+    )
+    cursor.execute(
+        "DELETE FROM video_files WHERE idVid = (SELECT idVid FROM episodes WHERE idEpisode = %(id)s);",
+        idEp,
+    )
+    cursor.execute("DELETE FROM episodes WHERE idEpisode = %(id)s;", idEp)
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+# endregion
+
+# region SHOW
+
+################################# GET ####################################################
+@tvs.route("show/<int:idShow>/season/<int:season>/episode", methods=["GET"])
+@tvs.route("show/<int:idShow>/episode", methods=["GET"])
+def get_show_episodes(idShow: int, season: int = None):
+    return jsonify(
+        {
+            "status": "ok",
+            "data": tvs_getEps(
+                idShow,
+                season,
+            ),
+        }
+    )
+
+
+def tvs_getEps(idShow, season=None):
     idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     s = ""
@@ -95,29 +170,18 @@ def tvs_getEps(token, idShow, season=None):
     return res
 
 
-@tvs.route("/api/tvs/getEpisodes", methods=allowedMethods)
-def tvs_getEpsFlask():
-    checkArgs(["idShow"])
-    return jsonify(
-        {
-            "status": "ok",
-            "data": tvs_getEps(
-                request.args["token"],
-                request.args["idShow"],
-                request.args.get("season"),
-            ),
-        }
-    )
+@tvs.route("show/<int:idShow>", methods=["GET"])
+def get_show(idShow: int):
+    return jsonify({"status": "ok", "data": tvs_getShows(False, int(idShow))})
 
 
-@tvs.route("/api/tvs/getSeasons", methods=allowedMethods)
-def tvs_getSeasons():
-    checkArgs(["idShow"])
+@tvs.route("show/<int:idShow>/season", methods=["GET"])
+@tvs.route("show/<int:idShow>/season/<int:season>", methods=["GET"])
+def get_season(idShow: int, season: int = None):
     idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
-    season = request.args.get("season")
     s = ""
-    dat = {"idUser": idUser, "idShow": request.args["idShow"]}
+    dat = {"idUser": idUser, "idShow": idShow}
     if season is not None:
         dat["season"] = season
         s = "AND season = %(season)s "
@@ -136,77 +200,24 @@ def tvs_getSeasons():
     return jsonify({"status": "ok", "data": res})
 
 
-def tvs_getShows(token, mr=False):
-    idUser = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    mrDat = ""
-    if mr:
-        mrDat = "NOT "
-    query = (
-        "SELECT idShow AS id, title,"
-        "CONCAT('/api/image?id=',icon) AS icon,"
-        "rating, premiered, multipleResults,"
-        "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
-        "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
-        "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode) "
-        "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s AND idShow = t.idShow) AS watchedEpisodes "
-        "FROM tv_shows t "
-        "WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;"
-    )
-    cursor.execute(query, {"idUser": int(idUser)})
-    res = cursor.fetchall()
-    sqlConnection.close()
-    return res
-
-
-@tvs.route("/api/tvs/getShows", methods=allowedMethods)
+@tvs.route("show", methods=["GET"])
 def tvs_getShowsFlask():
-    return jsonify({"status": "ok", "data": tvs_getShows(request.args["token"], False)})
+    return jsonify({"status": "ok", "data": tvs_getShows(False)})
 
 
-@tvs.route("/api/tvs/getShowsMultipleResults", methods=allowedMethods)
-def tvs_getShowsMr():
-    return jsonify({"status": "ok", "data": tvs_getShows(request.args["token"], True)})
+################################# POST ####################################################
 
 
-@tvs.route("/api/tvs/getShow", methods=allowedMethods)
-def tvs_getShow():
-    checkArgs(["idShow"])
-    idUser = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    query = (
-        "SELECT idShow AS id,"
-        "title, overview, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID,"
-        "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
-        "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
-        "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
-        "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes,"
-        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 1),scraperID) AS scraperLink "
-        "FROM tv_shows t "
-        "WHERE multipleResults IS NULL AND idShow = %(idShow)s ORDER BY title;"
-    )
-    cursor.execute(query, {"idUser": idUser, "idShow": request.args["idShow"]})
-    res = cursor.fetchone()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
-
-
-@tvs.route("/api/tvs/setID", methods=allowedMethods)
-def tvs_setID():
-    checkArgs(["idShow", "id"])
+@tvs.route("show/<int:idShow>/select/<int:id>", methods=["POST"])
+def tvs_setID(idShow: int, id: int):
     checkUser("admin")
-    idShow = request.args["idShow"]
-    resultID = request.args["id"]
     # the resultID is the one from the json list of multipleResults entry
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT multipleResults FROM tv_shows WHERE idShow = %(idShow)s;",
         {"idShow": str(idShow)},
     )
-    data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
+    data = json.loads(cursor.fetchone()["multipleResults"])[int(id)]
     cursor.execute(
         "UPDATE tv_shows SET scraperName = %(scraperName)s, scraperID = %(scraperId)s, scraperData = %(scraperData)s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %(idShow)s;",
         {
@@ -219,6 +230,114 @@ def tvs_setID():
     sqlConnection.commit()
     sqlConnection.close()
     return jsonify({"status": "ok", "data": "ok"})
+
+
+################################# PUT ####################################################
+
+
+@tvs.route("show/<int:idShow>/status", methods=["PUT"])
+@tvs.route("show/<int:idShow>/season/<int:season>/status", methods=["PUT"])
+def tvs_toggleWatchedSeason(idShow: int, season: int = None):
+    uid = getUID()
+    sqlConnection, cursor = getSqlConnection()
+    dat = {"idUser": getUID(), "idShow": idShow}
+    watched = True
+
+    if season is not None:
+        dat["season"] = season
+        s = "AND season = %(season)s"
+    cursor.execute(
+        "SELECT SUM(watchCount) AS watched FROM status WHERE idUser = %(idUser)s AND mediaType = 1 "
+        "AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(idShow)s "
+        + s
+        + ");",
+        dat,
+    )
+    isWatched = cursor.fetchone()["watched"]
+    if isWatched is not None and int(isWatched) > 0:
+        watched = False
+
+    ids = tvs_getEps(uid, idShow)
+    for i in ids:
+        if season is None or int(season) == int(i["season"]):
+            tvs_toggleWatchedEpisode(uid, i["id"], watched)
+
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+@tvs.route("show/<int:idShow>/scanTitle", methods=["PUT"])
+def new_search(idShow: int):
+    checkUser("admin")
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "UPDATE tv_shows SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idShow = %(idShow)s;",
+        {"newTitle": json.loads(request.data)["title"], "idShow": idShow},
+    )
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+################################# DELETE ####################################################
+
+
+@tvs.route("show/<int:idShow>", methods=["DELETE"])
+def delete_show(idShow: int):
+    checkUser("admin")
+
+    sqlConnection, cursor = getSqlConnection()
+    idS = {"id": idShow}
+    cursor.execute(
+        "DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(id)s);",
+        idS,
+    )
+    cursor.execute(
+        "DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(id)s);",
+        idS,
+    )
+    cursor.execute("DELETE FROM episodes WHERE idShow = %(id)s;", idS)
+    cursor.execute("DELETE FROM seasons WHERE idShow = %(id)s;", idS)
+    cursor.execute("DELETE FROM tv_shows WHERE idShow = %(id)s;", idS)
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+# endregion
+
+# region HELPERS
+def tvs_getShows(mr=False, idShow=None):
+    idUser = getUID()
+    sqlConnection, cursor = getSqlConnection()
+    mrDat = ""
+    show = ""
+    queryData = {"idUser": int(idUser)}
+    if mr:
+        mrDat = "NOT "
+    if idShow is not None:
+        show = " AND idShow = %(idShow)s"
+        queryData.update({"idShow": idShow})
+
+    query = (
+        "SELECT idShow AS id,"
+        "title, overview, CONCAT('/api/image?id=',icon) AS icon, CONCAT('/api/image?id=',fanart) AS fanart, "
+        "rating, premiered, scraperName, scraperID, multipleResults, "
+        "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
+        "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
+        "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
+        "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes,"
+        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 1),scraperID) AS scraperLink "
+        "FROM tv_shows t "
+        "WHERE multipleResults IS " + mrDat + "NULL" + show + " ORDER BY title;"
+    )
+
+    cursor.execute(query, queryData)
+    res = cursor.fetchall()
+    sqlConnection.close()
+    if idShow is not None:
+        return res[0]
+    return res
 
 
 def tvs_toggleWatchedEpisode(uid, idEpisode, watched=None):
@@ -254,119 +373,31 @@ def tvs_toggleWatchedEpisode(uid, idEpisode, watched=None):
     return True
 
 
-@tvs.route("/api/tvs/toggleEpisodeStatus", methods=allowedMethods)
-def tvs_toggleWatchedEpisodeFlask():
-    checkArgs(["idEpisode"])
-    # set episode as watched for user
-    tvs_toggleWatchedEpisode(getUID(), request.args["idEpisode"])
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@tvs.route("/api/tvs/toggleSeasonStatus", methods=allowedMethods)
-def tvs_toggleWatchedSeason():
-    checkArgs(["idShow"])
-    uid = getUID()
-    idShow = request.args["idShow"]
+def tvs_refreshCache():
     sqlConnection, cursor = getSqlConnection()
-    dat = {"idUser": getUID(), "idShow": idShow}
-    watched = True
-
-    season = request.args.get("season")
-    if season is not None:
-        dat["season"] = season
-        s = "AND season = %(season)s"
-    cursor.execute(
-        "SELECT SUM(watchCount) AS watched FROM status WHERE idUser = %(idUser)s AND mediaType = 1 "
-        "AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(idShow)s "
-        + s
-        + ");",
-        dat,
-    )
-    isWatched = cursor.fetchone()["watched"]
-    if isWatched is not None and int(isWatched) > 0:
-        watched = False
-
-    ids = tvs_getEps(uid, idShow)
-    for i in ids:
-        if season is None or int(season) == int(i["season"]):
-            tvs_toggleWatchedEpisode(uid, i["id"], watched)
-
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@tvs.route("/api/tvs/setNewSearch", methods=allowedMethods)
-def tvs_setNewSearch():
-    checkUser("admin")
-    checkArgs(["idShow", "title"])
-    idShow = request.args["idShow"]
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "UPDATE tv_shows SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idShow = %(idShow)s;",
-        {"newTitle": request.args["title"], "idShow": idShow},
-    )
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@tvs.route("/api/tvs/scan", methods=allowedMethods)
-def tvs_runScanThreaded():
-    checkUser("admin")
-    tvs_runScan()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@thread
-def tvs_runScan():
-    sqlConnection = getSqlConnection(False)
-    r_runningThreads.set("tvs", 1)
-    scanner(sqlConnection, "tvs", configData["api"]).scanDir(
-        os.path.join(
-            configData["config"]["contentPath"], configData["config"]["tvsPath"]
-        )
-    )
-    r_runningThreads.set("tvs", 0)
+    cursor.execute("SELECT icon, fanart FROM tv_shows;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None and "http" not in d["icon"]:
+            addCache(d["icon"])
+        if d["fanart"] != None and "http" not in d["fanart"]:
+            addCache(d["fanart"])
+    cursor.execute("SELECT icon FROM episodes;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None and "http" not in d["icon"]:
+            addCache(d["icon"])
+    cursor.execute("SELECT icon FROM seasons;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None and "http" not in d["icon"]:
+            addCache(d["icon"])
+    cursor.execute("SELECT icon FROM upcoming_episodes;")
+    data = cursor.fetchall()
+    for d in data:
+        if d["icon"] != None and "http" not in d["icon"]:
+            addCache(d["icon"])
     sqlConnection.close()
 
 
-@tvs.route("/api/tvs/show/<idShow>", methods=["DELETE"])
-def delete_show(idShow: int):
-    checkUser("admin")
-
-    sqlConnection, cursor = getSqlConnection()
-    idS = {"id": idShow}
-    cursor.execute(
-        "DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(id)s);",
-        idS,
-    )
-    cursor.execute(
-        "DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(id)s);",
-        idS,
-    )
-    cursor.execute("DELETE FROM episodes WHERE idShow = %(id)s;", idS)
-    cursor.execute("DELETE FROM seasons WHERE idShow = %(id)s;", idS)
-    cursor.execute("DELETE FROM tv_shows WHERE idShow = %(id)s;", idS)
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@tvs.route("/api/tvs/episode/<idEpisode>", methods=["DELETE"])
-def delete_episode(idEpisode: int):
-    checkUser("admin")
-
-    sqlConnection, cursor = getSqlConnection()
-    idEp = {"id": idEpisode}
-    cursor.execute(
-        "DELETE FROM status WHERE mediaType = 1 AND idMedia = (SELECT idEpisode FROM episodes WHERE idEpisode = %(id)s);",
-        idEp,
-    )
-    cursor.execute(
-        "DELETE FROM video_files WHERE idVid = (SELECT idVid FROM episodes WHERE idEpisode = %(id)s);",
-        idEp,
-    )
-    cursor.execute("DELETE FROM episodes WHERE idEpisode = %(id)s;", idEp)
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
+# endregion

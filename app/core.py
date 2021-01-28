@@ -121,7 +121,8 @@ def getImage():
         mime = "image/jpeg"
 
     if "/" not in id and os.path.exists(file):
-        return send_file(open(file, "rb"), mimetype=mime)
+        return redirect("/cache/" + id, code=302)
+        # return send_file(open(file, "rb"), mimetype=mime)
     else:
         return redirect(url, code=302)
 
