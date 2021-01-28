@@ -1,0 +1,591 @@
+openapi: 3.0.1
+info:
+  title: Zogwine API
+  description: This is the API documentation for the Zogwine media center
+  version: 1.0.0
+tags:
+- name: tvs
+  description: TV Show Operations
+- name: movie
+  description: Movie Operations
+- name: user
+  description: User Operations
+- name: device
+  description: Device Operations
+- name: player
+  description: Player Operations
+- name: core
+  description: Core Operations
+  
+paths:
+  /tvs/show:
+    get:
+      tags:
+      - tvs
+      summary: Get list of all tv shows
+      operationId: tvs_get_shows
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tvshow'
+
+  /tvs/show/{idShow}:
+    get:
+      tags:
+      - tvs
+      summary: Get tv show data
+      operationId: tvs_get_show
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/tvshow'
+    delete:
+      tags:
+      - tvs
+      summary: Delete a tv show
+      operationId: tvs_delete_show
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/show/{idShow}/episode:
+    get:
+      tags:
+      - tvs
+      summary: Get tv show episodes list
+      operationId: tvs_get_show_ep
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tvshow_episode'
+
+  /tvs/show/{idShow}/season/{season}/episode:
+    get:
+      tags:
+      - tvs
+      summary: Get tv show episodes list by season
+      operationId: tvs_get_show_ep_season
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      - name: season
+        in: path
+        description: season number
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tvshow_episode'
+
+  /tvs/show/{idShow}/season:
+    get:
+      tags:
+      - tvs
+      summary: Get tv show season list
+      operationId: tvs_get_show_season
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tvshow_season'
+
+  /tvs/show/{idShow}/season/{season}:
+    get:
+      tags:
+      - tvs
+      summary: Get tv show season data
+      operationId: tvs_get_show_season_filtered
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      - name: season
+        in: path
+        description: season number
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/tvshow_season'
+
+  /tvs/show/{idShow}/season/{season}/status:
+    put:
+      tags:
+      - tvs
+      summary: Toggle the watched status for a show
+      operationId: tvs_season_status
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      - name: season
+        in: path
+        description: season number
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/show/{idShow}/select/{id}:
+    post:
+      tags:
+      - tvs
+      summary: Select a show from a scan results
+      operationId: tvs_select_show
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      - name: id
+        in: path
+        description: id of the selected result
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/show/{idShow}/scanTitle:
+    put:
+      tags:
+      - tvs
+      summary: Change the search title for a show
+      operationId: tvs_change_title
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/episode/{idEpisode}:
+    get:
+      tags:
+      - tvs
+      summary: Get episode data
+      operationId: tvs_ep_data
+      parameters:
+      - name: idEpisode
+        in: path
+        description: episode id
+        required: true
+        schema:
+          type: integer
+                  
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/tvshow_season'
+    delete:
+      tags:
+      - tvs
+      summary: Delete episode
+      operationId: tvs_ep_delete
+      parameters:
+      - name: idEpisode
+        in: path
+        description: episode id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/episode/{idEpisode}/status:
+    put:
+      tags:
+      - tvs
+      summary: Toggle the watched status for an episode
+      operationId: tvs_ep_status
+      parameters:
+      - name: idEpisode
+        in: path
+        description: episode id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/episode/upcoming:
+    get:
+      tags:
+      - tvs
+      summary: Get a list of upcoming episodes
+      operationId: tvs_ep_upcoming
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        title:
+                          type: string
+                        showTitle:
+                          type: string
+                        overview:
+                          type: string
+                        icon:
+                          type: string
+                        season:
+                          type: integer
+                        episode:
+                          type: integer
+                        date:
+                          type: string
+                        idShow:
+                          type: integer
+
+  /tvs/scan:
+    get:
+      tags:
+      - tvs
+      summary: Run a scan for new shows and episodes
+      operationId: tvs_scan
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /tvs/scan/result:
+    get:
+      tags:
+      - tvs
+      summary: Get multiple results available for shows 
+      operationId: tvs_scan_results
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tvshow'
+
+  /tvs/scan/upcoming:
+    get:
+      tags:
+      - tvs
+      summary: Run a scan for upcoming episodes
+      operationId: tvs_scan_upcoming
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+components:
+  schemas:
+    tvshow:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        overview:
+          type: string
+        icon:
+          type: string
+        fanart:
+          type: string
+        rating:
+          type: number
+        premiered:
+          type: string
+        seasons:
+          type: integer
+        episodes:
+          type: integer
+        watchedEpisodes:
+          type: integer
+        scraperLink:
+          type: string
+        multipleResults:
+          type: string
+
+    tvshow_season:
+      type: object
+      properties:
+        title:
+          type: string
+        overview:
+          type: string
+        icon:
+          type: string
+        season:
+          type: integer
+        episodes:
+          type: integer
+        watchedEpisodes:
+          type: integer
+
+    tvshow_episode:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        overview:
+          type: string
+        icon:
+          type: string
+        season:
+          type: integer
+        episode:
+          type: integer
+        rating:
+          type: number
+        scraperName:
+          type: string
+        scraperID:
+          type: string
+        filler:
+          type: integer
+        watchCount:
+          type: integer
+        
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: token
+      in: header
