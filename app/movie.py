@@ -15,11 +15,133 @@ movie = Blueprint("movie", __name__)
 allowedMethods = ["GET", "POST"]
 
 
-@movie.route("/api/movies/toggleStatus", methods=allowedMethods)
-def mov_toggleStatus():
-    checkArgs(["idMovie"])
+# region scan
+
+################################# GET ####################################################
+
+
+@movie.route("scan", methods=["GET"])
+def mov_runScanThreaded():
+    checkUser("admin")
+    mov_runScan()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+@movie.route("scan/result", methods=["GET"])
+def mov_multipleResults():
+    checkUser("admin")
+    return jsonify({"status": "ok", "data": mov_getMovie(True)})
+
+
+# endregion
+
+# region MOVIE
+
+
+################################# GET ####################################################
+
+
+@movie.route("<int:idMovie>", methods=["GET"])
+@movie.route("", methods=["GET"])
+def mov_getMovieFlask(idMovie: int = None):
+    return jsonify({"status": "ok", "data": mov_getMovie(False, idMovie)})
+
+
+@movie.route("collection", methods=["GET"])
+@movie.route("collection/<int:idCollection>", methods=["GET"])
+def mov_getCollections(idCollection: int = None):
     idUser = getUID()
-    idMovie = request.args["idMovie"]
+    queryData = {"idUser": idUser}
+    c = ""
+    if idCollection is not None:
+        c = " WHERE idCollection = %(idCollection)s"
+        queryData = {"idUser": idUser, "idCollection": idCollection}
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT idCollection AS id, title, overview, "
+        "CONCAT('/api/image?id=',icon) AS icon, "
+        "CONCAT('/api/image?id=',fanart) AS fanart, "
+        "premiered, scraperName, scraperID, "
+        "(SELECT COUNT(*) FROM movies m WHERE m.idCollection = t.idCollection) movieCount, "
+        "(SELECT COUNT(watchCount) FROM movies m LEFT JOIN status st ON (st.idMedia = m.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND m.idCollection = t.idCollection) AS watchedMovies, "
+        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
+        "FROM movie_collections t " + c + ""
+        "ORDER BY title;",
+        queryData,
+    )
+    if c != "":
+        res = cursor.fetchone()
+    else:
+        res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+@movie.route("fromCollection/<int:idCollection>", methods=["GET"])
+def mov_getCollectionMovies(idCollection: int):
+    idUser = getUID()
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT idMovie AS id, title, overview, "
+        "CONCAT('/api/image?id=',icon) AS icon, "
+        "CONCAT('/api/image?id=',fanart) AS fanart, "
+        "rating, premiered, scraperName, scraperID, multipleResults, "
+        "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
+        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
+        "FROM movies t WHERE multipleResults IS NULL AND idCollection = %(idCollection)s ORDER BY premiered;",
+        {"idUser": idUser, "idCollection": idCollection},
+    )
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+################################ POST ##########################################################
+
+
+@movie.route("<int:idMovie>/select/<int:id>", methods=["POST"])
+def mov_setID(idMovie: int, id: int):
+    checkUser("admin")
+    # the id is the one from the json list of multipleResults entry
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT multipleResults FROM movies WHERE idMovie = " + str(idMovie) + ";"
+    )
+    data = json.loads(cursor.fetchone()["multipleResults"])[int(id)]
+    cursor.execute(
+        "UPDATE movies SET scraperName = %(scraperName)s, scraperID = %(scraperID)s, scraperData = %(scraperData)s, forceUpdate = 1, multipleResults = NULL WHERE idMovie = %(idMovie)s;",
+        {
+            "scraperName": data["scraperName"],
+            "scraperID": data["id"],
+            "scraperData": data["scraperData"],
+            "idMovie": idMovie,
+        },
+    )
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+############################## PUT ####################################
+
+
+@movie.route("<int:idMovie>/scanTitle", methods=["PUT"])
+def mov_setNewSearch(idMovie: int):
+    checkUser("admin")
+    checkArgs(["idMovie", "title"])
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "UPDATE movies SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idMovie = %(idMovie)s;",
+        {"newTitle": json.loads(request.data)["title"], "idMovie": idMovie},
+    )
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
+
+
+@movie.route("<int:idMovie>/status", methods=["PUT"])
+def mov_toggleStatus(idMovie: int):
+    idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT watchCount FROM status WHERE idUser = %(idUser)s AND mediaType = 3 AND idMedia = %(idMovie)s;",
@@ -48,11 +170,9 @@ def mov_toggleStatus():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-@movie.route("/api/movies/scan", methods=allowedMethods)
-def mov_runScanThreaded():
-    checkUser("admin")
-    mov_runScan()
-    return jsonify({"status": "ok", "data": "ok"})
+# endregion
+
+# region HELPERS
 
 
 @thread
@@ -68,145 +188,35 @@ def mov_runScan():
     sqlConnection.close()
 
 
-def mov_getData(token, mr=False):
+def mov_getMovie(mr=False, idMovie=None):
     idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     mrDat = ""
+    show = ""
+    queryData = {"idUser": int(idUser)}
     if mr:
         mrDat = "NOT "
-    cursor.execute(
-        "SELECT idMovie AS id, title, overview, idCollection, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, multipleResults, "
-        "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
-        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
-        "FROM movies t WHERE multipleResults IS " + mrDat + "NULL ORDER BY title;",
-        {"idUser": idUser},
-    )
-    res = cursor.fetchall()
-    sqlConnection.close()
-    return res
+    if idMovie is not None:
+        show = " AND idMovie = %(idMovie)s"
+        queryData.update({"idMovie": idMovie})
 
-
-@movie.route("/api/movies/getMovie", methods=allowedMethods)
-def mov_getMovie():
-    checkArgs(["idMovie"])
-    idUser = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
+    query = (
         "SELECT idMovie AS id, title, overview, idCollection, "
         "CONCAT('/api/image?id=',icon) AS icon, "
         "CONCAT('/api/image?id=',fanart) AS fanart, "
         "rating, premiered, scraperName, scraperID, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
-        "FROM movies t WHERE idMovie = %(idMovie)s;",
-        {"idUser": idUser, "idMovie": request.args["idMovie"]},
+        "FROM movies t "
+        "WHERE multipleResults IS " + mrDat + "NULL" + show + " ORDER BY title;"
     )
-    res = cursor.fetchone()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
 
-
-@movie.route("/api/movies/getMovies", methods=allowedMethods)
-def mov_getDataFlask():
-    return jsonify({"status": "ok", "data": mov_getData(request.args["token"])})
-
-
-@movie.route("/api/movies/getMultipleResults", methods=allowedMethods)
-def mov_getDataMr():
-    return jsonify({"status": "ok", "data": mov_getData(request.args["token"], True)})
-
-
-@movie.route("/api/movies/getCollections", methods=allowedMethods)
-def mov_getCollections():
-    idUser = getUID()
-    queryData = {"idUser": idUser}
-    c = ""
-    if "idCollection" in request.args and request.args["idCollection"] != None:
-        c = " WHERE idCollection = %(idCollection)s"
-        queryData = {"idUser": idUser, "idCollection": request.args["idCollection"]}
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT idCollection AS id, title, overview, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "premiered, scraperName, scraperID, "
-        "(SELECT COUNT(*) FROM movies m WHERE m.idCollection = t.idCollection) movieCount, "
-        "(SELECT COUNT(watchCount) FROM movies m LEFT JOIN status st ON (st.idMedia = m.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND m.idCollection = t.idCollection) AS watchedMovies, "
-        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
-        "FROM movie_collections t " + c + ""
-        "ORDER BY title;",
-        queryData,
-    )
-    if c != "":
-        res = cursor.fetchone()
-    else:
-        res = cursor.fetchall()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
-
-
-@movie.route("/api/movies/getCollectionMovies", methods=allowedMethods)
-def mov_getCollectionMovies():
-    checkArgs(["idCollection"])
-    idUser = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT idMovie AS id, title, overview, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, multipleResults, "
-        "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
-        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
-        "FROM movies t WHERE multipleResults IS NULL AND idCollection = %(idCollection)s ORDER BY premiered;",
-        {"idUser": idUser, "idCollection": request.args["idCollection"]},
-    )
+    cursor.execute(query, queryData)
     res = cursor.fetchall()
     sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
-
-
-@movie.route("/api/movies/setID", methods=allowedMethods)
-def mov_setID():
-    checkUser("admin")
-    checkArgs(["idMovie", "id"])
-    idMovie = request.args["idMovie"]
-    resultID = request.args["id"]
-    # the resultID is the one from the json list of multipleResults entry
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT multipleResults FROM movies WHERE idMovie = " + str(idMovie) + ";"
-    )
-    data = json.loads(cursor.fetchone()["multipleResults"])[int(resultID)]
-    cursor.execute(
-        "UPDATE movies SET scraperName = %(scraperName)s, scraperID = %(scraperID)s, scraperData = %(scraperData)s, forceUpdate = 1, multipleResults = NULL WHERE idMovie = %(idMovie)s;",
-        {
-            "scraperName": data["scraperName"],
-            "scraperID": data["id"],
-            "scraperData": data["scraperData"],
-            "idMovie": idMovie,
-        },
-    )
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@movie.route("/api/movies/setNewSearch", methods=allowedMethods)
-def mov_setNewSearch():
-    checkUser("admin")
-    checkArgs(["idMovie", "title"])
-    idMovie = request.args["idMovie"]
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "UPDATE movies SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idMovie = %(idMovie)s;",
-        {"newTitle": request.args["title"], "idMovie": idMovie},
-    )
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
+    if idMovie is not None:
+        return res[0]
+    return res
 
 
 def mov_refreshCache():
@@ -226,3 +236,6 @@ def mov_refreshCache():
         if d["fanart"] != None and "http" not in d["fanart"]:
             addCache(d["fanart"])
     sqlConnection.close()
+
+
+# endregion

@@ -18,7 +18,7 @@ tags:
   description: Core Operations
   
 paths:
-  /tvs/show:
+  /tvs:
     get:
       tags:
       - tvs
@@ -40,7 +40,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/tvshow'
 
-  /tvs/show/{idShow}:
+  /tvs/{idShow}:
     get:
       tags:
       - tvs
@@ -93,7 +93,7 @@ paths:
                     type: string
                     default: ok
 
-  /tvs/show/{idShow}/episode:
+  /tvs/{idShow}/episode:
     get:
       tags:
       - tvs
@@ -122,7 +122,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/tvshow_episode'
 
-  /tvs/show/{idShow}/season/{season}/episode:
+  /tvs/{idShow}/season/{season}/episode:
     get:
       tags:
       - tvs
@@ -157,7 +157,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/tvshow_episode'
 
-  /tvs/show/{idShow}/season:
+  /tvs/{idShow}/season:
     get:
       tags:
       - tvs
@@ -186,7 +186,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/tvshow_season'
 
-  /tvs/show/{idShow}/season/{season}:
+  /tvs/{idShow}/season/{season}:
     get:
       tags:
       - tvs
@@ -219,7 +219,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/tvshow_season'
 
-  /tvs/show/{idShow}/season/{season}/status:
+  /tvs/{idShow}/season/{season}/status:
     put:
       tags:
       - tvs
@@ -253,7 +253,7 @@ paths:
                     type: string
                     default: ok
 
-  /tvs/show/{idShow}/select/{id}:
+  /tvs/{idShow}/select/{id}:
     post:
       tags:
       - tvs
@@ -287,7 +287,7 @@ paths:
                     type: string
                     default: ok
 
-  /tvs/show/{idShow}/scanTitle:
+  /tvs/{idShow}/scanTitle:
     put:
       tags:
       - tvs
@@ -512,6 +512,281 @@ paths:
                     type: string
                     default: ok
 
+
+
+  /movie/:
+    get:
+      tags:
+      - movie
+      summary: Get movie list
+      operationId: mov_list
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/movie'
+                    
+  /movie/{idMovie}:
+    get:
+      tags:
+      - movie
+      summary: Get movie data
+      operationId: mov_data
+      parameters:
+      - name: idMovie
+        in: path
+        description: movie id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/movie'
+                    
+  /movie/collection:
+    get:
+      tags:
+      - movie
+      summary: Get collection list
+      operationId: mov_collection_list
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/movie_collection'
+                      
+  /movie/collection/{idCollection}:
+    get:
+      tags:
+      - movie
+      summary: Get collection data
+      operationId: mov_collection
+      parameters:
+      - name: idCollection
+        in: path
+        description: collection id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/movie_collection'
+                    
+  /movie/fromCollection/{idCollection}:
+    get:
+      tags:
+      - movie
+      summary: Get movies from a collection
+      operationId: mov_collection_data
+      parameters:
+      - name: idCollection
+        in: path
+        description: collection id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/movie'
+
+
+  /movie/{idMovie}/select/{id}:
+    post:
+      tags:
+      - movie
+      summary: Select a movie from a scan results
+      operationId: movie_select_show
+      parameters:
+      - name: idMovie
+        in: path
+        description: movie ID
+        required: true
+        schema:
+          type: integer
+      - name: id
+        in: path
+        description: id of the selected result
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+
+  /movie/{idMovie}/status:
+    put:
+      tags:
+      - movie
+      summary: Toggle the watched status for a movie
+      operationId: movie_status
+      parameters:
+      - name: idMovie
+        in: path
+        description: movie id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+                    
+                    
+  /movie/{idMovie}/scanTitle:
+    put:
+      tags:
+      - movie
+      summary: Change the search title for a movie
+      operationId: movie_change_title
+      parameters:
+      - name: idMovie
+        in: path
+        description: movie ID
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+                    
+  /movie/scan:
+    get:
+      tags:
+      - movie
+      summary: Run a scan for new movies
+      operationId: movie_scan
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+                    
+  /movie/scan/result:
+    get:
+      tags:
+      - movie
+      summary: Get multiple results available for movies 
+      operationId: movie_scan_results
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/movie'
+
 components:
   schemas:
     tvshow:
@@ -583,9 +858,56 @@ components:
           type: integer
         watchCount:
           type: integer
+
+    movie:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        overview:
+          type: string
+        icon:
+          type: string
+        fanart:
+          type: string
+        rating:
+          type: number
+        premiered:
+          type: string
+        scraperName:
+          type: string
+        scraperID:
+          type: string
+        watchCount:
+          type: integer
+        scraperLink:
+          type: string
+
+    movie_collection:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        overview:
+          type: string
+        icon:
+          type: string
+        fanart:
+          type: string
+        movieCount:
+          type: integer
+        watchedMovies:
+          type: integer
+        scraperLink:
+          type: string
         
   securitySchemes:
     api_key:
       type: apiKey
       name: token
       in: header
+
