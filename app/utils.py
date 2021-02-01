@@ -60,6 +60,11 @@ def getUID() -> int:
         if d is not None:
             return int(d.decode("utf-8"))
 
+    if "Authorization" in request.headers:
+        d = r_userTokens.get(request.headers["Authorization"][7:])
+        if d is not None:
+            return int(d.decode("utf-8"))
+
     if "X-Original-Uri" in request.headers:
         parsedUrl = urlparse(request.headers["X-Original-Uri"])
         args = parse_qs(parsedUrl.query)

@@ -55,7 +55,10 @@ def before_request():
         ]
         and getUID() is None
     ):
-        abort(401)
+        if request.method == "OPTIONS":
+            return "ok"
+        else:
+            abort(401)
 
     service = request.endpoint[0 : request.endpoint.find(".")]
     if service == "tvs" and not checkUser("allowTvs"):
