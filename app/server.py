@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+import _bootlocale
+
+_bootlocale.getpreferredencoding = lambda *args: "UTF-8"
+
 
 from flask import request, abort, Flask
 import json
@@ -31,13 +35,11 @@ r_runningThreads.set("people", 0)
 app = Flask(__name__, static_url_path="")
 
 app.register_blueprint(tvs, url_prefix="/api/tvs")
-app.register_blueprint(movie)
+app.register_blueprint(movie, url_prefix="/api/movie")
 app.register_blueprint(user)
 app.register_blueprint(core)
 app.register_blueprint(player)
 app.register_blueprint(device)
-
-app.config["DEBUG"] = True
 
 logger.info("Server Started Successfully")
 
