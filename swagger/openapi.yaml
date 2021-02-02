@@ -16,6 +16,9 @@ tags:
   description: Player Operations
 - name: core
   description: Core Operations
+servers:
+- url: /
+- url: http://10.10.2.1:8083/api
   
 paths:
   /tvs:
@@ -39,6 +42,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/tvshow'
+      security:
+      - user: []
+      - admin: []
 
   /tvs/{idShow}:
     get:
@@ -66,6 +72,10 @@ paths:
                     default: ok
                   data:
                     $ref: '#/components/schemas/tvshow'
+      security:
+      - user: []
+      - admin: []
+      
     delete:
       tags:
       - tvs
@@ -92,6 +102,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+        - admin: []
 
   /tvs/{idShow}/episode:
     get:
@@ -121,6 +133,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/tvshow_episode'
+      security:
+      - user: []
+      - admin: []
 
   /tvs/{idShow}/season/{season}/episode:
     get:
@@ -156,6 +171,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/tvshow_episode'
+      security:
+      - user: []
+      - admin: []
 
   /tvs/{idShow}/season:
     get:
@@ -185,6 +203,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/tvshow_season'
+      security:
+      - user: []
+      - admin: []
 
   /tvs/{idShow}/season/{season}:
     get:
@@ -218,6 +239,9 @@ paths:
                     default: ok
                   data:
                     $ref: '#/components/schemas/tvshow_season'
+      security:
+      - user: []
+      - admin: []
 
   /tvs/{idShow}/season/{season}/status:
     put:
@@ -252,6 +276,9 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - user: []
+      - admin: []
 
   /tvs/{idShow}/select/{id}:
     post:
@@ -286,6 +313,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
 
   /tvs/{idShow}/scanTitle:
     put:
@@ -308,7 +337,6 @@ paths:
               properties:
                 title:
                   type: string
-                  
       responses:
         200:
           description: successful operation
@@ -323,6 +351,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
 
   /tvs/episode/{idEpisode}:
     get:
@@ -337,7 +367,6 @@ paths:
         required: true
         schema:
           type: integer
-                  
       responses:
         200:
           description: successful operation
@@ -352,6 +381,10 @@ paths:
                   data:
                     type: object
                     $ref: '#/components/schemas/tvshow_season'
+      security:
+      - user: []
+      - admin: []
+      
     delete:
       tags:
       - tvs
@@ -378,6 +411,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
 
   /tvs/episode/{idEpisode}/status:
     put:
@@ -406,6 +441,9 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - user: []
+      - admin: []
 
   /tvs/episode/upcoming:
     get:
@@ -447,6 +485,9 @@ paths:
                           type: string
                         idShow:
                           type: integer
+      security:
+      - user: []
+      - admin: []
 
   /tvs/scan:
     get:
@@ -468,6 +509,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
 
   /tvs/scan/result:
     get:
@@ -490,6 +533,8 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/tvshow'
+      security:
+      - admin: []
 
   /tvs/scan/upcoming:
     get:
@@ -511,6 +556,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
 
 
 
@@ -535,6 +582,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/movie'
+      security:
+      - user: []
+      - admin: []
                     
   /movie/{idMovie}:
     get:
@@ -563,6 +613,9 @@ paths:
                   data:
                     type: object
                     $ref: '#/components/schemas/movie'
+      security:
+      - user: []
+      - admin: []
                     
   /movie/collection:
     get:
@@ -585,6 +638,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/movie_collection'
+      security:
+      - user: []
+      - admin: []
                       
   /movie/collection/{idCollection}:
     get:
@@ -613,6 +669,9 @@ paths:
                   data:
                     type: object
                     $ref: '#/components/schemas/movie_collection'
+      security:
+      - user: []
+      - admin: []
                     
   /movie/fromCollection/{idCollection}:
     get:
@@ -642,6 +701,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/movie'
+      security:
+      - user: []
+      - admin: []
 
 
   /movie/{idMovie}/select/{id}:
@@ -677,6 +739,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
 
   /movie/{idMovie}/status:
     put:
@@ -705,6 +769,9 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - user: []
+      - admin: []
                     
                     
   /movie/{idMovie}/scanTitle:
@@ -728,7 +795,6 @@ paths:
               properties:
                 title:
                   type: string
-                  
       responses:
         200:
           description: successful operation
@@ -743,6 +809,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
                     
   /movie/scan:
     get:
@@ -764,6 +832,8 @@ paths:
                   data:
                     type: string
                     default: ok
+      security:
+      - admin: []
                     
   /movie/scan/result:
     get:
@@ -786,6 +856,8 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/movie'
+      security:
+      - admin: []
 
 components:
   schemas:
@@ -906,8 +978,9 @@ components:
           type: string
         
   securitySchemes:
-    api_key:
-      type: apiKey
-      name: token
-      in: header
-
+    user:
+      type: http
+      scheme: bearer
+    admin:
+      type: http
+      scheme: bearer
