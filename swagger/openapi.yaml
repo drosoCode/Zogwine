@@ -11,7 +11,7 @@ tags:
 - name: user
   description: User Operations
 - name: device
-  description: Device Operations
+  description: Device Operations (accessible only when cast is allowed in settings)
 - name: player
   description: Player Operations
 - name: core
@@ -1124,6 +1124,229 @@ paths:
 
 
 
+  /player/start:
+    post:
+      tags:
+      - player
+      summary: Start player
+      operationId: player_start
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mediaType:
+                  type: integer
+                  default: "required"
+                mediaData:
+                  type: string
+                  default: "required"
+                audioStream:
+                  type: string
+                  default: "optional"
+                subStream:
+                  type: string
+                  default: "optional"
+                subFile:
+                  type: string
+                  default: "optional"
+                startFrom:
+                  type: string
+                  default: "optional"
+                resize:
+                  type: integer
+                  default: "optional"
+                remove3D:
+                  type: integer
+                  default: "optional"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - user: []
+      - admin: []
+
+  /player/subtitle:
+    get:
+      tags:
+      - player
+      summary: Get subtitles for a specified media
+      operationId: player_subtitle
+      parameters:
+      - name: mediaType
+        in: query
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: query
+        description: media data
+        required: true
+        schema:
+          type: string
+      - name: subStream
+        in: query
+        description: subtitle stream index, required or subFile
+        required: false
+        schema:
+          type: integer
+      - name: subFile
+        in: query
+        description: subtitle file identifier, required or subStream
+        required: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/vtt: {}
+      security:
+      - user: []
+      - admin: []
+
+  /player/m3u8:
+    get:
+      tags:
+      - player
+      summary: Get the M3U8 HLS playlist
+      operationId: player_m3u8
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/x-mpegURL: {}
+      security:
+      - user: []
+      - admin: []
+
+  /player/file:
+    get:
+      tags:
+      - player
+      summary: Get the media file url
+      operationId: player_file
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+      security:
+      - user: []
+      - admin: []
+
+  /player/properties:
+    get:
+      tags:
+      - player
+      summary: Get the media file properties
+      operationId: player_props
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      format:
+                        type: string
+                      duration:
+                        type: number
+                      extension:
+                        type: string
+                      audio:
+                        type: string
+                      subtitles:
+                        type: string
+                      stereo3d:
+                        type: string
+                      ratio:
+                        type: string
+                      dimension:
+                        type: string
+                      pix_fmt:
+                        type: string
+                      video_codec:
+                        type: string
+                      size:
+                        type: string
+                      startFrom:
+                        type: number
+      security:
+      - user: []
+      - admin: []
+
+  /player/stop:
+    get:
+      tags:
+      - player
+      summary: Stop the player
+      operationId: player_stop
+      parameters:
+      - name: mediaType
+        in: query
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: query
+        description: media data
+        required: true
+        schema:
+          type: string
+      - name: endTime
+        in: query
+        description: end time (in seconds)
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - user: []
+      - admin: []
 
 
 

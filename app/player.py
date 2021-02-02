@@ -15,21 +15,34 @@ from app.devices.PlayerBase import PlayerBase
 from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
 
 player = Blueprint("player", __name__)
-allowedMethods = ["GET", "POST"]
 
 
-@player.route("/api/player/start")
+def getToken():
+    return (
+        request.args.get("token")
+        or (
+            request.headers["Authorization"][7:]
+            if "Authorization" in request.headers
+            else None
+        )
+        or generateToken(getUID())
+    )
+
+
+@player.route("start", methods=["POST"])
 def startPlayer():
-    checkArgs(["mediaType", "mediaData"])
+    reqData = json.loads(request.data)
+    reqData.update(request.args)
+    checkArgs(["mediaType", "mediaData"], reqData)
     uid = getUID()
     logger.info("Starting transcoder for user " + str(uid))
     deviceData = {}
 
-    if "idDevice" in request.args and request.args["idDevice"] != "-1":
+    if "idDevice" in reqData and int(reqData["idDevice"]) != -1:
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
             "SELECT * FROM devices WHERE idDevice = %(idDevice)s",
-            {"idDevice": request.args["idDevice"]},
+            {"idDevice": reqData["idDevice"]},
         )
         data = cursor.fetchone()
         sqlConnection.close()
@@ -38,7 +51,7 @@ def startPlayer():
         dev = importDevice(data["type"])
         device = dev(
             uid,
-            request.args.get("token") or generateToken(getUID()),
+            getToken(),
             data["address"],
             data["port"],
             data["user"],
@@ -46,23 +59,25 @@ def startPlayer():
             data["device"],
         )
         deviceData, startData = device.playMedia(
-            int(request.args["mediaType"]), int(request.args["mediaData"]), request.args
+            int(reqData["mediaType"]),
+            int(reqData["mediaData"]),
+            reqData,
         )
-        deviceData.update({"idDevice": request.args["idDevice"]})
+        deviceData.update({"idDevice": reqData["idDevice"]})
         if hasattr(device, "doWork"):
             doWork(device)
     else:
-        obj = transcoder(int(request.args["mediaType"]), int(request.args["mediaData"]))
+        obj = transcoder(int(reqData["mediaType"]), int(reqData["mediaData"]))
         obj.enableHLS(True, configData["config"]["hlsTime"])
-        obj.configure(request.args)
+        obj.configure(reqData)
         startData = obj.start()
 
     r_userFiles.set(
         uid,
         json.dumps(
             {
-                "mediaType": request.args["mediaType"],
-                "mediaData": request.args["mediaData"],
+                "mediaType": reqData["mediaType"],
+                "mediaData": reqData["mediaData"],
                 "transcoder": startData,
                 "device": deviceData,
             }
@@ -76,7 +91,7 @@ def doWork(obj: PlayerBase):
     obj.doWork()
 
 
-@player.route("/api/player/subtitles")
+@player.route("subtitles", methods=["GET"])
 def getSubtitles():
     checkArgs(["mediaType", "mediaData"])
     if "subStream" in request.args or "subFile" in request.args:
@@ -89,11 +104,14 @@ def getSubtitles():
         abort(404)
 
 
-@player.route("/api/player/m3u8")
+@player.route("m3u8", methods=["GET"])
 def getTranscoderM3U8():
-    token = request.args.get("token") or generateToken(getUID())
+    token = getToken()
+    uid = getUID()
+    # static files are directly served by nginx
+    fileUrl = configData["config"]["baseUrl"] + "/out/" + str(uid) + "/"
     # add time to fileUrl prevent browser caching
-    fileUrl = "/api/player/ts?token=" + token + "&time=" + str(time.time()) + "&name="
+    fileUrlEnd = "?token=" + token + "&time=" + str(time.time())
     dat = ""
 
     file = os.path.join(configData["config"]["outDir"], str(getUID()), "stream.m3u8")
@@ -101,7 +119,7 @@ def getTranscoderM3U8():
         fileData = open(file, "r").read()
         for i in fileData.split("\n"):
             if ".ts" in i and "stream" in i:
-                dat += fileUrl + i + "\n"
+                dat += fileUrl + i + fileUrlEnd + "\n"
             else:
                 dat += i + "\n"
         return Response(dat, mimetype="application/x-mpegURL")
@@ -109,27 +127,7 @@ def getTranscoderM3U8():
         abort(404)
 
 
-@player.route("/api/player/ts")
-def getTranscoderFile():
-    name = request.args["name"]
-    uid = getUID()
-    # send transcoded file
-    file = os.path.join(configData["config"]["outDir"], str(uid), name)
-    if os.path.exists(file):
-        if "/" not in name:
-            return send_file(
-                open(file, "rb"),
-                mimetype="video/MP2T",
-                as_attachment=True,
-                attachment_filename=file[file.rfind("/") + 1 :],
-            )
-        else:
-            abort(403)
-    else:
-        abort(404)
-
-
-@player.route("/api/player/file")
+@player.route("file", methods=["GET"])
 def player_getFile():
     checkArgs(["mediaType", "mediaData"])
     path = getMediaPath(
@@ -155,14 +153,14 @@ def player_getFile():
                 + b"/content/"
                 + path
                 + b"?token="
-                + (request.args.get("token") or generateToken(uid)).encode("utf-8")
+                + (getToken()).encode("utf-8")
             ).decode("utf-8"),
         }
     )
     #    return getFile(path, "video")
 
 
-@player.route("/api/player/info", methods=allowedMethods)
+@player.route("property", methods=["GET"])
 def player_getFileInfos():
     checkArgs(["mediaType", "mediaData"])
     mediaType = int(request.args["mediaType"])
@@ -194,13 +192,13 @@ def player_getFileInfos():
     )
 
 
-@player.route("/api/player/stop", methods=allowedMethods)
+@player.route("stop", methods=["GET"])
 def player_stop():
     checkArgs(["mediaType", "mediaData", "endTime"])
     uid = getUID()
     mediaType = int(request.args["mediaType"])
     mediaData = int(request.args["mediaData"])
-    endTime = float(request.args.get("endTime"))
+    endTime = float(request.args["endTime"])
     # set watch time
     player_setWatchTime(uid, mediaType, mediaData, endTime)
     # stop transcoder
@@ -219,7 +217,7 @@ def player_stop():
         dev = importDevice(data["type"])
         device = dev(
             uid,
-            request.args.get("token") or generateToken(getUID()),
+            getToken(),
             data["address"],
             data["port"],
             data["user"],
