@@ -4,9 +4,10 @@ import _bootlocale
 _bootlocale.getpreferredencoding = lambda *args: "UTF-8"
 
 
-from flask import request, abort, Flask
+from flask import request, abort, Flask, send_from_directory, jsonify
 import json
 import redis
+import yaml
 
 from .log import logger
 from .tvs import tvs
@@ -48,11 +49,7 @@ logger.info("Server Started Successfully")
 def before_request():
     if (
         request.endpoint
-        not in [
-            "user.signin",
-            "user.nginx",
-            "core.getImage",
-        ]
+        not in ["user.signin", "user.nginx", "core.getImage", "swaggerAssets"]
         and getUID() is None
     ):
         if request.method == "OPTIONS":
@@ -67,6 +64,37 @@ def before_request():
         abort(403)
 
 
-@app.route("/", methods=["GET"])
+@app.route("/api/", methods=["GET"])
 def home():
     return "Zogwine API"
+
+
+@app.route("/api/swagger/", methods=["GET"])
+@app.route("/api/swagger/openapi.<extension>", methods=["GET"])
+def swagger(extension=None):
+    checkUser("admin")
+    if extension == "yaml":
+        return send_from_directory(
+            "../swagger", "openapi.yaml", mimetype="text/yaml", as_attachment=True
+        )
+    elif extension == "json":
+        with open("swagger/openapi.yaml", "r") as f:
+            return jsonify(yaml.full_load(f))
+        return abort(404)
+    else:
+        return send_from_directory("../swagger", "index.html", mimetype="text/html")
+
+
+@app.route("/api/swagger/assets/<file>", methods=["GET"])
+def swaggerAssets(file):
+    if file in [
+        "swagger-ui-bundle.js",
+        "swagger-ui-standalone-preset.js",
+        "swagger-ui.css",
+    ]:
+        return send_from_directory(
+            "../swagger/assets",
+            file,
+            mimetype=("text/css" if file == "swagger-ui.css" else "text/javascript"),
+        )
+    return abort(404)

@@ -3,6 +3,7 @@ mysql-connector-python
 flask
 uwsgi
 uwsgidecorators
+pyyaml
 redis
 bs4
 youtube_dl

@@ -3,4 +3,5 @@ mysql-connector-python
 flask
 uwsgidecorators
 redis
+pyyaml
 pytest

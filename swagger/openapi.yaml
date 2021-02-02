@@ -17,7 +17,7 @@ tags:
 - name: core
   description: Core Operations
 servers:
-- url: /
+- url: /api/
 - url: http://10.10.2.1:8083/api
   
 paths:
