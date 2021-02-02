@@ -67,12 +67,12 @@ def getStatistics():
         {
             "status": "ok",
             "data": {
-                "watchedEpCount": int(dat1["watchedEpCount"]),
-                "watchedEpSum": int(dat1["watchedEpSum"]),
+                "watchedEpisodeCount": int(dat1["watchedEpCount"]),
+                "watchedEpisodeSum": int(dat1["watchedEpSum"]),
                 "tvsCount": int(dat2["tvsCount"]),
-                "epCount": int(dat2["epCount"]),
-                "moviesCount": int(movCount),
-                "watchedMoviesCount": int(watchedMov),
+                "episodeCount": int(dat2["epCount"]),
+                "movieCount": int(movCount),
+                "watchedMovieCount": int(watchedMov),
                 "lostTime": round(lostTime / 3600),
             },
         }
