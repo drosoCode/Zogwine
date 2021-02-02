@@ -12,7 +12,6 @@ from .utils import checkArgs, getFile, getUID, generateToken
 from .dbHelper import getSqlConnection, r_userFiles, configData
 
 device = Blueprint("device", __name__)
-allowedMethods = ["GET", "POST"]
 
 fncts = {
     "play": (),
@@ -30,7 +29,7 @@ fncts = {
 }
 
 
-@device.route("/api/device/supported")
+@device.route("supported")
 def devices_supported():
     devs = []
     for i in os.listdir("app/devices/"):
@@ -41,7 +40,7 @@ def devices_supported():
     return jsonify({"status": "ok", "data": devs})
 
 
-@device.route("/api/device/list")
+@device.route("")
 def devices_list():
     sqlConnection, cursor = getSqlConnection()
     cursor.execute("SELECT idDevice AS id, name, type, address, enabled FROM devices")
@@ -53,14 +52,26 @@ def devices_list():
     return jsonify({"status": "ok", "data": data})
 
 
-@device.route("/api/device/functions")
-def devices_functions():
-    checkArgs(["idDevice"])
+@device.route("<int:idDevice>")
+def device_data(idDevice: int):
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT idDevice AS id, name, type, address, enabled FROM devices WHERE idDevice = %(idDevice)s",
+        {"idDevice": idDevice},
+    )
+    data = cursor.fetchone()
+    sqlConnection.close()
+    data["available"] = os.system("ping -c 1 -W 1 " + data["address"]) == 0
 
+    return jsonify({"status": "ok", "data": data})
+
+
+@device.route("<int:idDevice>/function")
+def devices_functions(idDevice: int):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT type FROM devices WHERE idDevice = %(idDevice)s",
-        {"idDevice": request.args["idDevice"]},
+        {"idDevice": idDevice},
     )
     data = cursor.fetchone()
     sqlConnection.close()
@@ -70,10 +81,8 @@ def devices_functions():
     return jsonify({"status": "ok", "data": list(set(fncts.keys()) & set(vars(dev)))})
 
 
-@device.route("/api/device/<function>")
-def devices_function(function: str):
-    checkArgs(["idDevice"])
-
+@device.route("<int:idDevice>/function/<function>")
+def devices_function(idDevice: int, function: str):
     if function in fncts.keys():
         args = {}
         for param in fncts[function]:
@@ -85,7 +94,7 @@ def devices_function(function: str):
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
             "SELECT * FROM devices WHERE idDevice = %(idDevice)s",
-            {"idDevice": request.args["idDevice"]},
+            {"idDevice": idDevice},
         )
         data = cursor.fetchone()
         sqlConnection.close()

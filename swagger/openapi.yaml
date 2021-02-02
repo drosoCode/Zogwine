@@ -561,7 +561,7 @@ paths:
 
 
 
-  /movie/:
+  /movie:
     get:
       tags:
       - movie
@@ -972,6 +972,157 @@ paths:
 
 
 
+  /device:
+    get:
+      tags:
+      - device
+      summary: Get a list of all devices
+      operationId: device_list
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/device'
+      security:
+      - user: []
+      - admin: []
+      
+  /device/{idDevice}:
+    get:
+      tags:
+      - device
+      summary: Get device data
+      operationId: device_data
+      parameters:
+      - name: idDevice
+        in: path
+        description: device ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/device'
+      security:
+      - user: []
+      - admin: []
+      
+  /device/{idDevice}/function:
+    get:
+      tags:
+      - device
+      summary: Get device available functions
+      operationId: device_function
+      parameters:
+      - name: idDevice
+        in: path
+        description: device ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: string
+      security:
+      - user: []
+      - admin: []
+      
+  /device/{idDevice}/function/{function}:
+    get:
+      tags:
+      - device
+      summary: Call device function
+      operationId: device_function_name
+      parameters:
+      - name: idDevice
+        in: path
+        description: device ID
+        required: true
+        schema:
+          type: integer
+      - name: function
+        in: path
+        description: function name
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+      security:
+      - user: []
+      - admin: []
+      
+  /device/supported:
+    get:
+      tags:
+      - device
+      summary: Get a list of all supported device types
+      operationId: device_list_supported
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: string
+      security:
+      - user: []
+      - admin: []
+
+
 
 
 
@@ -1094,6 +1245,23 @@ components:
           type: integer
         scraperLink:
           type: string
+        
+    device:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        address:
+          type: string
+        enabled:
+          type: integer
+        available:
+          type: integer
+        
         
   securitySchemes:
     user:

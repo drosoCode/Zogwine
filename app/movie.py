@@ -12,8 +12,6 @@ from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
 
 movie = Blueprint("movie", __name__)
-allowedMethods = ["GET", "POST"]
-
 
 # region scan
 

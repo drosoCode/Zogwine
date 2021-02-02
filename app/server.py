@@ -39,7 +39,7 @@ app.register_blueprint(movie, url_prefix="/api/movie")
 app.register_blueprint(user, url_prefix="/api/user")
 app.register_blueprint(core)
 app.register_blueprint(player)
-app.register_blueprint(device)
+app.register_blueprint(device, url_prefix="/api/device")
 
 logger.info("Server Started Successfully")
 
