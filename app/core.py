@@ -12,10 +12,9 @@ from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
 
 core = Blueprint("core", __name__)
-allowedMethods = ["GET", "POST"]
 
 
-@core.route("/api/core/statistics")
+@core.route("statistic", methods=["GET"])
 def getStatistics():
     uid = getUID()
     sqlConnection, cursor = getSqlConnection()
@@ -80,7 +79,7 @@ def getStatistics():
     )
 
 
-@core.route("/api/process/status")
+@core.route("scan/status")
 def getThreadsStatus():
     checkUser("admin")
     return jsonify(
@@ -88,28 +87,28 @@ def getThreadsStatus():
             "status": "ok",
             "data": {
                 "tvs": bool(r_runningThreads.get("tvs") == b"1"),
-                "movies": bool(r_runningThreads.get("movies") == b"1"),
-                "upEpisodes": bool(r_runningThreads.get("upEpisodes") == b"1"),
+                "movie": bool(r_runningThreads.get("movies") == b"1"),
+                "upcomingEpisode": bool(r_runningThreads.get("upEpisodes") == b"1"),
                 "cache": bool(r_runningThreads.get("cache") == b"1"),
-                "people": bool(r_runningThreads.get("people") == b"1"),
+                "person": bool(r_runningThreads.get("people") == b"1"),
             },
         }
     )
 
 
-@core.route("/api/core/logs")
-def getServerLogs():
+@core.route("log", methods=["GET"])
+@core.route("log/<int:amount>", methods=["GET"])
+def getServerLogs(amount: int):
     checkUser("admin")
     try:
-        l = int(request.args["amount"])
+        l = int(amount)
     except Exception:
         l = 20
     return jsonify({"status": "ok", "data": getLogs(l)})
 
 
-@core.route("/api/image")
-def getImage():
-    id = request.args["id"]
+@core.route("image/<id>", methods=["GET"])
+def getImage(id: str):
     if "http" in id:
         return redirect(id, code=302)
 
@@ -127,7 +126,7 @@ def getImage():
         return redirect(url, code=302)
 
 
-@core.route("/api/process/cache", methods=allowedMethods)
+@core.route("scan/cache", methods=["GET"])
 def refreshCacheThreaded():
     checkUser("admin")
     refreshCache()
@@ -160,7 +159,7 @@ def refreshCache():
     sqlConnection.close()
 
 
-@core.route("/api/process/people", methods=allowedMethods)
+@core.route("scan/person", methods=["GET"])
 def runPeopleScanThreaded():
     checkUser("admin")
     runPeopleScan()
@@ -176,12 +175,12 @@ def runPeopleScan():
     sqlConnection.close()
 
 
-@core.route("/api/core/people", methods=allowedMethods)
+@core.route("person", methods=["GET"])
 def getPeople():
     sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])
     cursor.execute(
-        "SELECT p.idPers, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/image?id=',icon) AS icon "
+        "SELECT p.idPers AS id, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
         "FROM people p, people_link l "
         "WHERE p.idPers = l.idPers"
         " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;",
@@ -195,12 +194,12 @@ def getPeople():
     return jsonify({"status": "ok", "data": res})
 
 
-@core.route("/api/core/tags", methods=allowedMethods)
+@core.route("tag", methods=["GET"])
 def getTags():
     sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])
     cursor.execute(
-        "SELECT t.idTag, name, value, CONCAT('/api/image?id=',icon) AS icon "
+        "SELECT t.idTag AS id, name, value, CONCAT('/api/core/image/',icon) AS icon "
         "FROM tags t, tags_link l "
         "WHERE t.idTag = l.idTag"
         " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;",

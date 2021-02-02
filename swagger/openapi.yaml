@@ -1257,7 +1257,7 @@ paths:
       - user: []
       - admin: []
 
-  /player/properties:
+  /player/property:
     get:
       tags:
       - player
@@ -1348,6 +1348,301 @@ paths:
       - user: []
       - admin: []
 
+
+
+  /core/statistic:
+    get:
+      tags:
+      - core
+      summary: Get general statistics
+      operationId: core_stats
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      watchedEpisodeCount:
+                        type: integer
+                      watchedEpisodeSum:
+                        type: integer
+                      tvsCount:
+                        type: integer
+                      episodeCount:
+                        type: integer
+                      movieCount:
+                        type: integer
+                      watchedMovieCount:
+                        type: integer
+                      lostTime:
+                        type: number
+      security:
+      - user: []
+      - admin: []
+
+  /core/log:
+    get:
+      tags:
+      - core
+      summary: Get logs
+      operationId: core_log
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: string
+      security:
+      - admin: []
+      
+  /core/log/{amount}:
+    get:
+      tags:
+      - core
+      summary: Get logs
+      operationId: core_log2
+      parameters:
+      - name: amount
+        in: path
+        description: number of log lines
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: string
+      security:
+      - admin: []
+      
+  /core/tag:
+    get:
+      tags:
+      - core
+      summary: Get tags for a specific media
+      operationId: core_tag
+      parameters:
+      - name: mediaType
+        in: query
+        description: type of media
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: query
+        description: media data
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        value:
+                          type: string
+                        icon:
+                          type: string
+      security:
+      - user: []
+      - admin: []
+      
+  /core/person:
+    get:
+      tags:
+      - core
+      summary: Get people involved in a specific media
+      operationId: core_person
+      parameters:
+      - name: mediaType
+        in: query
+        description: type of media
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: query
+        description: media data
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        role:
+                          type: string
+                        name:
+                          type: string
+                        gender:
+                          type: integer
+                        birthdate:
+                          type: string
+                        deathdate:
+                          type: string
+                        description:
+                          type: string
+                        known_for:
+                          type: string
+      security:
+      - user: []
+      - admin: []
+      
+  /core/image/{id}:
+    get:
+      tags:
+      - core
+      summary: Get image url from identifier
+      operationId: core_image
+      parameters:
+      - name: id
+        in: path
+        description: image id (base64)
+        required: true
+        schema:
+          type: string
+      responses:
+        302:
+          description: redirect to the image location
+      security:
+      - user: []
+      - admin: []
+      
+  /core/scan/status:
+    get:
+      tags:
+      - core
+      summary: Get status of scans
+      operationId: core_scan_status
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      tvs:
+                        type: boolean
+                      movie:
+                        type: boolean
+                      upcomingEpisode:
+                        type: boolean
+                      cache:
+                        type: boolean
+                      person:
+                        type: boolean
+      security:
+      - admin: []
+
+  /core/scan/cache:
+    get:
+      tags:
+      - core
+      summary: Update cache
+      operationId: core_scan_cache
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+
+  /core/scan/person:
+    get:
+      tags:
+      - core
+      summary: Run a scan for new people
+      operationId: core_scan_person
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
 
 
 

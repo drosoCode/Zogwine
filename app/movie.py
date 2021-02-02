@@ -57,8 +57,8 @@ def mov_getCollections(idCollection: int = None):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idCollection AS id, title, overview, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
+        "CONCAT('/api/core/image/',icon) AS icon, "
+        "CONCAT('/api/core/image/',fanart) AS fanart, "
         "premiered, scraperName, scraperID, "
         "(SELECT COUNT(*) FROM movies m WHERE m.idCollection = t.idCollection) movieCount, "
         "(SELECT COUNT(watchCount) FROM movies m LEFT JOIN status st ON (st.idMedia = m.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND m.idCollection = t.idCollection) AS watchedMovies, "
@@ -81,8 +81,8 @@ def mov_getCollectionMovies(idCollection: int):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idMovie AS id, title, overview, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
+        "CONCAT('/api/core/image/',icon) AS icon, "
+        "CONCAT('/api/core/image/',fanart) AS fanart, "
         "rating, premiered, scraperName, scraperID, multipleResults, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
@@ -200,8 +200,8 @@ def mov_getMovie(mr=False, idMovie=None):
 
     query = (
         "SELECT idMovie AS id, title, overview, idCollection, "
-        "CONCAT('/api/image?id=',icon) AS icon, "
-        "CONCAT('/api/image?id=',fanart) AS fanart, "
+        "CONCAT('/api/core/image/',icon) AS icon, "
+        "CONCAT('/api/core/image/',fanart) AS fanart, "
         "rating, premiered, scraperName, scraperID, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
