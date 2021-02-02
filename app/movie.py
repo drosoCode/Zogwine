@@ -54,7 +54,7 @@ def mov_getCollections(idCollection: int = None):
     queryData = {"idUser": idUser}
     c = ""
     if idCollection is not None:
-        c = " WHERE idCollection = %(idCollection)s"
+        c = "WHERE idCollection = %(idCollection)s "
         queryData = {"idUser": idUser, "idCollection": idCollection}
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
