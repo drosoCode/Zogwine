@@ -705,7 +705,6 @@ paths:
       - user: []
       - admin: []
 
-
   /movie/{idMovie}/select/{id}:
     post:
       tags:
@@ -772,8 +771,7 @@ paths:
       security:
       - user: []
       - admin: []
-                    
-                    
+                  
   /movie/{idMovie}/scanTitle:
     put:
       tags:
@@ -858,6 +856,126 @@ paths:
                       $ref: '#/components/schemas/movie'
       security:
       - admin: []
+
+
+
+  /user/login:
+    post:
+      tags:
+      - user
+      summary: login
+      operationId: user_signin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+
+  /user/logout:
+    get:
+      tags:
+      - user
+      summary: logout
+      operationId: user_signout
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - user: []
+      - admin: []
+
+  /user/data:
+    get:
+      tags:
+      - user
+      summary: user data
+      operationId: user_data
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      admin:
+                        type: integer
+                      cast:
+                        type: integer
+                      allowMovie:
+                        type: integer
+                      allowTvs:
+                        type: integer
+      security:
+      - user: []
+      - admin: []
+
+  /user/nginx:
+    get:
+      tags:
+      - user
+      summary: check access right to an url
+      description: INTERNAL USE ONLY, restricted to 127.0.0.1
+      operationId: user_nginx
+      parameters:
+        - in: header
+          name: X-Original-URI
+          description: the accessed url
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: access granted to the url
+        401:
+          description: access refused to the url
+
+
+
+
+
+
+
 
 components:
   schemas:

@@ -16,11 +16,12 @@ user = Blueprint("user", __name__)
 allowedMethods = ["GET", "POST"]
 
 
-@user.route("/api/user/signin", methods=["GET", "POST"])
+@user.route("login", methods=["POST"])
 def signin():
-    checkArgs(["user", "password"])
-    user = request.args["user"]
-    password = hashlib.sha256(bytes(request.args["password"], "utf-8")).hexdigest()
+    data = json.loads(request.data)
+    checkArgs(["username", "password"], data)
+    user = data["username"]
+    password = hashlib.sha256(bytes(data["password"], "utf-8")).hexdigest()
     if user != "" and password != "":
         sqlConnection, cursor = getSqlConnection()
         r = (
@@ -55,7 +56,7 @@ def getUserData(userID):
     return res
 
 
-@user.route("/api/user/data", methods=["GET", "POST"])
+@user.route("data", methods=["GET"])
 def getUserDataFlask():
     return jsonify(
         {
@@ -65,10 +66,9 @@ def getUserDataFlask():
     )
 
 
-@user.route("/api/user/signout", methods=["GET", "POST"])
+@user.route("logout", methods=["GET"])
 def signout():
-    uid = str(r_userTokens.get(request.args["token"]))
-    r_userTokens.delete(request.args["token"])
+    uid = getUID()
     s = 0
     for u in r_userTokens.scan_iter():
         if r_userTokens.get(str(u)) == uid:
@@ -81,7 +81,7 @@ def signout():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-@user.route("/api/user/nginx", methods=["GET", "POST"])
+@user.route("nginx", methods=["GET"])
 def nginx():
     extensions = [".mkv", ".avi", ".mp4"]
     uid = getUID()

@@ -12,11 +12,16 @@ from .dbHelper import getSqlConnection, configData, r_userTokens
 from .log import logger
 
 
-def checkArgs(args):
+def checkArgs(args, data=None):
     for a in args:
-        if a not in request.args:
-            abort(404)
-            return False
+        if data is not None:
+            if a not in data:
+                abort(404)
+                return False
+        else:
+            if a not in request.args:
+                abort(404)
+                return False
     return True
 
 
