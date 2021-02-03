@@ -91,15 +91,13 @@ def doWork(obj: PlayerBase):
     obj.doWork()
 
 
-@player.route("subtitles", methods=["GET"])
+@player.route("subtitle", methods=["GET"])
 def getSubtitles():
     checkArgs(["mediaType", "mediaData"])
     if "subStream" in request.args or "subFile" in request.args:
         obj = transcoder(int(request.args["mediaType"]), int(request.args["mediaData"]))
         obj.configure(request.args)
-        dat = obj.getSubtitles()
-        print(dat)
-        return Response(dat, mimetype="text/vtt")
+        return Response(obj.getSubtitles(), mimetype="text/vtt")
     else:
         abort(404)
 
