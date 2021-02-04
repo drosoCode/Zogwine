@@ -100,6 +100,9 @@ class transcoder:
                 self.remove3D(int(r3))
 
     def getSubtitles(self) -> bytes:
+        sf = b""
+        if int(self._startFrom) > 0:
+            sf = b" -ss " + str(self._startFrom).encode("utf-8")
         if self._subStream != "-1":
             if (
                 self._fileInfos["subtitles"][int(self._subStream)]["codec"]
@@ -109,7 +112,9 @@ class transcoder:
                 return None
             else:
                 p = Popen(
-                    b'ffmpeg -loglevel panic -i "'
+                    b"ffmpeg -loglevel panic"
+                    + sf
+                    + b' -i "'
                     + self._file
                     + b'" -map 0:s:'
                     + self._subStream.encode("utf-8")
@@ -120,7 +125,11 @@ class transcoder:
                 return p.stdout.read()
         elif self._subFile != b"":
             p = Popen(
-                b'ffmpeg -loglevel panic -i "' + self._subFile + b'" -f webvtt -',
+                b"ffmpeg -loglevel panic"
+                + sf
+                + b' -i "'
+                + self._subFile
+                + b'" -f webvtt -',
                 shell=True,
                 stdout=PIPE,
             )
@@ -130,7 +139,10 @@ class transcoder:
 
     def start(self) -> dict:
         if os.path.exists(self._outDir):
-            shutil.rmtree(self._outDir)
+            try:
+                shutil.rmtree(self._outDir)
+            except:
+                pass
         os.makedirs(self._outDir)
 
         filePath = self._file
