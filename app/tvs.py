@@ -167,7 +167,7 @@ def get_season(idShow: int, season: int = None):
         "SELECT title, overview, CONCAT('/api/core/image/',icon) AS icon,"
         "season, premiered, "
         "(SELECT COUNT(*) FROM episodes WHERE idShow = s.idShow AND season = s.season) AS episodes, "
-        "(SELECT COUNT(watchCount) FROM status WHERE idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = s.idShow AND season = s.season) AND mediaType = 1 AND idUser = %(idUser)s) AS watchedEpisodes "
+        "(SELECT COUNT(watchCount) FROM status WHERE idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = s.idShow AND season = s.season) AND mediaType = 1  AND watchCount > 0 AND idUser = %(idUser)s) AS watchedEpisodes "
         "FROM seasons s "
         "WHERE idShow = %(idShow)s " + s + ""
         "ORDER BY season;",
@@ -235,7 +235,7 @@ def tvs_toggleWatchedSeason(idShow: int, season: int = None):
     if isWatched is not None and int(isWatched) > 0:
         watched = False
 
-    ids = tvs_getEps(idShow)
+    ids = tvs_getEps(idShow, season)
     for i in ids:
         if season is None or int(season) == int(i["season"]):
             tvs_toggleWatchedEpisode(uid, i["id"], watched)
