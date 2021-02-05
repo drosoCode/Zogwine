@@ -126,7 +126,6 @@ def mov_setID(idMovie: int, id: int):
 @movie.route("<int:idMovie>/scanTitle", methods=["PUT"])
 def mov_setNewSearch(idMovie: int):
     checkUser("admin")
-    checkArgs(["idMovie", "title"])
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "UPDATE movies SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idMovie = %(idMovie)s;",
@@ -202,7 +201,7 @@ def mov_getMovie(mr=False, idMovie=None):
         "SELECT idMovie AS id, title, overview, idCollection, "
         "CONCAT('/api/core/image/',icon) AS icon, "
         "CONCAT('/api/core/image/',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, "
+        "rating, premiered, scraperName, scraperID, multipleResults, "
         "(SELECT COALESCE(SUM(watchCount), '0') FROM movies mov LEFT JOIN status st ON (st.idMedia = mov.idMovie) WHERE idUser = %(idUser)s AND st.mediaType = 3 AND idMovie = t.idMovie) AS watchCount, "
         "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 3),scraperID) AS scraperLink "
         "FROM movies t "
