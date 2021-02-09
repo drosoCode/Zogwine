@@ -40,7 +40,9 @@ r_userFiles: contains data about the media currently used by the user
     "transcoder": transcoder-related data [dict, optionnal]
     {
         "pid": ffmpeg process pid,
-        "outDir": output dir
+        "outDir": output dir,
+        "logFile": transcode log file path,
+        "classData": transcoder class data
     },
     "device": device-related data [dict, optionnal]
     {

@@ -18,6 +18,7 @@ from .player import player
 from .device import device
 from .dbHelper import r_runningThreads, r_userTokens
 from .utils import getUID, checkUser
+from .watcher import startWatcher
 
 """
 DB:
@@ -26,6 +27,8 @@ DB:
                3=movie
                4=url (youtube, twitch, direct video ...)
 """
+
+startWatcher()
 
 r_runningThreads.set("tvs", 0)
 r_runningThreads.set("movies", 0)

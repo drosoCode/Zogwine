@@ -8,3 +8,4 @@ redis
 bs4
 youtube_dl
 pychromecast
+jsonpickle

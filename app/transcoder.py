@@ -2,8 +2,12 @@ import os
 import signal
 import json
 import re
-from subprocess import Popen, PIPE
+import subprocess
 import shutil
+import time
+import secrets
+from uwsgidecorators import thread
+import jsonpickle
 
 from .log import logger
 from .files import getFileInfos, getMediaPath, getSubPathFromName, getOutputDir
@@ -38,6 +42,7 @@ class transcoder:
         self._remove3D = 0
         self._runningProcess = None
         self._bitmapSubs = ["hdmv_pgs_subtitle", "dvd_subtitle"]
+        self._startNum = 0
 
     def setAudioStream(self, audioStream: str):
         self._audioStream = str(audioStream)
@@ -111,8 +116,8 @@ class transcoder:
                 # we can't easily get text content for bitmap-type subtitles
                 return None
             else:
-                p = Popen(
-                    b"ffmpeg -loglevel panic"
+                p = subprocess.Popen(
+                    b"ffmpeg -hide_banner -loglevel error"
                     + sf
                     + b' -i "'
                     + self._file
@@ -120,18 +125,18 @@ class transcoder:
                     + self._subStream.encode("utf-8")
                     + b" -f webvtt -",
                     shell=True,
-                    stdout=PIPE,
+                    stdout=subprocess.PIPE,
                 )
                 return p.stdout.read()
         elif self._subFile != b"":
-            p = Popen(
-                b"ffmpeg -loglevel panic"
+            p = subprocess.Popen(
+                b"ffmpeg -hide_banner -loglevel error"
                 + sf
                 + b' -i "'
                 + self._subFile
                 + b'" -f webvtt -',
                 shell=True,
-                stdout=PIPE,
+                stdout=subprocess.PIPE,
             )
             return p.stdout.read()
         else:
@@ -156,7 +161,7 @@ class transcoder:
                 )
 
                 cutCmd = (
-                    b"ffmpeg -y -hide_banner -loglevel fatal -ss "
+                    b"ffmpeg -y -hide_banner -loglevel error -ss "
                     + str(self._startFrom).encode("utf-8")
                     + b' -i "'
                     + self._file
@@ -168,7 +173,7 @@ class transcoder:
             else:
                 cut = b"-ss " + str(self._startFrom).encode("utf-8")
 
-        cmd = b"ffmpeg -hide_banner -loglevel fatal " + cut + b' -i "' + filePath + b'"'
+        cmd = b"ffmpeg -hide_banner -loglevel error " + cut + b' -i "' + filePath + b'"'
         cmd += b" -pix_fmt yuv420p -preset medium"
 
         rm3d = b""
@@ -257,13 +262,28 @@ class transcoder:
             cmd += b" " + self._outFile + b"." + self._fileInfos["general"]["extension"]
 
         logger.info(b"Starting ffmpeg with:" + cmd)
-        process = Popen(b"exec " + cmd, shell=True)
+        logFile = (
+            b"/tmp/zogwine/ffmpeg/" + secrets.token_hex(20).encode("utf-8") + b".log"
+        )
+        a = b"exec " + cmd
+        self._process = subprocess.Popen(a, shell=True, stderr=open(logFile, "w"))
 
-        return {"pid": process.pid, "outDir": self._outDir}
+        return {
+            "pid": self._process.pid,
+            "outDir": self._outDir,
+            "startTime": time.time(),
+            "logFile": logFile.decode("utf-8"),
+            "classData": jsonpickle.encode(self),
+        }
 
     @staticmethod
     def stop(data: dict):
         if "pid" in data:
-            os.kill(data["pid"], signal.SIGTERM)
-        if "outDir" in data:
+            try:
+                os.kill(data["pid"], signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        if "outDir" in data and os.path.exists(data["outDir"]):
             os.system('rm -rf "' + data["outDir"] + '"')
+        if "logFile" in data and os.path.exists(data["logFile"]):
+            os.remove(data["logFile"])

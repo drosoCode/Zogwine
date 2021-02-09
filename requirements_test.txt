@@ -5,3 +5,4 @@ uwsgidecorators
 redis
 pyyaml
 pytest
+jsonpickle
