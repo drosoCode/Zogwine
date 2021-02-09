@@ -6,3 +6,4 @@ redis
 pyyaml
 pytest
 jsonpickle
+croniter
