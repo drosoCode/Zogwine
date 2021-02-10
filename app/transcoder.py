@@ -148,7 +148,10 @@ class transcoder:
                 shutil.rmtree(self._outDir)
             except:
                 pass
-        os.makedirs(self._outDir)
+        try:
+            os.makedirs(self._outDir)
+        except FileExistsError:
+            pass
 
         filePath = self._file
         cut = b""
