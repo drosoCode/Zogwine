@@ -44,30 +44,42 @@ def checkTranscodingErrors():
                 data["transcoder"]["logFile"]
             ):
                 with open(data["transcoder"]["logFile"], "r") as f:
-                    d = "".join(f.readlines())
+                    d = ("".join(f.readlines())).lower()
                     if "error" in d or "failed" in d:
                         logger.error(
                             ("ffmpeg error, restarting ... [" + d + "]").encode("utf-8")
                         )
-                        transcoder.stop(data["transcoder"])
+                        killAndRestart(
+                            data, jsonpickle.decode(data["transcoder"]["classData"]), u
+                        )
+                    elif (
+                        "startTime" in data
+                        and data["startTime"] + configData["hlsKill"] <= time.time()
+                    ):
                         tr = jsonpickle.decode(data["transcoder"]["classData"])
-                        if tr._startNum <= 0:
-                            tr._startNum = 1
-                            tr._encoder = "libx264"
-                            startData = tr.start()
-                            r_userFiles.set(
-                                u,
-                                json.dumps(
-                                    {
-                                        "mediaType": data["mediaType"],
-                                        "mediaData": data["mediaData"],
-                                        "transcoder": startData,
-                                        "device": data["device"] or {},
-                                    }
-                                ),
-                            )
-                        else:
-                            r_userFiles.delete(u)
+                        if tr._enableHLS:
+                            killAndRestart(data, tr, u)
+
+
+def killAndRestart(data, tr, uid):
+    transcoder.stop(data["transcoder"])
+    if tr._startNum <= 0:
+        tr._startNum = 1
+        tr._encoder = "libx264"
+        startData = tr.start()
+        r_userFiles.set(
+            uid,
+            json.dumps(
+                {
+                    "mediaType": data["mediaType"],
+                    "mediaData": data["mediaData"],
+                    "transcoder": startData,
+                    "device": data["device"] or {},
+                }
+            ),
+        )
+    else:
+        r_userFiles.delete(uid)
 
 
 def setupCron(cron):

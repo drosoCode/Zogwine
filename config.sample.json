@@ -20,6 +20,7 @@
         "checkInterval": 5,
         "crf": 23,
         "hlsTime": 60,
+        "hlsKill": 120,
         "encoder": "h264_nvenc",
         "outDir": "out/",
         "watchedThreshold": 0.9,
