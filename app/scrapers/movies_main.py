@@ -5,10 +5,10 @@ import json
 import requests
 import urllib.parse
 from importlib import import_module
-from base64 import b64encode
 from datetime import datetime
 
 from app.files import addFile
+from app.utils import encodeImg
 
 
 class movies:
@@ -22,12 +22,6 @@ class movies:
         self._currentMovie = None
         logger.info("Movies Indexer Initialised Successfully")
         logger.info("Supported file formats: " + str(self._supportedFiles))
-
-    def encodeImg(self, img):
-        if img is not None and img != "":
-            return b64encode(img.encode("utf-8", "surrogateescape")).decode()
-        else:
-            return None
 
     def importScrapers(self):
         for i in os.listdir("app/scrapers/"):
@@ -179,8 +173,8 @@ class movies:
                 data = {
                     "title": result["title"],
                     "overview": result["overview"],
-                    "icon": self.encodeImg(result["icon"]),
-                    "fanart": self.encodeImg(result["fanart"]),
+                    "icon": encodeImg(result["icon"]),
+                    "fanart": encodeImg(result["fanart"]),
                     "rating": result["rating"],
                     "premiered": result["premiered"],
                     "idCollection": idCollection,
@@ -271,8 +265,8 @@ class movies:
                         "idCollection": c["idCollection"],
                         "title": data["title"],
                         "overview": data["overview"],
-                        "icon": self.encodeImg(data["icon"]),
-                        "fanart": self.encodeImg(data["fanart"]),
+                        "icon": encodeImg(data["icon"]),
+                        "fanart": encodeImg(data["fanart"]),
                         "premiered": data["premiered"],
                         "forceUpdate": 0,
                     }
@@ -302,7 +296,7 @@ class movies:
                         # create tag if new
                         cursor.execute(
                             "INSERT INTO tags (name, value, icon) VALUES (%(name)s, %(value)s, %(icon)s);",
-                            {"name": t[0], "value": t[1], "icon": self.encodeImg(t[2])},
+                            {"name": t[0], "value": t[1], "icon": encodeImg(t[2])},
                         )
                         # get tag id
                         cursor.execute(

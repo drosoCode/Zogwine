@@ -3,7 +3,7 @@ import os
 import mimetypes
 import re
 import requests
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from urllib.parse import urlparse, parse_qs, unquote
 import secrets
 import hashlib
@@ -104,6 +104,13 @@ def checkAuthorization(mediaType: int, mediaData: str):
     elif mediaType == 3 and checkUser("allowMovie"):
         return True
     return False
+
+
+def encodeImg(img):
+    if img is not None and img != "":
+        return b64encode(img.encode("utf-8", "surrogateescape")).decode()
+    else:
+        return None
 
 
 def get_chunk(full_path, byte1=None, byte2=None):

@@ -4,7 +4,8 @@ import os
 import json
 import urllib.parse
 from importlib import import_module
-from base64 import b64encode
+
+from app.utils import encodeImg
 
 
 class people:
@@ -16,12 +17,6 @@ class people:
         self.importScrapers()
         self._currentMovie = None
         logger.info("People Indexer Initialised Successfully")
-
-    def encodeImg(self, img):
-        if img is not None and img != "":
-            return b64encode(img.encode()).decode()
-        else:
-            return None
 
     def importScrapers(self):
         for i in os.listdir("app/scrapers/"):
@@ -113,4 +108,4 @@ class people:
         if d is None or d[0:5] == "aHR0c":
             return d
         else:
-            return self.encodeImg(d)
+            return encodeImg(d)

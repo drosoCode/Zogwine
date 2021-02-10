@@ -10,6 +10,7 @@ from datetime import datetime
 
 from app.files import addFile
 from app.scrapers.fillers import getFillers, findFillerUrl
+from app.utils import encodeImg
 
 
 class tvs:
@@ -24,12 +25,6 @@ class tvs:
         self._seasons = []
         logger.info("TVS Indexer Initialised Successfully")
         logger.info("Supported file formats: " + str(self._supportedFiles))
-
-    def encodeImg(self, img):
-        if img is not None and img != "":
-            return b64encode(img.encode()).decode()
-        else:
-            return None
 
     def importScrapers(self):
         for i in os.listdir("app/scrapers/"):
@@ -179,8 +174,8 @@ class tvs:
                 data = (
                     result["title"],
                     result["overview"],
-                    self.encodeImg(result["icon"]),
-                    self.encodeImg(result["fanart"]),
+                    encodeImg(result["icon"]),
+                    encodeImg(result["fanart"]),
                     result["rating"],
                     result["premiered"],
                     self._tvs[item]["idShow"],
@@ -332,7 +327,7 @@ class tvs:
                         data = (
                             result["title"],
                             result["overview"],
-                            self.encodeImg(result["icon"]),
+                            encodeImg(result["icon"]),
                             result["season"],
                             result["episode"],
                             result["rating"],
@@ -354,7 +349,7 @@ class tvs:
                         data = (
                             result["title"],
                             result["overview"],
-                            self.encodeImg(result["icon"]),
+                            encodeImg(result["icon"]),
                             result["season"],
                             result["episode"],
                             result["rating"],
@@ -407,7 +402,7 @@ class tvs:
                             "idShow": idShow,
                             "title": data["title"],
                             "overview": data["overview"],
-                            "icon": self.encodeImg(data["icon"]),
+                            "icon": encodeImg(data["icon"]),
                             "premiered": data["premiered"],
                             "forceUpdate": 0,
                             "season": season,
@@ -424,7 +419,7 @@ class tvs:
                             "idShow": idShow,
                             "title": data["title"],
                             "overview": data["overview"],
-                            "icon": self.encodeImg(data["icon"]),
+                            "icon": encodeImg(data["icon"]),
                             "premiered": data["premiered"],
                             "forceUpdate": 0,
                         }
@@ -459,7 +454,7 @@ class tvs:
                         # create tag if new
                         cursor.execute(
                             "INSERT INTO tags (name, value, icon) VALUES (%(name)s, %(value)s, %(icon)s);",
-                            {"name": t[0], "value": t[1], "icon": self.encodeImg(t[2])},
+                            {"name": t[0], "value": t[1], "icon": encodeImg(t[2])},
                         )
                         # get tag id
                         cursor.execute(
@@ -555,7 +550,7 @@ class tvs:
                             "season": ep.get("season"),
                             "episode": ep.get("episode"),
                             "date": ep.get("date"),
-                            "icon": ep.get("icon"),
+                            "icon": encodeImg(ep.get("icon")),
                             "idShow": tvs["idShow"],
                         }
                         cursor.execute(
