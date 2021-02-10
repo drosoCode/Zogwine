@@ -102,6 +102,34 @@ def getSubtitles():
         abort(404)
 
 
+@player.route("status", methods=["GET"])
+def getTranscoderStatus():
+    uid = getUID()
+    data = r_userFiles.get(uid)
+    if data is not None:
+        data = json.loads(data)
+        if os.path.exists(data["transcoder"]["outDir"]):
+            if data["transcoder"] != {}:
+                if os.path.exists(
+                    data["transcoder"]["outDir"] + "/stream.m3u8"
+                ) and os.path.exists(data["transcoder"]["outDir"] + "/stream001.ts"):
+                    return jsonify(
+                        {"status": "ok", "data": {"available": True, "running": True}}
+                    )
+                else:
+                    return jsonify(
+                        {"status": "ok", "data": {"available": False, "running": True}}
+                    )
+            else:
+                return jsonify(
+                    {"status": "ok", "data": {"available": True, "running": False}}
+                )
+        else:
+            return jsonify({"status": "ok", "data": {"available": False, "running": False}})
+    else:
+        return jsonify({"status": "ok", "data": {"available": False, "running": False}})
+
+
 @player.route("m3u8", methods=["GET"])
 def getTranscoderM3U8():
     token = getToken()

@@ -1179,6 +1179,34 @@ paths:
       - user: []
       - admin: []
 
+  /player/status:
+    get:
+      tags:
+      - player
+      summary: transcoder status
+      operationId: player_status
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      running:
+                        type: boolean
+                      available:
+                        type: boolean
+      security:
+      - user: []
+      - admin: []
+
   /player/subtitle:
     get:
       tags:
