@@ -380,7 +380,7 @@ paths:
                     default: ok
                   data:
                     type: object
-                    $ref: '#/components/schemas/tvshow_season'
+                    $ref: '#/components/schemas/tvshow_episode'
       security:
       - user: []
       - admin: []
@@ -1750,6 +1750,8 @@ components:
         filler:
           type: integer
         watchCount:
+          type: integer
+        idShow:
           type: integer
 
     movie:

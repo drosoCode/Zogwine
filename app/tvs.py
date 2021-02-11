@@ -84,7 +84,7 @@ def get_episode(idEpisode: int):
     idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
-        "SELECT idEpisode AS id, title, overview, CONCAT('/api/core/image/',icon) AS icon,"
+        "SELECT idEpisode AS id, title, overview, idShow, CONCAT('/api/core/image/',icon) AS icon,"
         "season, episode, rating, scraperName, scraperID, filler, "
         "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount "
         "FROM episodes e "
