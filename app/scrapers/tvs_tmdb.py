@@ -180,7 +180,7 @@ class tmdb:
                     "episode": str(episode),
                     "rating": d.get("vote_average"),
                     "id": d.get("id"),
-                    "premiered": resp.get("air_date"),
+                    "premiered": d.get("air_date"),
                     "scraperName": "tmdb",
                     "scraperData": None,
                 }
