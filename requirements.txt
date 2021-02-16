@@ -10,3 +10,5 @@ jsonpickle
 croniter
 youtube_dl
 pychromecast
+gevent
+python-socketio

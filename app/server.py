@@ -1,10 +1,16 @@
 #!/usr/bin/python3
+from gevent import monkey
+
+monkey.patch_all()
+
 import _bootlocale
 
 _bootlocale.getpreferredencoding = lambda *args: "UTF-8"
 
 
 from flask import request, abort, Flask, send_from_directory, jsonify
+import socketio
+
 import json
 import redis
 import yaml
@@ -16,7 +22,7 @@ from .user import user
 from .core import core
 from .player import player
 from .device import device
-from .dbHelper import r_runningThreads, r_userTokens
+from .dbHelper import r_runningThreads, r_userTokens, configData
 from .utils import getUID, checkUser
 from .watcher import startWatcher
 
@@ -45,7 +51,40 @@ app.register_blueprint(core, url_prefix="/api/core")
 app.register_blueprint(player, url_prefix="/api/player")
 app.register_blueprint(device, url_prefix="/api/device")
 
+mgr = socketio.RedisManager(
+    "redis://"
+    + configData["redis"]["host"]
+    + ":"
+    + str(configData["redis"]["port"])
+    + "/"
+    + str(configData["redis"]["websocketsDB"])
+)
+sio = socketio.Server(
+    async_mode="gevent_uwsgi",
+    cors_allowed_origins="*",
+    logger=True,
+    engineio_logger=True,
+    client_manager=mgr,
+)
+app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
+
 logger.info("Server Started Successfully")
+
+
+@sio.event
+def event(sid, message):
+    print(sid, message)
+    sio.emit("message", {"data": message["data"]}, room=sid)
+
+
+@sio.event
+def connect(sid, environ):
+    logger.info("New WS socket connected: " + sid)
+
+
+@sio.event
+def disconnect(sid):
+    logger.info("WS socket disconnected: " + sid)
 
 
 @app.before_request
@@ -53,8 +92,7 @@ def before_request():
     if (
         request.endpoint
         not in ["user.signin", "user.nginx", "core.getImage", "swaggerAssets"]
-        and getUID() is None
-    ):
+    ) and getUID() is None:
         if request.method == "OPTIONS":
             return "ok"
         else:

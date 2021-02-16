@@ -7,3 +7,5 @@ pyyaml
 pytest
 jsonpickle
 croniter
+gevent
+python-socketio
