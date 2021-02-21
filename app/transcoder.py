@@ -7,7 +7,6 @@ import shutil
 import time
 import secrets
 from uwsgidecorators import thread
-import jsonpickle
 
 from .log import logger
 from .files import getFileInfos, getMediaPath, getSubPathFromName, getOutputDir
@@ -43,6 +42,8 @@ class transcoder:
         self._runningProcess = None
         self._bitmapSubs = ["hdmv_pgs_subtitle", "dvd_subtitle"]
         self._startNum = 0
+        self._mediaType = mediaType
+        self._mediaData = mediaData
 
     def setAudioStream(self, audioStream: str):
         self._audioStream = str(audioStream)
@@ -177,7 +178,7 @@ class transcoder:
                 cut = b"-ss " + str(self._startFrom).encode("utf-8")
 
         cmd = b"ffmpeg -hide_banner -loglevel error " + cut + b' -i "' + filePath + b'"'
-        cmd += b" -pix_fmt yuv420p -preset medium"
+        cmd += b" -pix_fmt yuv420p -preset medium -map 0:v:0"
 
         rm3d = b""
         rm3dMeta = b""
@@ -276,7 +277,7 @@ class transcoder:
             "outDir": self._outDir,
             "startTime": time.time(),
             "logFile": logFile.decode("utf-8"),
-            "classData": jsonpickle.encode(self),
+            "classData": self.toJSON(),
         }
 
     @staticmethod
@@ -290,3 +291,26 @@ class transcoder:
             os.system('rm -rf "' + data["outDir"] + '"')
         if "logFile" in data and os.path.exists(data["logFile"]):
             os.remove(data["logFile"])
+
+    @classmethod
+    def fromJSON(transcoder, data):
+        data = json.loads(data)
+        tr = transcoder(data["_mediaType"], data["_mediaData"], "", "libx264", 23)
+        d = {}
+        for i in data.keys():
+            if type(data[i]) == str and data[i][0:5] == "__b__":
+                d[i] = data[i][5:].encode("utf-8")
+            else:
+                d[i] = data[i]
+        tr.__dict__.update(d)
+        return tr
+
+    def toJSON(self):
+        data = self.__dict__
+        d = {}
+        for i in data.keys():
+            if type(data[i]) == bytes:
+                d[i] = "__b__" + data[i].decode("utf-8")
+            elif type(data[i]) in [int, float, str, dict, list]:
+                d[i] = data[i]
+        return json.dumps(d)
