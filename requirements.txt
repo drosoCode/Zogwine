@@ -6,7 +6,6 @@ uwsgidecorators
 pyyaml
 redis
 bs4
-jsonpickle
 croniter
 youtube_dl
 pychromecast

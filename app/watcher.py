@@ -2,7 +2,6 @@ from uwsgidecorators import thread
 import time
 import os
 import json
-import jsonpickle
 import signal
 import croniter
 import datetime
@@ -50,13 +49,15 @@ def checkTranscodingErrors():
                             ("ffmpeg error, restarting ... [" + d + "]").encode("utf-8")
                         )
                         killAndRestart(
-                            data, jsonpickle.decode(data["transcoder"]["classData"]), u
+                            data,
+                            transcoder.fromJSON(data["transcoder"]["classData"]),
+                            u,
                         )
                     elif (
                         "startTime" in data
                         and data["startTime"] + configData["hlsKill"] <= time.time()
                     ):
-                        tr = jsonpickle.decode(data["transcoder"]["classData"])
+                        tr = transcoder.fromJSON(data["transcoder"]["classData"])
                         if tr._enableHLS:
                             killAndRestart(data, tr, u)
 

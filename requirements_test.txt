@@ -5,7 +5,6 @@ uwsgidecorators
 redis
 pyyaml
 pytest
-jsonpickle
 croniter
 gevent
 python-socketio
