@@ -178,7 +178,9 @@ class transcoder:
                 cut = b"-ss " + str(self._startFrom).encode("utf-8")
 
         cmd = b"ffmpeg -hide_banner -loglevel error " + cut + b' -i "' + filePath + b'"'
-        cmd += b" -pix_fmt yuv420p -preset medium -map 0:v:0"
+        cmd += b" -pix_fmt yuv420p -preset medium"
+        if self._audioStream != "0":
+            cmd += b" -map 0:v:0"
 
         rm3d = b""
         rm3dMeta = b""
