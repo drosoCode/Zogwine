@@ -8,7 +8,7 @@ import sys
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, getUID, generateToken
+from .utils import checkArgs, getUID, generateToken, checkUser
 from .dbHelper import getSqlConnection, r_userFiles, configData
 from .devices.PlayerBase import PlayerBase
 
@@ -30,8 +30,16 @@ fncts = {
 }
 
 
+def checkRights(idDevice):
+    if checkUser("cast", False) or (idDevice == 1 and checkUser("receive", False)):
+        return True
+    else:
+        abort(404)
+
+
 @device.route("supported")
 def devices_supported():
+    checkUser("cast")
     devs = []
     for i in os.listdir("app/devices/"):
         name = i[: i.rfind(".")]
@@ -43,6 +51,7 @@ def devices_supported():
 
 @device.route("")
 def devices_list():
+    checkUser("cast")
     sqlConnection, cursor = getSqlConnection()
     cursor.execute("SELECT idDevice AS id, name, type, address, enabled FROM devices")
     data = cursor.fetchall()
@@ -55,6 +64,7 @@ def devices_list():
 
 @device.route("<int:idDevice>")
 def device_data(idDevice: int):
+    checkRights(idDevice)
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idDevice AS id, name, type, address, enabled FROM devices WHERE idDevice = %(idDevice)s",
@@ -62,13 +72,14 @@ def device_data(idDevice: int):
     )
     data = cursor.fetchone()
     sqlConnection.close()
-    data["available"] = os.system("ping -c 1 -W 1 " + data["address"]) == 0
+    data["available"] = initDevice(data).available
 
     return jsonify({"status": "ok", "data": data})
 
 
 @device.route("<int:idDevice>/function")
 def devices_functions(idDevice: int):
+    checkRights(idDevice)
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT type FROM devices WHERE idDevice = %(idDevice)s",
@@ -84,6 +95,7 @@ def devices_functions(idDevice: int):
 
 @device.route("<int:idDevice>/function/<function>")
 def devices_function(idDevice: int, function: str):
+    checkRights(idDevice)
     if function in fncts.keys():
         args = {}
         for param in fncts[function]:
