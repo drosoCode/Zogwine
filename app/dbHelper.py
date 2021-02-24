@@ -31,6 +31,11 @@ r_userFiles = redis.Redis(
     port=configData["redis"]["port"],
     db=configData["redis"]["filesDB"],
 )
+r_remotePlayer = redis.Redis(
+    host=configData["redis"]["host"],
+    port=configData["redis"]["port"],
+    db=configData["redis"]["remotePlayerDB"],
+)
 
 """
 r_userFiles: contains data about the media currently used by the user
