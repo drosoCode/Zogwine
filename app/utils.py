@@ -25,17 +25,17 @@ def checkArgs(args, data=None):
     return True
 
 
-def checkUser(prop, abrt=True):
+def checkUser(prop, abrt=True, uid=None):
     sqlConnection, cursor = getSqlConnection()
     cursor = sqlConnection.cursor(dictionary=True)
     cursor.execute(
-        "SELECT name, admin, cast, indexof, allowMovie, allowTvs FROM users WHERE idUser = %(idUser)s",
-        {"idUser": getUID()},
+        "SELECT name, admin, cast, receive, indexof, allowMovie, allowTvs FROM users WHERE idUser = %(idUser)s",
+        {"idUser": uid or getUID()},
     )
     d = cursor.fetchone()
     sqlConnection.close()
 
-    props = ["admin", "indexof", "cast", "allowMovie", "allowTvs"]
+    props = ["admin", "indexof", "cast", "receive", "allowMovie", "allowTvs"]
 
     if prop in props and prop in d and d[prop]:
         return True
@@ -116,3 +116,7 @@ def encodeImg(img):
         return b64encode(img.encode("utf-8", "surrogateescape")).decode()
     else:
         return None
+
+
+def ping(host) -> bool:
+    return os.system("ping -c 1 -W 1 " + host) == 0

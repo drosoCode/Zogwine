@@ -48,7 +48,7 @@ def signin():
 def getUserData(userID):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
-        "SELECT name, admin, cast, allowMovie, allowTvs FROM users WHERE idUser = %(idUser)s",
+        "SELECT name, admin, cast, receive, allowMovie, allowTvs FROM users WHERE idUser = %(idUser)s",
         {"idUser": userID},
     )
     res = cursor.fetchone()
@@ -67,8 +67,8 @@ def getUserDataFlask():
 
 
 @user.route("logout", methods=["GET"])
-def signout():
-    uid = getUID()
+def signout(token=None):
+    uid = getUID(token)
     s = 0
     for u in r_userTokens.scan_iter():
         if r_userTokens.get(str(u)) == uid:
