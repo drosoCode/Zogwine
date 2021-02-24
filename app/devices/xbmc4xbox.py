@@ -21,6 +21,7 @@ class xbmc4xbox(PlayerBase):
         password: str = None,
         device: str = None,
     ):
+        super().__init__(uid, token, address, port, user, password, device)
         self._token = token
         self._outDir = getOutputDir()
         self._endpoint = "http://" + str(address) + "/xbmcCmds/xbmcHttp?command="
@@ -178,7 +179,7 @@ class xbmc4xbox(PlayerBase):
         ] * (percentage / 100)
 
     @property
-    def length(self):
+    def loaded(self):
         data = requests.get(
             self._endpoint + "GetPlaylistContents(1)", auth=self._auth
         ).text

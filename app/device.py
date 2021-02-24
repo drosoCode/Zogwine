@@ -8,8 +8,9 @@ import sys
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, getFile, getUID, generateToken
+from .utils import checkArgs, getUID, generateToken
 from .dbHelper import getSqlConnection, r_userFiles, configData
+from .devices.PlayerBase import PlayerBase
 
 device = Blueprint("device", __name__)
 
@@ -22,7 +23,7 @@ fncts = {
     "mute": (),
     "unmute": (),
     "position": (),
-    "length": (),
+    "loaded": (),
     "volume": (),
     "status": (),
     "playingMedia": (),
@@ -47,7 +48,7 @@ def devices_list():
     data = cursor.fetchall()
     sqlConnection.close()
     for i in range(len(data)):
-        data[i]["available"] = os.system("ping -c 1 -W 1 " + data[i]["address"]) == 0
+        data[i]["available"] = initDevice(data[i]).available
 
     return jsonify({"status": "ok", "data": data})
 
@@ -101,16 +102,7 @@ def devices_function(idDevice: int, function: str):
 
         if data["enabled"] == 0:
             return False
-        dev = importDevice(data["type"])
-        device = dev(
-            getUID(),
-            request.args.get("token") or generateToken(getUID()),
-            data["address"],
-            data["port"],
-            data["user"],
-            data["password"],
-            data["device"],
-        )
+        device = initDevice(data)
         method = getattr(device, function)
         if callable(method):
             result = method(**args)
@@ -121,6 +113,19 @@ def devices_function(idDevice: int, function: str):
 
     else:
         abort(400)
+
+
+def initDevice(data) -> PlayerBase:
+    dev = importDevice(data["type"])
+    return dev(
+        getUID(),
+        request.args.get("token") or generateToken(getUID()),
+        data.get("address"),
+        data.get("port"),
+        data.get("user"),
+        data.get("password"),
+        data.get("device"),
+    )
 
 
 def importDevice(devType: str):

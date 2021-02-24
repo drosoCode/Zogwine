@@ -19,6 +19,7 @@ class chromecast(PlayerBase):
         password: str = None,
         device: str = None,
     ):
+        super().__init__(uid, token, address, port, user, password, device)
         self._outDir = getOutputDir(uid)
         self._url = (
             configData["config"]["baseUrl"] + "/api/player/m3u8?token=" + str(token)

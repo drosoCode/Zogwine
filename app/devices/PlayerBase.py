@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
+from app.utils import ping
 
 
 class PlayerBase(ABC):
-    @abstractmethod
     def __init__(
         self,
         uid: int,
@@ -13,7 +13,7 @@ class PlayerBase(ABC):
         password: str = None,
         device: str = None,
     ):
-        pass
+        self._address = address
 
     @abstractmethod
     def playMedia(self, mediaType: int, mediaData: int, data: dict = None) -> tuple:
@@ -23,3 +23,7 @@ class PlayerBase(ABC):
     @abstractmethod
     def stop(self):
         pass
+
+    @property
+    def available(self) -> bool:
+        ping(self._address)
