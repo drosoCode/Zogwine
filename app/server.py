@@ -25,6 +25,7 @@ from .device import device
 from .dbHelper import r_runningThreads, r_userTokens, configData
 from .utils import getUID, checkUser
 from .watcher import startWatcher
+from .socketio import sio
 
 """
 DB:
@@ -51,40 +52,9 @@ app.register_blueprint(core, url_prefix="/api/core")
 app.register_blueprint(player, url_prefix="/api/player")
 app.register_blueprint(device, url_prefix="/api/device")
 
-mgr = socketio.RedisManager(
-    "redis://"
-    + configData["redis"]["host"]
-    + ":"
-    + str(configData["redis"]["port"])
-    + "/"
-    + str(configData["redis"]["websocketsDB"])
-)
-sio = socketio.Server(
-    async_mode="gevent_uwsgi",
-    cors_allowed_origins="*",
-    logger=True,
-    engineio_logger=True,
-    client_manager=mgr,
-)
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
 logger.info("Server Started Successfully")
-
-
-@sio.event
-def event(sid, message):
-    print(sid, message)
-    sio.emit("message", {"data": message["data"]}, room=sid)
-
-
-@sio.event
-def connect(sid, environ):
-    logger.info("New WS socket connected: " + sid)
-
-
-@sio.event
-def disconnect(sid):
-    logger.info("WS socket disconnected: " + sid)
 
 
 @app.before_request
