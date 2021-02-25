@@ -12,6 +12,7 @@ class PlayerBase(ABC):
         user: str = None,
         password: str = None,
         device: str = None,
+        skipInit: bool = False,
     ):
         self._address = address
 

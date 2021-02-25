@@ -18,18 +18,22 @@ class chromecast(PlayerBase):
         user: str = None,
         password: str = None,
         device: str = None,
+        skipInit: bool = False,
     ):
         super().__init__(uid, token, address, port, user, password, device)
-        self._outDir = getOutputDir(uid)
-        self._url = (
-            configData["config"]["baseUrl"] + "/api/player/m3u8?token=" + str(token)
-        )
-        try:
-            self._cast = pychromecast.Chromecast(str(address))
-            self._cast.wait()
-            self._mc = self._cast.media_controller
-        except:
-            self._cast = None
+        self._cast = None
+
+        if not skipInit:
+            self._outDir = getOutputDir(uid)
+            self._url = (
+                configData["config"]["baseUrl"] + "/api/player/m3u8?token=" + str(token)
+            )
+            try:
+                self._cast = pychromecast.Chromecast(str(address))
+                self._cast.wait()
+                self._mc = self._cast.media_controller
+            except:
+                pass
 
     def playMedia(self, mediaType: int, mediaData: int, data: dict = None) -> tuple:
         if self._cast:

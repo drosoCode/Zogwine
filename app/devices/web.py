@@ -89,6 +89,7 @@ class web(PlayerBase):
         user: str = None,
         password: str = None,
         device: str = None,
+        skipInit: bool = False,
     ):
         super().__init__(uid, token, address, port, user, password, device)
         self._id = getPlayerID(uid, address)

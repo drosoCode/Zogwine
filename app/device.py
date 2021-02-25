@@ -57,7 +57,9 @@ def devices_list():
     data = cursor.fetchall()
     sqlConnection.close()
     for i in range(len(data)):
-        data[i]["available"] = initDevice(data[i]).available
+        d = initDevice(data[i], True)
+        data[i]["available"] = d.available
+        del d
 
     return jsonify({"status": "ok", "data": data})
 
@@ -72,7 +74,9 @@ def device_data(idDevice: int):
     )
     data = cursor.fetchone()
     sqlConnection.close()
-    data["available"] = initDevice(data).available
+    d = initDevice(data, True)
+    data["available"] = d.available
+    del d
 
     return jsonify({"status": "ok", "data": data})
 
@@ -120,6 +124,7 @@ def devices_function(idDevice: int, function: str):
             result = method(**args)
         else:
             result = method
+        del device
 
         return jsonify({"status": "ok", "data": result})
 
@@ -127,7 +132,7 @@ def devices_function(idDevice: int, function: str):
         abort(400)
 
 
-def initDevice(data) -> PlayerBase:
+def initDevice(data, skipInit=False) -> PlayerBase:
     dev = importDevice(data["type"])
     return dev(
         getUID(),
@@ -137,6 +142,7 @@ def initDevice(data) -> PlayerBase:
         data.get("user"),
         data.get("password"),
         data.get("device"),
+        skipInit,
     )
 
 
