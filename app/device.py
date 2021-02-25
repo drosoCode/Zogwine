@@ -15,18 +15,18 @@ from .devices.PlayerBase import PlayerBase
 device = Blueprint("device", __name__)
 
 fncts = {
-    "play": (),
-    "pause": (),
-    "stop": (),
-    "seek": ("position"),
-    "setVolume": ("volume"),
-    "mute": (),
-    "unmute": (),
-    "position": (),
-    "loaded": (),
-    "volume": (),
-    "status": (),
-    "playingMedia": (),
+    "play": [],
+    "pause": [],
+    "stop": [],
+    "seek": ["value"],
+    "setVolume": ["value"],
+    "mute": [],
+    "unmute": [],
+    "position": [],
+    "loaded": [],
+    "volume": [],
+    "status": [],
+    "playingMedia": [],
 }
 
 

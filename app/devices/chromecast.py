@@ -57,10 +57,10 @@ class chromecast(PlayerBase):
         )
         self._mc.play()
 
-    def seek(self, pos: int):
+    def seek(self, value: int):
         if self._cast:
             return False
-        self._mc.seek(pos)
+        self._mc.seek(value)
 
     def play(self):
         if self._cast:
@@ -88,10 +88,10 @@ class chromecast(PlayerBase):
             return False
         self._cast.set_volume_muted(False)
 
-    def setVolume(self, volume: int):
+    def setVolume(self, value: int):
         if self._cast:
             return False
-        self._cast.set_volume(volume)
+        self._cast.set_volume(value)
 
     @property
     def position(self) -> float:

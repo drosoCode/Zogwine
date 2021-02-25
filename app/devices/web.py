@@ -124,11 +124,11 @@ class web(PlayerBase):
             )
         return {}, {}
 
-    def seek(self, pos: int):
+    def seek(self, value: int):
         if not self._data:
             return False
 
-        self._data.update({"position": pos})
+        self._data.update({"position": value})
         r_remotePlayer.set(
             self._id,
             json.dumps(self._data),
@@ -139,7 +139,7 @@ class web(PlayerBase):
             json.dumps(
                 {
                     "type": "action",
-                    "data": pos,
+                    "data": value,
                     "action": "seek",
                 }
             ),

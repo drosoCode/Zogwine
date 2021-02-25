@@ -105,7 +105,7 @@ class xbmc4xbox(PlayerBase):
             time.sleep(1)
             dowork = self.activePid(self._startData["pid"])
 
-    def seek(self, pos: int):
+    def seek(self, value: int):
         data = requests.get(
             self._endpoint + "GetCurrentlyPlaying", auth=self._auth
         ).text
@@ -117,9 +117,9 @@ class xbmc4xbox(PlayerBase):
         ).text
         urls = data[12 : len(data) - 8].split("\n<li>")
 
-        posStream = pos // configData["config"]["hlsTime"]
+        posStream = value // configData["config"]["hlsTime"]
 
-        if pos < configData["config"]["hlsTime"] * currentStream:
+        if value < configData["config"]["hlsTime"] * currentStream:
             for i in range(currentStream - posStream):
                 requests.get(self._endpoint + "PlayPrev()", auth=self._auth)
         else:
@@ -132,7 +132,7 @@ class xbmc4xbox(PlayerBase):
                     requests.get(self._endpoint + "PlayNext()", auth=self._auth)
 
         percent = round(
-            (pos % configData["config"]["hlsTime"])
+            (value % configData["config"]["hlsTime"])
             / configData["config"]["hlsTime"]
             * 100
         )
@@ -155,11 +155,11 @@ class xbmc4xbox(PlayerBase):
     def unmute(self):
         requests.get(self._endpoint + "Mute()", auth=self._auth).text
 
-    def setVolume(self, volume: int) -> bool:
-        if volume > 100 or volume < 0:
+    def setVolume(self, value: int) -> bool:
+        if value > 100 or value < 0:
             return False
         requests.get(
-            self._endpoint + "SetVolume(" + str(volume) + ")", auth=self._auth
+            self._endpoint + "SetVolume(" + str(value) + ")", auth=self._auth
         ).text
         return True
 
