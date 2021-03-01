@@ -46,4 +46,4 @@ def authentication(sid, message):
     )
 
 
-from app.devices.web import remote_player
+from app.devices.web import remote_player, disconnect
