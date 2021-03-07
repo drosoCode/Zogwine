@@ -180,7 +180,7 @@ def getPeople():
     sqlConnection, cursor = getSqlConnection()
     checkArgs(["mediaType", "mediaData"])
     cursor.execute(
-        "SELECT p.idPers AS id, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
+        "SELECT DISTINCT p.idPers AS id, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
         "FROM people p, people_link l "
         "WHERE p.idPers = l.idPers"
         " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;",
