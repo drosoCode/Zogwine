@@ -209,3 +209,121 @@ def getTags(mediaType: int, mediaData: str):
     res = cursor.fetchall()
     sqlConnection.close()
     return jsonify({"status": "ok", "data": res})
+
+
+@core.route("search", methods=["POST"])
+def search_main():
+    reqData = json.loads(request.data)
+    reqData.update(request.args)
+
+    # tag[], person[], name, date
+
+    name = []
+    person = []
+    tag = []
+    date = []
+    sqlConnection, cursor = getSqlConnection()
+
+    mode = "OR"
+    if "andMode" in reqData and reqData["andMode"]:
+        mode = "AND"
+
+    if "tag" in reqData:
+        args = buildArgsRequest(reqData["tag"], "idTag", mode)
+        if args != "":
+            cursor.execute("SELECT idMedia, mediaType FROM tags_link WHERE" + args)
+            tag += [(x["mediaType"], x["idMedia"]) for x in cursor.fetchall()]
+
+    if "person" in reqData:
+        args = buildArgsRequest(reqData["person"], "idPers", mode)
+        if args != "":
+            cursor.execute("SELECT idMedia, mediaType FROM people_link WHERE" + args)
+            person += [(x["mediaType"], x["idMedia"]) for x in cursor.fetchall()]
+
+    if "name" in reqData:
+        cursor.execute(
+            'SELECT 1 AS "mediaType", idEpisode AS "mediaData" FROM episodes WHERE title LIKE %(like)s '
+            "UNION "
+            'SELECT 2 AS "mediaType", idShow AS "mediaData" FROM tv_shows WHERE title LIKE %(like)s '
+            "UNION "
+            'SELECT 3 AS "mediaType", idMovie AS "mediaData" FROM movies WHERE title LIKE %(like)s ',
+            {"like": "%" + str(reqData["name"]) + "%"},
+        )
+        name = [(x["mediaType"], x["mediaData"]) for x in cursor.fetchall()]
+
+    if "date" in reqData:
+        operator = "="
+        data = {"data": str(reqData["date"])}
+        if type(reqData["date"]) == int or reqData["date"].isdigit():
+            # interpret date as a year
+            operator = "LIKE"
+            data = {"data": str(reqData["date"]) + "-%"}
+
+        cursor.execute(
+            'SELECT 2 AS "mediaType", idShow AS "mediaData" FROM tv_shows WHERE premiered '
+            + operator
+            + " %(data)s "
+            "UNION "
+            'SELECT 3 AS "mediaType", idMovie AS "mediaData" FROM movies WHERE premiered '
+            + operator
+            + " %(data)s ",
+            data,
+        )
+        date = [(x["mediaType"], x["mediaData"]) for x in cursor.fetchall()]
+
+    sqlConnection.close()
+
+    results = []
+    res = name + date + person + tag
+    allowedTypes = []
+
+    if checkUser("allowTvs", False):
+        allowedTypes += [1, 2]
+    if checkUser("allowMovie", False):
+        allowedTypes.append(3)
+
+    if mode == "OR":
+        for i in res:
+            if i[0] in allowedTypes and i not in results:
+                results.append(i)
+    else:
+        check = []
+        if len(name) > 0:
+            check.append(name)
+        if len(date) > 0:
+            check.append(date)
+        if len(tag) > 0:
+            check.append(tag)
+        if len(person) > 0:
+            check.append(person)
+
+        for i in res:
+            if i[0] in allowedTypes and i not in results:
+                ok = True
+                for c in check:
+                    if i not in c:
+                        ok = False
+                if ok:
+                    results.append(i)
+
+    return jsonify({"status": "ok", "data": results})
+
+
+def buildArgsRequest(data, field, mode):
+    args = ""
+    first = True
+    if type(data) is list:
+        for t in data:
+            if type(t) != int and not t.isdigit():
+                abort(400)
+            if first:
+                args = " " + field + " = " + str(t)
+                first = False
+            else:
+                args += " " + mode + " " + field + " = " + str(t)
+    else:
+        if type(data) != int and not data.isdigit():
+            abort(400)
+        args = " " + field + " = " + str(data)
+
+    return args
