@@ -34,7 +34,7 @@ def startWatcher():
 
 
 def checkTranscodingErrors():
-    # search for errors the 2 first minutes after transcoder start, and try to fall back to libx264
+    # search for errors after transcoder start, and try to fall back to libx264
     for u in r_userFiles.scan_iter():
         data = r_userFiles.get(u)
         if data is not None:

@@ -1,4 +1,4 @@
-from flask import request, Blueprint, jsonify, send_file, redirect
+from flask import request, Blueprint, jsonify, send_file, redirect, abort
 import redis
 import json
 from uwsgidecorators import thread
@@ -175,18 +175,17 @@ def runPeopleScan():
     sqlConnection.close()
 
 
-@core.route("person", methods=["GET"])
-def getPeople():
+@core.route("person/<int:mediaType>/<mediaData>", methods=["GET"])
+def getPeople(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
-    checkArgs(["mediaType", "mediaData"])
     cursor.execute(
         "SELECT DISTINCT p.idPers AS id, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
         "FROM people p, people_link l "
         "WHERE p.idPers = l.idPers"
         " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;",
         {
-            "mediaType": request.args["mediaType"],
-            "mediaData": request.args["mediaData"],
+            "mediaType": mediaType,
+            "mediaData": mediaData,
         },
     )
     res = cursor.fetchall()
@@ -194,18 +193,17 @@ def getPeople():
     return jsonify({"status": "ok", "data": res})
 
 
-@core.route("tag", methods=["GET"])
-def getTags():
+@core.route("tag/<int:mediaType>/<mediaData>", methods=["GET"])
+def getTags(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
-    checkArgs(["mediaType", "mediaData"])
     cursor.execute(
         "SELECT t.idTag AS id, name, value, CONCAT('/api/core/image/',icon) AS icon "
         "FROM tags t, tags_link l "
         "WHERE t.idTag = l.idTag"
         " AND mediaType = %(mediaType)s AND idMedia = %(mediaData)s;",
         {
-            "mediaType": request.args["mediaType"],
-            "mediaData": request.args["mediaData"],
+            "mediaType": mediaType,
+            "mediaData": mediaData,
         },
     )
     res = cursor.fetchall()
