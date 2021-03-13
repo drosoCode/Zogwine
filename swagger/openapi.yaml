@@ -1421,6 +1421,55 @@ paths:
       security:
       - user: []
       - admin: []
+      
+  /core/search:
+    post:
+      tags:
+      - core
+      summary: Search
+      operationId: core_search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag:
+                  type: array
+                  items:
+                    type: integer
+                    default: "id tag, integer"
+                person:
+                  type: array
+                  items:
+                    type: integer
+                    default: "id person, integer"
+                name:
+                  type: string
+                date:
+                  type: string
+                  default: "can be integer (year) or string (YYYY-MM-DD)"
+                andMode:
+                  type: boolean
+                  default: "default: false (OR)"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - user: []
+      - admin: []
 
   /core/log:
     get:
@@ -1477,21 +1526,21 @@ paths:
       security:
       - admin: []
       
-  /core/tag:
+  /core/tag/{mediaType}/{mediaData}:
     get:
       tags:
       - core
       summary: Get tags for a specific media
-      operationId: core_tag
+      operationId: core_tag_media
       parameters:
       - name: mediaType
-        in: query
+        in: path
         description: type of media
         required: true
         schema:
           type: integer
       - name: mediaData
-        in: query
+        in: path
         description: media data
         required: true
         schema:
@@ -1510,35 +1559,113 @@ paths:
                   data:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        name:
-                          type: string
-                        value:
-                          type: string
-                        icon:
-                          type: string
+                      $ref: '#/components/schemas/tag'
       security:
       - user: []
       - admin: []
       
-  /core/person:
+  /core/tag/category:
+    get:
+      tags:
+      - core
+      summary: Get a list of tag categories
+      operationId: core_tag_catg
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: string
+      security:
+      - user: []
+      - admin: []
+      
+  /core/tag/category/{catg}:
+    get:
+      tags:
+      - core
+      summary: Get tags for a specific category
+      operationId: core_tag_catg_val
+      parameters:
+      - name: catg
+        in: path
+        description: category name
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tag'
+      security:
+      - user: []
+      - admin: []
+      
+  /core/tag/{id}:
+    get:
+      tags:
+      - core
+      summary: Get tag data for a specific id
+      operationId: core_tag
+      parameters:
+      - name: id
+        in: path
+        description: tag id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/tag'
+      security:
+      - user: []
+      - admin: []
+      
+  /core/person/{mediaType}/{mediaData}:
     get:
       tags:
       - core
       summary: Get people involved in a specific media
-      operationId: core_person
+      operationId: core_person_media
       parameters:
       - name: mediaType
-        in: query
+        in: path
         description: type of media
         required: true
         schema:
           type: integer
       - name: mediaData
-        in: query
+        in: path
         description: media data
         required: true
         schema:
@@ -1557,24 +1684,99 @@ paths:
                   data:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        role:
-                          type: string
-                        name:
-                          type: string
-                        gender:
-                          type: integer
-                        birthdate:
-                          type: string
-                        deathdate:
-                          type: string
-                        description:
-                          type: string
-                        known_for:
-                          type: string
+                      $ref: '#/components/schemas/person'
+      security:
+      - user: []
+      - admin: []
+      
+  /core/person/letter/{letter}:
+    get:
+      tags:
+      - core
+      summary: Get people with a name starting with a specific letter
+      operationId: core_person_letter
+      parameters:
+      - name: letter
+        in: path
+        description: letter
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/person'
+      security:
+      - user: []
+      - admin: []
+      
+  /core/person/name/{name}:
+    get:
+      tags:
+      - core
+      summary: Get person with a specific name
+      operationId: core_person_name
+      parameters:
+      - name: name
+        in: path
+        description: name
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/person'
+      security:
+      - user: []
+      - admin: []
+      
+  /core/person/{id}:
+    get:
+      tags:
+      - core
+      summary: Get person with a specific id
+      operationId: core_person_id
+      parameters:
+      - name: id
+        in: path
+        description: person id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/person'
       security:
       - user: []
       - admin: []
@@ -1815,6 +2017,39 @@ components:
           type: integer
         available:
           type: integer
+          
+    tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        value:
+          type: string
+        icon:
+          type: string
+          
+    person:
+      type: object
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          description: "may not be available, depending on the request"
+        name:
+          type: string
+        gender:
+          type: integer
+        birthdate:
+          type: string
+        deathdate:
+          type: string
+        description:
+          type: string
+        known_for:
+          type: string
         
         
   securitySchemes:
