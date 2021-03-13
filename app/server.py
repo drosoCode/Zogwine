@@ -48,7 +48,7 @@ app = Flask(__name__, static_url_path="")
 app.register_blueprint(tvs, url_prefix="/api/tvs")
 app.register_blueprint(movie, url_prefix="/api/movie")
 app.register_blueprint(user, url_prefix="/api/user")
-app.register_blueprint(core, url_prefix="/api/core")
+app.register_blueprint(core, url_prefix="/api")
 app.register_blueprint(player, url_prefix="/api/player")
 app.register_blueprint(device, url_prefix="/api/device")
 

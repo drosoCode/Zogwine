@@ -14,7 +14,7 @@ from .indexer import scanner
 core = Blueprint("core", __name__)
 
 
-@core.route("statistic", methods=["GET"])
+@core.route("core/statistic", methods=["GET"])
 def getStatistics():
     uid = getUID()
     sqlConnection, cursor = getSqlConnection()
@@ -79,7 +79,7 @@ def getStatistics():
     )
 
 
-@core.route("scan/status")
+@core.route("core/scan/status")
 def getThreadsStatus():
     checkUser("admin")
     return jsonify(
@@ -96,7 +96,7 @@ def getThreadsStatus():
     )
 
 
-@core.route("log", methods=["GET"])
+@core.route("core/log", methods=["GET"])
 @core.route("log/<int:amount>", methods=["GET"])
 def getServerLogs(amount: int):
     checkUser("admin")
@@ -107,7 +107,7 @@ def getServerLogs(amount: int):
     return jsonify({"status": "ok", "data": getLogs(l)})
 
 
-@core.route("image/<id>", methods=["GET"])
+@core.route("core/image/<id>", methods=["GET"])
 def getImage(id: str):
     if "http" in id:
         return redirect(id, code=302)
@@ -126,7 +126,7 @@ def getImage(id: str):
         return redirect(url, code=302)
 
 
-@core.route("scan/cache", methods=["GET"])
+@core.route("core/scan/cache", methods=["GET"])
 def refreshCacheThreaded():
     checkUser("admin")
     refreshCache()
@@ -159,7 +159,7 @@ def refreshCache():
     sqlConnection.close()
 
 
-@core.route("scan/person", methods=["GET"])
+@core.route("core/scan/person", methods=["GET"])
 def runPeopleScanThreaded():
     checkUser("admin")
     runPeopleScan()

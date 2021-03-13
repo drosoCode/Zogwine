@@ -16,6 +16,12 @@ tags:
   description: Player Operations
 - name: core
   description: Core Operations
+- name: tag
+  description: Tag Operations
+- name: person
+  description: Person Operations
+- name: search
+  description: Search Operations
 servers:
 - url: /api/
 - url: http://10.10.2.1:8083/api
@@ -1422,10 +1428,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/search:
+  /search:
     post:
       tags:
-      - core
+      - search
       summary: Search
       operationId: core_search
       requestBody:
@@ -1526,10 +1532,10 @@ paths:
       security:
       - admin: []
       
-  /core/tag/{mediaType}/{mediaData}:
+  /tag/{mediaType}/{mediaData}:
     get:
       tags:
-      - core
+      - tag
       summary: Get tags for a specific media
       operationId: core_tag_media
       parameters:
@@ -1564,10 +1570,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/tag/category:
+  /tag/category:
     get:
       tags:
-      - core
+      - tag
       summary: Get a list of tag categories
       operationId: core_tag_catg
       responses:
@@ -1589,10 +1595,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/tag/category/{catg}:
+  /tag/category/{catg}:
     get:
       tags:
-      - core
+      - tag
       summary: Get tags for a specific category
       operationId: core_tag_catg_val
       parameters:
@@ -1621,10 +1627,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/tag/{id}:
+  /tag/{id}:
     get:
       tags:
-      - core
+      - tag
       summary: Get tag data for a specific id
       operationId: core_tag
       parameters:
@@ -1651,10 +1657,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/person/{mediaType}/{mediaData}:
+  /person/{mediaType}/{mediaData}:
     get:
       tags:
-      - core
+      - person
       summary: Get people involved in a specific media
       operationId: core_person_media
       parameters:
@@ -1689,10 +1695,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/person/letter/{letter}:
+  /person/letter/{letter}:
     get:
       tags:
-      - core
+      - person
       summary: Get people with a name starting with a specific letter
       operationId: core_person_letter
       parameters:
@@ -1721,10 +1727,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/person/name/{name}:
+  /person/name/{name}:
     get:
       tags:
-      - core
+      - person
       summary: Get person with a specific name
       operationId: core_person_name
       parameters:
@@ -1751,10 +1757,10 @@ paths:
       - user: []
       - admin: []
       
-  /core/person/{id}:
+  /person/{id}:
     get:
       tags:
-      - core
+      - person
       summary: Get person with a specific id
       operationId: core_person_id
       parameters:
