@@ -176,7 +176,7 @@ def runPeopleScan():
 
 
 @core.route("person/<int:mediaType>/<mediaData>", methods=["GET"])
-def getPeople(mediaType: int, mediaData: str):
+def getPeopleFromMedia(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT DISTINCT p.idPers AS id, role, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
@@ -193,8 +193,50 @@ def getPeople(mediaType: int, mediaData: str):
     return jsonify({"status": "ok", "data": res})
 
 
+@core.route("person/letter/<letter>", methods=["GET"])
+def getPeopleFromLetter(letter: str):
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT DISTINCT idPers AS id, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
+        "FROM people "
+        "WHERE name LIKE %(name)s;",
+        {"name": letter + "%"},
+    )
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+@core.route("person/name/<name>", methods=["GET"])
+def getPeopleFromName(name: str):
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT DISTINCT idPers AS id, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
+        "FROM people "
+        "WHERE name LIKE %(name)s;",
+        {"name": "%" + name + "%"},
+    )
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+@core.route("person/<int:id>", methods=["GET"])
+def getPersonFromID(id: int):
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT DISTINCT idPers AS id, name, gender, birthdate, deathdate, description, known_for, CONCAT('/api/core/image/',icon) AS icon "
+        "FROM people "
+        "WHERE idPers = %(id)s;",
+        {"id": id},
+    )
+    res = cursor.fetchone()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
 @core.route("tag/<int:mediaType>/<mediaData>", methods=["GET"])
-def getTags(mediaType: int, mediaData: str):
+def getTagsFromMedia(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT t.idTag AS id, name, value, CONCAT('/api/core/image/',icon) AS icon "
@@ -207,6 +249,47 @@ def getTags(mediaType: int, mediaData: str):
         },
     )
     res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+@core.route("tag/category", methods=["GET"])
+def getTagCategories():
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute("SELECT DISTINCT name FROM tags")
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": [x["name"] for x in res]})
+
+
+@core.route("tag/category/<catg>", methods=["GET"])
+def getTagsFromCategory(catg: str):
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT idTag AS id, name, value, CONCAT('/api/core/image/',icon) AS icon "
+        "FROM tags "
+        "WHERE name = %(catg)s;",
+        {
+            "catg": catg,
+        },
+    )
+    res = cursor.fetchall()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": res})
+
+
+@core.route("tag/<int:id>", methods=["GET"])
+def getTagFromID(id: str):
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT idTag AS id, name, value, CONCAT('/api/core/image/',icon) AS icon "
+        "FROM tags "
+        "WHERE idTag = %(id)s;",
+        {
+            "id": id,
+        },
+    )
+    res = cursor.fetchone()
     sqlConnection.close()
     return jsonify({"status": "ok", "data": res})
 
