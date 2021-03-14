@@ -97,7 +97,7 @@ def getThreadsStatus():
 
 
 @core.route("core/log", methods=["GET"])
-@core.route("log/<int:amount>", methods=["GET"])
+@core.route("core/log/<int:amount>", methods=["GET"])
 def getServerLogs(amount: int):
     checkUser("admin")
     try:
