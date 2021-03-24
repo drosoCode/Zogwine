@@ -53,13 +53,15 @@ def devices_supported():
 def devices_list():
     checkUser("cast")
     sqlConnection, cursor = getSqlConnection()
-    cursor.execute("SELECT idDevice AS id, name, type, address, enabled FROM devices")
+    cursor.execute(
+        "SELECT idDevice AS id, name, type, address, port, device, user, password, enabled FROM devices"
+    )
     data = cursor.fetchall()
     sqlConnection.close()
     for i in range(len(data)):
         d = initDevice(data[i], True)
         data[i]["available"] = d.available
-        del d
+        del d, data[i]["user"], data[i]["password"], data[i]["device"]
 
     return jsonify({"status": "ok", "data": data})
 
@@ -69,14 +71,14 @@ def device_data(idDevice: int):
     checkRights(idDevice)
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
-        "SELECT idDevice AS id, name, type, address, enabled FROM devices WHERE idDevice = %(idDevice)s",
+        "SELECT idDevice AS id, name, type, address, port, device, user, password, enabled FROM devices WHERE idDevice = %(idDevice)s",
         {"idDevice": idDevice},
     )
     data = cursor.fetchone()
     sqlConnection.close()
     d = initDevice(data, True)
     data["available"] = d.available
-    del d
+    del d, data["user"], data["password"], data["device"]
 
     return jsonify({"status": "ok", "data": data})
 
