@@ -8,3 +8,5 @@ pytest
 croniter
 gevent
 python-socketio
+xmltodict
+fuzzywuzzy[speedup]

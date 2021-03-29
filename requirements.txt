@@ -11,3 +11,5 @@ youtube_dl
 pychromecast
 gevent
 python-socketio
+xmltodict
+fuzzywuzzy[speedup]
