@@ -72,7 +72,7 @@ def mov_getCollections(idCollection: int = None):
     else:
         res = cursor.fetchall()
     sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
+    return jsonify({"status": "ok", "data": fixTypes(res)})
 
 
 @movie.route("fromCollection/<int:idCollection>", methods=["GET"])
@@ -91,7 +91,7 @@ def mov_getCollectionMovies(idCollection: int):
     )
     res = cursor.fetchall()
     sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
+    return jsonify({"status": "ok", "data": fixTypes(res)})
 
 
 ################################ POST ##########################################################
