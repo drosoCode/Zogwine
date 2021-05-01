@@ -22,6 +22,8 @@ tags:
   description: Person Operations
 - name: search
   description: Search Operations
+- name: tracker
+  description: Tracker Operations
 servers:
 - url: /api/
 - url: http://10.10.2.1:8083/api
@@ -1887,6 +1889,51 @@ paths:
       - admin: []
 
 
+  /tracker/scan/all:
+    get:
+      tags:
+      - tracker
+      summary: Run a scan for all enabled trackers
+      operationId: tracker_scan_all
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+      
+  /tracker/sync/all:
+    get:
+      tags:
+      - tracker
+      summary: Run a sync for all enabled trackers
+      operationId: tracker_sync_all
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
 
 components:
   schemas:

@@ -35,19 +35,23 @@ class kodi(PlayerBase):
 
     @property
     def available(self) -> bool:
-        r = requests.post(
-            "http://" + self._address + ":" + self._port + "/jsonrpc",
-            data=json.dumps(
-                {
-                    "jsonrpc": "2.0",
-                    "method": "JSONRPC.Ping",
-                    "id": 1,
-                }
-            ),
-            auth=self._auth,
-            headers={"Content-Type": "application/json"},
-        )
-        return r.status_code == 200 and json.loads(r.text)["result"] == "pong"
+        try:
+            r = requests.post(
+                "http://" + self._address + ":" + self._port + "/jsonrpc",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "JSONRPC.Ping",
+                        "id": 1,
+                    }
+                ),
+                auth=self._auth,
+                headers={"Content-Type": "application/json"},
+                timeout=3,
+            )
+            return r.status_code == 200 and json.loads(r.text)["result"] == "pong"
+        except:
+            return False
 
     def playMedia(self, mediaType: int, mediaData: int, data: dict = None) -> tuple:
         if not self.available:
