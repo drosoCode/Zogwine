@@ -4,7 +4,6 @@ import redis
 import os
 import json
 from importlib import import_module
-import sys
 
 from .transcoder import transcoder
 from .log import logger
@@ -149,8 +148,7 @@ def initDevice(data, skipInit=False) -> PlayerBase:
 
 
 def importDevice(devType: str):
-    sys.path.append("app/devices/")
     if not os.path.exists("app/devices/" + devType + ".py"):
         return None
-    module = import_module(devType)
+    module = import_module("app.devices." + devType)
     return getattr(module, devType)
