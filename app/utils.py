@@ -7,6 +7,7 @@ from base64 import b64decode, b64encode
 from urllib.parse import urlparse, parse_qs, unquote
 import secrets
 import hashlib
+from decimal import Decimal
 
 from .dbHelper import getSqlConnection, configData, r_userTokens
 from .log import logger
