@@ -13,3 +13,10 @@ gevent
 python-socketio
 xmltodict
 fuzzywuzzy[speedup]
+opencensus
+opencensus-ext-jaeger
+opencensus-ext-mysql
+opencensus-ext-logging
+opencensus-ext-flask
+opencensus-ext-requests
+opencensus-ext-threading

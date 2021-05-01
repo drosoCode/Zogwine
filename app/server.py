@@ -15,6 +15,25 @@ import json
 import redis
 import yaml
 
+app = Flask(__name__, static_url_path="")
+
+from opencensus.trace import config_integration
+from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+from opencensus.ext.jaeger.trace_exporter import JaegerExporter
+from opencensus.trace import tracer as tracer_module
+
+FlaskMiddleware(app, excludelist_paths=["_ah/health"])
+config_integration.trace_integrations(["requests", "mysql", "threading", "logging"])
+tracer = tracer_module.Tracer(
+    exporter=JaegerExporter(
+        service_name="Zogwine",
+        agent_host_name="10.10.2.1",
+        agent_port=6831,
+    )
+)
+
+tracer.start_span(name="root")
+
 from .log import logger
 from .tvs import tvs
 from .movie import movie
@@ -31,11 +50,11 @@ from .socketio import sio
 """
 DB:
     mediaType: 1=tv_show ep
-               2=tv_show
-               3=movie
-               4=url (youtube, twitch, direct video ...)
-               5=reserved (tvshow season ?)
-               6=reserved (movie collection ?)
+            2=tv_show
+            3=movie
+            4=url (youtube, twitch, direct video ...)
+            5=reserved (tvshow season ?)
+            6=reserved (movie collection ?)
 """
 
 startWatcher()
@@ -45,8 +64,6 @@ r_runningThreads.set("movies", 0)
 r_runningThreads.set("upEpisodes", 0)
 r_runningThreads.set("cache", 0)
 r_runningThreads.set("people", 0)
-
-app = Flask(__name__, static_url_path="")
 
 app.register_blueprint(tvs, url_prefix="/api/tvs")
 app.register_blueprint(movie, url_prefix="/api/movie")
