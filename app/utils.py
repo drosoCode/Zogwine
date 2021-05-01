@@ -120,3 +120,23 @@ def encodeImg(img):
 
 def ping(host) -> bool:
     return os.system("ping -c 1 -W 1 " + host) == 0
+
+
+def fixTypes(data):
+    if type(data) == list:
+        for i in range(len(data)):
+            data[i] = __convertTypes(data[i])
+        return data
+    else:
+        return __convertTypes(data)
+
+
+def __convertTypes(data):
+    for k in data:
+        if type(data[k]) == bytearray:
+            data[k] = data[k].decode("utf-8")
+        elif type(data[k]) == Decimal:
+            data[k] = float(data[k])
+        elif type(data[k]) not in [str, int, float]:
+            print(type(data))
+    return data

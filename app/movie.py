@@ -6,7 +6,7 @@ import os.path
 
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, checkUser, addCache, getUID
+from .utils import checkArgs, checkUser, addCache, getUID, fixTypes
 
 from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .indexer import scanner
@@ -212,8 +212,8 @@ def mov_getMovie(mr=False, idMovie=None):
     res = cursor.fetchall()
     sqlConnection.close()
     if idMovie is not None:
-        return res[0]
-    return res
+        return fixTypes(res[0])
+    return fixTypes(res)
 
 
 def mov_refreshCache():
