@@ -139,8 +139,37 @@ trigger:
   - promote
   target:
   - production
+
+---
+kind: secret
+name: webhook_id
+get:
+  path: kv/data/discord/webhook/drone
+  name: id
+
+---
+kind: secret
+name: webhook_token
+get:
+  path: kv/data/discord/webhook/drone
+  name: token
+
+---
+kind: secret
+name: sonar_host
+get:
+  path: kv/data/sonarqube
+  name: host
+
+---
+kind: secret
+name: sonar_token
+get:
+  path: kv/data/sonarqube
+  name: token
+
 ---
 kind: signature
-hmac: 9baeb4098e3c7069e4bb9660693779851e783a6a181b7f12fbaeeae70324c998
+hmac: 49643b1b73302b967f8b45b71a2f7e9fd76024c7cd6719d99571f93d7634e513
 
 ...
