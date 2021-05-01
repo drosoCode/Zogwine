@@ -22,6 +22,7 @@ from .user import user
 from .core import core
 from .player import player
 from .device import device
+from .tracker import tracker
 from .dbHelper import r_runningThreads, r_userTokens, configData
 from .utils import getUID, checkUser
 from .watcher import startWatcher
@@ -33,6 +34,8 @@ DB:
                2=tv_show
                3=movie
                4=url (youtube, twitch, direct video ...)
+               5=reserved (tvshow season ?)
+               6=reserved (movie collection ?)
 """
 
 startWatcher()
@@ -51,6 +54,7 @@ app.register_blueprint(user, url_prefix="/api/user")
 app.register_blueprint(core, url_prefix="/api")
 app.register_blueprint(player, url_prefix="/api/player")
 app.register_blueprint(device, url_prefix="/api/device")
+app.register_blueprint(tracker, url_prefix="/api/tracker")
 
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
