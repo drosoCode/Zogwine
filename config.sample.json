@@ -36,6 +36,8 @@
         "movie": "0 0 * * 1",
         "upcomingEpisode": "0 0 * * 3,6",
         "cache": "",
-        "person": "0 15 * * *"
+        "person": "0 15 * * *",
+        "trackerScan": "",
+        "trackerSync": ""
     }
 }

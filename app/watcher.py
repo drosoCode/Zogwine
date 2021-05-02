@@ -13,6 +13,7 @@ from .transcoder import transcoder
 from .movie import mov_runScan
 from .tvs import tvs_runScan, tvs_runUpcomingScan
 from .core import refreshCache, runPeopleScan
+from .tracker import scanAll, syncAll
 
 
 @thread
@@ -113,3 +114,7 @@ def execCronProcess(name):
         refreshCache()
     elif name == "person":
         runPeopleScan()
+    elif name == "trackerScan":
+        scanAll()
+    elif name == "trackerSync":
+        syncAll()
