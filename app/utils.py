@@ -138,6 +138,10 @@ def __convertTypes(data):
             data[k] = data[k].decode("utf-8")
         elif type(data[k]) == Decimal:
             data[k] = float(data[k])
-        elif type(data[k]) not in [str, int, float]:
-            print(type(data))
+        elif type(data[k]) == dict:
+            data[k] = __convertTypes(data[k])
+        elif type(data[k]) == list:
+            data[k] = fixTypes(data[k])
+    #        elif type(data[k]) not in [str, int, float]:
+    #            print(type(data))
     return data
