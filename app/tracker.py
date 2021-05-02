@@ -72,4 +72,4 @@ def syncAll():
         if ("1" in t[1] or "2" in t[1]) and isinstance(t[0], TVSTracker):
             t[0].syncTVS(t[2])
         if ("3" in t[1]) and isinstance(t[0], MovieTracker):
-            t[0].syncMovie(([2]))
+            t[0].syncMovie((t[2]))

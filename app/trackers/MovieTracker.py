@@ -35,7 +35,7 @@ class MovieTracker(BaseTracker, ABC):
             "(SELECT watchCount, watchTime, lastDate FROM status WHERE mediaType = 3 AND idMedia = %(idMovie)s AND idUser = %(idUser)s) UNION (SELECT 0, 0, NULL) LIMIT 1;",
             {"idMovie": idMovie, "idUser": self._idUser},
         )
-        return cursor.fetchall()
+        return cursor.fetchone()
 
     @abstractmethod
     def scanMovie(self):

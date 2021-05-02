@@ -137,7 +137,6 @@ class kodi(TVSTracker, MovieTracker):
             self._searchMatchingZogwineMovie(i["movieid"], i["label"], year=i["year"])
 
     def syncMovie(self, direction: int = 2):
-        print("=========================================")
         self._loadMovieData()
         data = self.__apiCall(
             {
@@ -152,45 +151,42 @@ class kodi(TVSTracker, MovieTracker):
         kodiData = {}
         for k in data:
             kodiData[k["movieid"]] = k
+        kodiDataKeys = list(kodiData.keys())
 
         for i in self._getTrackerEntries(3, True):
-            if i["trackerData"] in kodiData:
+            if int(i["trackerData"]) in kodiDataKeys:
                 zwMov = self._getMovieStatus(i["mediaData"])
-                kodiMov = kodiData[i["trackerData"]]
-                print(zwMov)
+                kodiMov = kodiData[int(i["trackerData"])]
 
-                if (
-                    kodiMov["playcount"] != zwMov["watchCount"]
-                    or kodiMov["resume"]["position"] != zwMov["watchTime"]
-                ):
-                    action = self._compareStatus(
-                        zwMov["watchCount"],
-                        zwMov["watchTime"],
-                        zwMov["lastDate"],
+                action = self._compareStatus(
+                    zwMov["watchCount"],
+                    zwMov["watchTime"],
+                    zwMov["lastDate"],
+                    kodiMov["playcount"],
+                    kodiMov["resume"]["position"],
+                    kodiMov["lastplayed"],
+                    direction,
+                )
+
+                if action == 1:
+                    self.__apiCall(
+                        {
+                            "jsonrpc": "2.0",
+                            "method": "VideoLibrary.SetMovieDetails",
+                            "id": 1,
+                            "params": {
+                                "movieid": kodiMov["movieid"],
+                                "playcount": zwMov["watchCount"],
+                                "lastplayed": zwMov["lastDate"],
+                                "resume": {"position": zwMov["watchTime"]},
+                            },
+                        }
+                    )
+                elif action == 0:
+                    self._updateStatus(
+                        3,
+                        zwMov["idEpisode"],
                         kodiMov["playcount"],
                         kodiMov["resume"]["position"],
                         kodiMov["lastplayed"],
-                        direction,
                     )
-                    if action == 1:
-                        self.__apiCall(
-                            {
-                                "jsonrpc": "2.0",
-                                "method": "VideoLibrary.SetMovieDetails",
-                                "id": 1,
-                                "params": {
-                                    "movieid": kodiMov["movieid"],
-                                    "playcount": zwMov["watchCount"],
-                                    "lastplayed": zwMov["lastDate"],
-                                    "resume": {"position": zwMov["watchTime"]},
-                                },
-                            }
-                        )
-                    elif action == 0:
-                        self._updateStatus(
-                            3,
-                            zwMov["idEpisode"],
-                            kodiMov["playcount"],
-                            kodiMov["resume"]["position"],
-                            kodiMov["lastplayed"],
-                        )
