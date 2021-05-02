@@ -1,12 +1,13 @@
--- Adminer 4.7.7 MySQL dump
+-- Adminer 4.7.8 MySQL dump
 
 SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
 SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
-CREATE DATABASE `zogwine_dev` /*!40100 DEFAULT CHARACTER SET utf8 */;
-USE `zogwine_dev`;
+DROP DATABASE IF EXISTS `zogwine`;
+CREATE DATABASE `zogwine` /*!40100 DEFAULT CHARACTER SET utf8 */;
+USE `zogwine`;
 
 DROP TABLE IF EXISTS `devices`;
 CREATE TABLE `devices` (
@@ -43,8 +44,7 @@ CREATE TABLE `episodes` (
   PRIMARY KEY (`idEpisode`),
   KEY `idShow` (`idShow`),
   KEY `idVid` (`idVid`),
-  CONSTRAINT `episodes_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`),
-  CONSTRAINT `episodes_ibfk_2` FOREIGN KEY (`idVid`) REFERENCES `video_files` (`idVid`)
+  CONSTRAINT `episodes_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -153,6 +153,7 @@ CREATE TABLE `status` (
   `mediaType` int(11) NOT NULL,
   `watchCount` int(11) NOT NULL DEFAULT 0,
   `watchTime` int(11) NOT NULL DEFAULT 0,
+  `lastDate` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`idStatus`),
   KEY `idUser` (`idUser`),
   CONSTRAINT `status_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`)
@@ -179,6 +180,36 @@ CREATE TABLE `tags_link` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
+DROP TABLE IF EXISTS `trackers`;
+CREATE TABLE `trackers` (
+  `idTracker` int(11) NOT NULL AUTO_INCREMENT,
+  `idUser` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL,
+  `user` text DEFAULT NULL,
+  `password` text DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `port` int(11) DEFAULT NULL,
+  `data` text DEFAULT NULL,
+  `direction` int(11) NOT NULL,
+  `syncTypes` text NOT NULL,
+  `enabled` tinyint(4) NOT NULL,
+  KEY `idTracker` (`idTracker`),
+  KEY `idUser` (`idUser`),
+  CONSTRAINT `trackers_ibfk_2` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `trackers_link`;
+CREATE TABLE `trackers_link` (
+  `mediaType` int(11) NOT NULL,
+  `mediaData` text NOT NULL,
+  `idTracker` int(11) NOT NULL,
+  `trackerData` text NOT NULL,
+  `enabled` tinyint(4) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 DROP TABLE IF EXISTS `tv_shows`;
 CREATE TABLE `tv_shows` (
   `idShow` int(11) NOT NULL AUTO_INCREMENT,
@@ -187,7 +218,7 @@ CREATE TABLE `tv_shows` (
   `icon` varchar(255) DEFAULT NULL,
   `fanart` varchar(255) DEFAULT NULL,
   `rating` int(11) DEFAULT NULL,
-  `premiered` date DEFAULT NULL,
+  `premiered` varchar(255) DEFAULT NULL,
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(11) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
@@ -216,14 +247,15 @@ CREATE TABLE `upcoming_episodes` (
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `idUser` int(11) NOT NULL AUTO_INCREMENT,
-  `token` text NOT NULL,
   `name` varchar(255) NOT NULL,
-  `icon` varchar(255) NOT NULL,
   `user` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `admin` tinyint(1) unsigned zerofill NOT NULL,
-  `cast` tinyint(1) unsigned zerofill NOT NULL,
-  `kodiLinkBase` varchar(255) DEFAULT NULL,
+  `admin` tinyint(1) unsigned zerofill NOT NULL DEFAULT 0,
+  `cast` tinyint(1) unsigned zerofill NOT NULL DEFAULT 0,
+  `receive` tinyint(1) unsigned zerofill NOT NULL DEFAULT 0,
+  `indexof` tinyint(1) unsigned zerofill NOT NULL DEFAULT 0,
+  `allowMovie` tinyint(1) unsigned zerofill NOT NULL DEFAULT 1,
+  `allowTvs` tinyint(1) unsigned zerofill NOT NULL DEFAULT 1,
   PRIMARY KEY (`idUser`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -248,4 +280,4 @@ CREATE TABLE `video_files` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
--- 2020-11-25 14:56:37
+-- 2021-05-02 19:31:50
