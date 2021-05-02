@@ -32,7 +32,7 @@ class MovieTracker(BaseTracker, ABC):
     def _getMovieStatus(self, idMovie) -> list:
         cursor = self._connection.cursor(dictionary=True, buffered=True)
         cursor.execute(
-            "SELECT watchCount, watchTime, lastDate FROM status WHERE mediaType = 3 AND idMedia = %(idMovie)s AND idUser = %(idUser)s",
+            "(SELECT watchCount, watchTime, lastDate FROM status WHERE mediaType = 3 AND idMedia = %(idMovie)s AND idUser = %(idUser)s) UNION (SELECT 0, 0, NULL) LIMIT 1;",
             {"idMovie": idMovie, "idUser": self._idUser},
         )
         return cursor.fetchall()

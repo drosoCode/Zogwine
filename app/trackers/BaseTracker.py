@@ -41,16 +41,27 @@ class BaseTracker(ABC):
     ) -> None:
         cursor = self._connection.cursor(dictionary=True, buffered=True)
         cursor.execute(
-            "UPDATE status SET watchCount = %(count)s, watchTime = %(time)s, lastDate = %(date)s WHERE mediaType = %(mediaType)s AND idMedia = %(mediaData)s AND idUser = %(idUser)s",
-            {
-                "count": count,
-                "time": time,
-                "date": date,
-                "mediaType": mediaType,
-                "mediaData": mediaData,
-                "idUser": self._idUser,
-            },
+            "SELECT COUNT(*) AS cnt FROM status WHERE mediaType = %(mediaType)s AND idMedia = %(mediaData)s AND idUser = %(idUser)s",
+            {"mediaType": mediaType, "mediaData": mediaData, "idUser": self._idUser},
         )
+        data = {
+            "count": count,
+            "time": time,
+            "date": date,
+            "mediaType": mediaType,
+            "mediaData": mediaData,
+            "idUser": self._idUser,
+        }
+        if cursor.fetchone()["cnt"] == 0:
+            cursor.execute(
+                "INSERT INTO status (idUser, idMedia, mediaType, watchCount, watchTime, lastDate) VALUES (%(idUser)s, %(mediaData)s, %(mediaType)s, %(count)s, %(time)s, %(date)s);",
+                data,
+            )
+        else:
+            cursor.execute(
+                "UPDATE status SET watchCount = %(count)s, watchTime = %(time)s, lastDate = %(date)s WHERE mediaType = %(mediaType)s AND idMedia = %(mediaData)s AND idUser = %(idUser)s",
+                data,
+            )
         self._connection.commit()
 
     def _addTrackerEntry(

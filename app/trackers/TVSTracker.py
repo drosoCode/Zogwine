@@ -29,7 +29,9 @@ class TVSTracker(BaseTracker, ABC):
     def _getEpisodesFromShow(self, idShow) -> list:
         cursor = self._connection.cursor(dictionary=True, buffered=True)
         cursor.execute(
-            "SELECT idEpisode, season, episode, watchCount, watchTime, lastDate FROM status s, episodes e WHERE s.mediaType = 1 AND s.idMedia = e.idEpisode AND s.idUser = %(idUser)s AND idShow = %(idShow)s ORDER BY season, episode",
+            "SELECT idEpisode, season, episode, COALESCE(watchCount, 0) AS watchCount, COALESCE(watchTime, 0) AS watchTime, lastDate "
+            "FROM status s RIGHT JOIN episodes e ON (s.idMedia = e.idEpisode AND s.idUser = %(idUser)s AND s.mediaType = 1)"
+            "WHERE idShow = %(idShow)s ORDER BY season, episode",
             {"idShow": idShow, "idUser": self._idUser},
         )
         return cursor.fetchall()
