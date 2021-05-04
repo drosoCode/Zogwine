@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from app.scrapers.BaseScaper import BaseScaper
 
 
 class TVSScraper(ABC):
@@ -7,7 +8,7 @@ class TVSScraper(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSEp(self, id, season, episode, scraperData=None):
+    def getTVSEpisodes(self, id, season, episode, scraperData=None):
         raise NotImplementedError()
 
     @abstractmethod
@@ -15,7 +16,7 @@ class TVSScraper(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSUpcomingEpisode(self, idTvs):
+    def getTVSUpcomingEpisodes(self, idTvs):
         raise NotImplementedError()
 
     @abstractmethod

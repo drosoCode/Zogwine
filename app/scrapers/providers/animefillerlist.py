@@ -1,9 +1,11 @@
+from app.scrapers.interfaces.filler import FillerScraper
+
 from bs4 import BeautifulSoup
 import requests
 import re
 
 
-def getFillers(url):
+def getFillers(self, url):
     def getFillersFromResp(resp, ftype, name, flist):
         r = resp.find("div", {"class": name})
         if r is None:
@@ -31,7 +33,7 @@ def getFillers(url):
     return sorted(fillers, key=lambda filler: filler[0])
 
 
-def getFillerSlug(name):
+def __getFillerSlug(self, name):
     s = name.lower()
     s = re.sub("[._?@!$~#&%*,;:/<>().']+", " ", s)
     s = re.sub(" +(on)|(at)+ +", "", s)
@@ -40,8 +42,8 @@ def getFillerSlug(name):
     return s
 
 
-def findFillerUrl(name):
-    url = "https://www.animefillerlist.com/shows/" + getFillerSlug(name)
+def searchFillers(self, name):
+    url = "https://www.animefillerlist.com/shows/" + self.__getFillerSlug(name)
     if requests.get(url).status_code == 200:
         return url
     else:
