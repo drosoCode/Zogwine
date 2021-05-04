@@ -3,6 +3,7 @@ import redis
 import json
 from uwsgidecorators import thread
 import os.path
+from datetime import datetime
 
 from .transcoder import transcoder
 from .log import logger
@@ -154,13 +155,22 @@ def mov_toggleStatus(idMovie: int):
         else:
             count = 1
         cursor.execute(
-            "UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 3 AND idMedia = %(idMedia)s;",
-            {"watchCount": count, "idUser": idUser, "idMedia": idMovie},
+            "UPDATE status SET watchCount = %(watchCount)s, lastDate = %(date)s WHERE idUser = %(idUser)s AND mediaType = 3 AND idMedia = %(idMedia)s;",
+            {
+                "watchCount": count,
+                "idUser": idUser,
+                "idMedia": idMovie,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
         )
     else:
         cursor.execute(
-            "INSERT INTO status (idUser, mediaType, idMedia, watchCount) VALUES (%(idUser)s, 3, %(idMedia)s, 1);",
-            {"idUser": idUser, "idMedia": idMovie},
+            "INSERT INTO status (idUser, mediaType, idMedia, watchCount, watchTime, lastDate) VALUES (%(idUser)s, 3, %(idMedia)s, 1, 0, %(date)s);",
+            {
+                "idUser": idUser,
+                "idMedia": idMovie,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
         )
     sqlConnection.commit()
     sqlConnection.close()

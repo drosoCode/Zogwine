@@ -3,6 +3,7 @@ import redis
 import json
 from uwsgidecorators import thread
 import os.path
+from datetime import datetime
 
 from .transcoder import transcoder
 from .log import logger
@@ -356,17 +357,22 @@ def tvs_toggleWatchedEpisode(uid, idEpisode, watched=None):
         else:
             count = 1
         cursor.execute(
-            "UPDATE status SET watchCount = %(watchCount)s WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idMedia)s;",
+            "UPDATE status SET watchCount = %(watchCount)s, lastDate = %(date)s WHERE idUser = %(idUser)s AND mediaType = 1 AND idMedia = %(idMedia)s;",
             {
                 "watchCount": str(count),
                 "idUser": uid,
                 "idMedia": str(idEpisode),
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
     elif watched is not False:
         cursor.execute(
-            "INSERT INTO status (idUser, mediaType, idMedia, watchCount) VALUES (%(idUser)s, 1, %(idMedia)s, 1);",
-            {"idUser": uid, "idMedia": str(idEpisode)},
+            "INSERT INTO status (idUser, mediaType, idMedia, watchCount, watchTime, lastDate) VALUES (%(idUser)s, 1, %(idMedia)s, 1, 0, %(date)s);",
+            {
+                "idUser": uid,
+                "idMedia": str(idEpisode),
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
         )
     sqlConnection.commit()
     sqlConnection.close()

@@ -4,6 +4,7 @@ import redis
 import os
 import json
 from uwsgidecorators import thread
+from datetime import datetime
 
 from .transcoder import transcoder
 from .log import logger
@@ -125,7 +126,9 @@ def getTranscoderStatus():
                     {"status": "ok", "data": {"available": True, "running": False}}
                 )
         else:
-            return jsonify({"status": "ok", "data": {"available": False, "running": False}})
+            return jsonify(
+                {"status": "ok", "data": {"available": False, "running": False}}
+            )
     else:
         return jsonify({"status": "ok", "data": {"available": False, "running": False}})
 
@@ -290,22 +293,24 @@ def player_setWatchTime(uid: str, mediaType: int, idMedia: int, endTime: float):
 
     if data != None and "watchCount" in data:
         cursor.execute(
-            "UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s WHERE idStatus = %(idStatus)s;",
+            "UPDATE status SET watchCount = %(watchCount)s, watchTime = %(watchTime)s, lastDate = %(date)s WHERE idStatus = %(idStatus)s;",
             {
                 "watchCount": str(data["watchCount"] + viewAdd),
                 "watchTime": str(endTime),
                 "idStatus": str(data["idStatus"]),
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
     else:
         cursor.execute(
-            "INSERT INTO status (idUser, mediaType, idMedia, watchCount, watchTime) VALUES (%(idUser)s, %(mediaType)s, %(idMedia)s, %(watchCount)s, %(watchTime)s);",
+            "INSERT INTO status (idUser, mediaType, idMedia, watchCount, watchTime, lastDate) VALUES (%(idUser)s, %(mediaType)s, %(idMedia)s, %(watchCount)s, %(watchTime)s, %(date)s);",
             {
                 "idUser": int(uid),
                 "mediaType": mediaType,
                 "idMedia": str(idMedia),
                 "watchCount": str(viewAdd),
                 "watchTime": str(endTime),
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
     sqlConnection.commit()
