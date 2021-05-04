@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from app.dbHelper import getSqlConnection
 from fuzzywuzzy import fuzz, process
+from app.log import logger
 
 
 class BaseTracker(ABC):
@@ -108,6 +109,7 @@ class BaseTracker(ABC):
             self._addTrackerEntry(mediaType, zwID, trackerData)
             self._titles.remove(title)
             del self._titlesData[title]
+            logger.info("New media tracked: " + title)
 
         if str(trackerData) in self._existingTrackerData:
             return False
@@ -127,9 +129,11 @@ class BaseTracker(ABC):
                 t, self._titles, limit=3, scorer=fuzz.token_sort_ratio
             ):
                 if i[1] > 70:
-                    if i[0] in self._titlesData and self._titlesData[i[0]]["premiered"][
-                        0:4
-                    ] == str(year):
+                    if (
+                        i[0] in self._titlesData
+                        and self._titlesData[i[0]].get("premiered") is not None
+                        and self._titlesData[i[0]]["premiered"][0:4] == str(year)
+                    ):
                         results.append((i[0], i[1] + 5))
                     else:
                         results.append((i[0], i[1]))

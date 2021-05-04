@@ -185,7 +185,7 @@ class kodi(TVSTracker, MovieTracker):
                 elif action == 0:
                     self._updateStatus(
                         3,
-                        zwMov["idEpisode"],
+                        i["mediaData"],
                         kodiMov["playcount"],
                         kodiMov["resume"]["position"],
                         kodiMov["lastplayed"],
