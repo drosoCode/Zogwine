@@ -1,11 +1,12 @@
 from app.scrapers.interfaces.filler import FillerScraper
+from app.scrapers.BaseProvider import BaseProvider
 
 from bs4 import BeautifulSoup
 import requests
 import re
 
 
-class animefillerlist(FillerScraper):
+class animefillerlist(BaseProvider, FillerScraper):
     def getFillers(self, url):
         def getFillersFromResp(resp, ftype, name, flist):
             r = resp.find("div", {"class": name})

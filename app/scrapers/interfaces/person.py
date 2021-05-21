@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class PersonScraper(ABC):
+class PersonScraper(BaseScraper, ABC):
     @abstractmethod
     def getPersonDetails(self, id):
         raise NotImplementedError()

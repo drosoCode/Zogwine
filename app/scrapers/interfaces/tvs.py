@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from app.scrapers.BaseScaper import BaseScaper
 
 
 class TVSScraper(ABC):

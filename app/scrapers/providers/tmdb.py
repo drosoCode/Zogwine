@@ -7,9 +7,10 @@ import requests
 import json
 import urllib.parse
 from datetime import datetime
+from app.scrapers.BaseProvider import BaseProvider
 
 
-class tmdb(TVSScraper, MovieScraper, PersonScraper):
+class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
     def __init__(self, apikey):
         super().__init__(apikey)
         self._endpoint = "https://api.themoviedb.org/3/"

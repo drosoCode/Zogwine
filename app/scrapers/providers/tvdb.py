@@ -1,11 +1,12 @@
 from app.scrapers.interfaces.tvs import TVSScraper
+from app.scrapers.BaseProvider import BaseProvider
 import requests
 import json
 import urllib.parse
 from datetime import datetime
 
 
-class tvdb(TVSScraper):
+class tvdb(BaseProvider, TVSScraper):
     def __init__(self, apikey):
         super().__init__(apikey)
         self._endpoint = "https://api.thetvdb.com"
