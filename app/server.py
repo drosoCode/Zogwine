@@ -45,6 +45,8 @@ r_runningThreads.set("movies", 0)
 r_runningThreads.set("upEpisodes", 0)
 r_runningThreads.set("cache", 0)
 r_runningThreads.set("people", 0)
+r_runningThreads.set("trackerScan", 0)
+r_runningThreads.set("trackerSync", 0)
 
 app = Flask(__name__, static_url_path="")
 

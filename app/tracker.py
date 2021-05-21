@@ -6,7 +6,7 @@ from uwsgidecorators import thread
 
 from .log import logger
 from .utils import checkArgs, getUID, generateToken, checkUser
-from .dbHelper import getSqlConnection, r_userFiles, configData
+from .dbHelper import getSqlConnection, r_runningThreads, configData
 from .trackers.TVSTracker import TVSTracker
 from .trackers.MovieTracker import MovieTracker
 
@@ -52,11 +52,17 @@ def runScanAllThreaded():
 
 @thread
 def scanAll():
+    r_runningThreads.set("trackerScan", 1)
     for t in getAllTrackers():
-        if ("1" in t[1] or "2" in t[1]) and isinstance(t[0], TVSTracker):
-            t[0].scanTVS()
-        if ("3" in t[1]) and isinstance(t[0], MovieTracker):
-            t[0].scanMovie()
+        try:
+            if ("1" in t[1] or "2" in t[1]) and isinstance(t[0], TVSTracker):
+                t[0].scanTVS()
+            if ("3" in t[1]) and isinstance(t[0], MovieTracker):
+                t[0].scanMovie()
+        except Exception as e:
+            logger.error("scan error for tracker: " + type(t[0]).__name__)
+            logger.debug(e)
+    r_runningThreads.set("trackerScan", 0)
 
 
 @tracker.route("sync/all", methods=["GET"])
@@ -68,8 +74,14 @@ def runSyncAllThreaded():
 
 @thread
 def syncAll():
+    r_runningThreads.set("trackerSync", 1)
     for t in getAllTrackers():
-        if ("1" in t[1] or "2" in t[1]) and isinstance(t[0], TVSTracker):
-            t[0].syncTVS(t[2])
-        if ("3" in t[1]) and isinstance(t[0], MovieTracker):
-            t[0].syncMovie((t[2]))
+        try:
+            if ("1" in t[1] or "2" in t[1]) and isinstance(t[0], TVSTracker):
+                t[0].syncTVS(t[2])
+            if ("3" in t[1]) and isinstance(t[0], MovieTracker):
+                t[0].syncMovie((t[2]))
+        except Exception as e:
+            logger.error("sync error for tracker: " + type(t[0]).__name__)
+            logger.debug(e)
+    r_runningThreads.set("trackerSync", 0)
