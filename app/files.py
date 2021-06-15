@@ -164,26 +164,24 @@ def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> by
 
     if mediaType == 1:
         cursor.execute(
-            u"SELECT path FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) WHERE idEpisode = %(mediaData)s;",
+            u"SELECT CONCAT(l.path, t.path, v.path) FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) INNER JOIN tv_shows t ON (e.idShow = t.idShow) INNER JOIN libraries l ON (t.idLib = l.id) WHERE idEpisode = %(mediaData)s;",
             {u"mediaData": mediaData},
         )
         dat = cursor.fetchone()[u"path"]
         sqlConnection.close()
         return os.path.join(
             base,
-            configData["config"]["tvsPath"].encode(),
             dat.encode("utf-8"),
         )
     elif mediaType == 3:
         cursor.execute(
-            u"SELECT path FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
+            u"SELECT CONCAT(l.path, v.path) FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) INNER JOIN libraries l ON (m.idLib = l.id) WHERE idMovie = %(mediaData)s;",
             {"mediaData": mediaData},
         )
         dat = cursor.fetchone()["path"]
         sqlConnection.close()
         return os.path.join(
             base,
-            configData["config"]["moviePath"].encode(),
             dat.encode("utf-8"),
         )
     else:

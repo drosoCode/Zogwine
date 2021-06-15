@@ -27,9 +27,7 @@
         "outDir": "out/",
         "watchedThreshold": 0.9,
         "baseUrl": "http://yourip:port",
-        "contentPath": "/home/server/content",
-        "tvsPath":"Series",
-        "moviePath":"Movies"
+        "contentPath": "/home/server/content"
     },
     "cron": {
         "tvs": "0 18,20 * * 0,4,5",
