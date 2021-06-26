@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from app.scrapers.BaseScraper import BaseScraper
+from dataclasses import dataclass
 
 
 class PersonScraper(BaseScraper, ABC):
@@ -12,7 +13,7 @@ class PersonScraper(BaseScraper, ABC):
         raise NotImplementedError()
 
 
-@dataclass
+@dataclass(frozen=True)
 class PersonData:
     birthdate: str
     deathdate: str
@@ -20,9 +21,3 @@ class PersonData:
     description: str
     icon: str
     knownFor: str
-
-
-@dataclass
-class PersonSearchData:
-    name: str
-    id: str

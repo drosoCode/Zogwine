@@ -1,13 +1,13 @@
-from app.scrapers.BaseScaper import BaseScaper
-from app.scrapers.interfaces.movie import MovieScraper
-from app.scrapers.interfaces.tvs import TVSScraper
-from app.scrapers.interfaces.person import PersonScraper
+from app.scrapers.interfaces.movie import *
+from app.scrapers.interfaces.tvs import *
+from app.scrapers.interfaces.person import *
+from app.scrapers.interfaces.common import *
+from app.scrapers.BaseProvider import BaseProvider
 
 import requests
 import json
 import urllib.parse
 from datetime import datetime
-from app.scrapers.BaseProvider import BaseProvider
 
 
 class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
@@ -32,16 +32,18 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                 self._endpoint + "tv/" + str(idTvs) + "?api_key=" + self._apikey
             ).text
         )
-        return {
-            "title": resp.get("name"),
-            "overview": resp.get("overview"),
-            "icon": self.__getImg(resp.get("poster_path")),
-            "fanart": self.__getImg(resp.get("backdrop_path")),
-            "premiered": resp.get("first_air_date"),
-            "rating": resp.get("vote_average"),
-            "scraperName": "tmdb",
-            "scraperData": None,
-        }
+        return TVSData(
+            title=resp.get("name"),
+            overview=resp.get("overview"),
+            icon=self.__getImg(resp.get("poster_path")),
+            fanart=self.__getImg(resp.get("backdrop_path")),
+            premiered=resp.get("first_air_date"),
+            rating=resp.get("vote_average"),
+            scraperName="tmdb",
+            scraperData=None,
+            scraperLink="https://www.themoviedb.org/tv/" + str(idTvs),
+            scraperID=resp.get("id"),
+        )
 
     def getTVSSeason(self, idTvs, season):
         resp = json.loads(
@@ -59,14 +61,16 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         if n is None:
             n = "Season" + str(season)
 
-        return {
-            "scraperName": "tmdb",
-            "scraperData": None,
-            "premiered": resp.get("air_date"),
-            "title": n,
-            "overview": resp.get("overview"),
-            "icon": self.__getImg(resp.get("poster_path")),
-        }
+        return TVSSeasonData(
+            scraperName="tmdb",
+            scraperData=None,
+            scraperID=resp.get("id"),
+            scraperLink=None,
+            premiered=resp.get("air_date"),
+            title=n,
+            overview=resp.get("overview"),
+            icon=self.__getImg(resp.get("poster_path")),
+        )
 
     def getTVSPeople(self, idTvs):
         resp = json.loads(
@@ -76,9 +80,15 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         )
         people = []
         for p in resp["cast"]:
-            people.append([p.get("name"), p.get("character")])
+            people.append(
+                PersonData(name=p.get("name"), role=p.get("character"), character=True)
+            )
         for p in resp["crew"]:
-            people.append([p.get("name"), p.get("department")])
+            people.append(
+                PersonData(
+                    name=p.get("name"), role=p.get("department"), character=False
+                )
+            )
         return people
 
     def getTVSUpcomingEpisodes(self, idTvs):
@@ -93,16 +103,17 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             and datetime.strptime(d["next_episode_to_air"]["air_date"], "%Y-%m-%d")
             > datetime.now()
         ):
-            return {
-                "scraperName": "tmdb",
-                "scraperData": None,
-                "date": d["next_episode_to_air"].get("air_date"),
-                "title": d["next_episode_to_air"].get("name"),
-                "overview": d["next_episode_to_air"].get("overview"),
-                "season": d["next_episode_to_air"].get("season_number"),
-                "episode": d["next_episode_to_air"].get("episode_number"),
-                "icon": self.__getImg(d["next_episode_to_air"].get("still_path")),
-            }
+            return TVSUpcomingEpisode(
+                scraperName="tmdb",
+                scraperData=None,
+                scraperID=d["next_episode_to_air"].get("id"),
+                premiered=d["next_episode_to_air"].get("air_date"),
+                title=d["next_episode_to_air"].get("name"),
+                overview=d["next_episode_to_air"].get("overview"),
+                season=d["next_episode_to_air"].get("season_number"),
+                episode=d["next_episode_to_air"].get("episode_number"),
+                icon=self.__getImg(d["next_episode_to_air"].get("still_path")),
+            )
         return None
 
     def getTVSTags(self, idTvs):
@@ -113,23 +124,37 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         )
         tags = []
         if "origin_country" in d:
-            tags.append(["country", d["origin_country"][0], None])
+            tags.append(
+                TagData(name="country", value=d["origin_country"][0], icon=None)
+            )
 
         if "network" in d:
             for c in d["networks"]:
                 tags.append(
-                    ["network", c.get("name"), self.__getImg(c.get("logo_path"))]
+                    [
+                        TagData(
+                            name="network",
+                            value=c.get("name"),
+                            icon=self.__getImg(c.get("logo_path")),
+                        )
+                    ]
                 )
 
         if "production_companies" in d:
             for c in d["production_companies"]:
                 tags.append(
-                    ["production", c.get("name"), self.__getImg(c.get("logo_path"))]
+                    [
+                        TagData(
+                            name="production",
+                            value=c.get("name"),
+                            icon=self.__getImg(c.get("logo_path")),
+                        )
+                    ]
                 )
 
         if "genres" in d:
             for c in d["genres"]:
-                tags.append(["genre", c.get("name"), None])
+                tags.append(TagData(name="genre", value=c.get("name"), icon=None))
 
         return tags
 
@@ -148,18 +173,19 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                     + self._apikey
                 ).text
             )
-            return {
-                "title": resp.get("name"),
-                "overview": resp.get("overview"),
-                "icon": self.__getImg(resp.get("still_path")),
-                "season": resp.get("season_number"),
-                "episode": resp.get("episode_number"),
-                "rating": resp.get("vote_average"),
-                "id": resp.get("id"),
-                "premiered": resp.get("air_date"),
-                "scraperName": "tmdb",
-                "scraperData": None,
-            }
+            return TVSEpisodeData(
+                title=resp.get("name"),
+                overview=resp.get("overview"),
+                icon=self.__getImg(resp.get("still_path")),
+                season=resp.get("season_number"),
+                episode=resp.get("episode_number"),
+                rating=resp.get("vote_average"),
+                scraperID=resp.get("id"),
+                premiered=resp.get("air_date"),
+                scraperName="tmdb",
+                scraperData=None,
+                scraperLink=None,
+            )
         else:
             if self._cache[0] != id or self._cache[1] != scraperData:
                 self._cache = (
@@ -182,31 +208,33 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                 and 0 <= episode - 1 < len(resp[season - 1]["episodes"])
             ):
                 d = resp[season - 1]["episodes"][episode - 1]
-                return {
-                    "title": d.get("name"),
-                    "overview": d.get("overview"),
-                    "icon": self.__getImg(d.get("still_path")),
-                    "season": str(season),
-                    "episode": str(episode),
-                    "rating": d.get("vote_average"),
-                    "id": d.get("id"),
-                    "premiered": d.get("air_date"),
-                    "scraperName": "tmdb",
-                    "scraperData": None,
-                }
+                return TVSEpisodeData(
+                    title=d.get("name"),
+                    overview=d.get("overview"),
+                    icon=self.__getImg(d.get("still_path")),
+                    season=str(season),
+                    episode=str(episode),
+                    rating=d.get("vote_average"),
+                    scraperID=d.get("id"),
+                    premiered=d.get("air_date"),
+                    scraperName="tmdb",
+                    scraperData=None,
+                    scraperLink=None,
+                )
             else:
-                return {
-                    "title": "Episode " + str(episode),
-                    "overview": None,
-                    "icon": None,
-                    "season": str(season),
-                    "episode": str(episode),
-                    "rating": None,
-                    "id": None,
-                    "premiered": None,
-                    "scraperName": "tmdb",
-                    "scraperData": None,
-                }
+                return TVSEpisodeData(
+                    title="Episode " + str(episode),
+                    overview=None,
+                    icon=None,
+                    season=str(season),
+                    episode=str(episode),
+                    rating=None,
+                    scraperID=None,
+                    premiered=None,
+                    scraperName="tmdb",
+                    scraperData=None,
+                    scraperLink=None,
+                )
 
     def searchTVS(self, name):
         next = 1
@@ -252,16 +280,16 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
 
         for item in data:
             results.append(
-                {
-                    "title": item.get("name"),
-                    "overview": item.get("overview"),
-                    "in_production": item.get("in_production"),
-                    "icon": self.__getImg(item.get("poster_path")),
-                    "premiered": item.get("first_air_date"),
-                    "id": item.get("id"),
-                    "scraperName": "tmdb",
-                    "scraperData": item.get("scraperData"),
-                }
+                MediaSearchData(
+                    title=item.get("name"),
+                    overview=item.get("overview"),
+                    icon=self.__getImg(item.get("poster_path")),
+                    premiered=item.get("first_air_date"),
+                    scraperID=item.get("id"),
+                    scraperName="tmdb",
+                    scraperData=item.get("scraperData"),
+                    scraperLink="https://www.themoviedb.org/tv/" + str(item["id"]),
+                )
             )
         return results
 
@@ -282,18 +310,19 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             and "id" in resp["belongs_to_collection"]
         ):
             c = resp["belongs_to_collection"]["id"]
-        return {
-            "title": resp.get("title"),
-            "overview": resp.get("overview"),
-            "icon": self.__getImg(resp.get("poster_path")),
-            "fanart": self.__getImg(resp.get("backdrop_path")),
-            "rating": resp.get("vote_average"),
-            "id": resp.get("id"),
-            "premiered": resp.get("release_date"),
-            "scraperName": "tmdb",
-            "scraperData": None,
-            "collection": c,
-        }
+        return MovieData(
+            title=resp.get("title"),
+            overview=resp.get("overview"),
+            icon=self.__getImg(resp.get("poster_path")),
+            fanart=self.__getImg(resp.get("backdrop_path")),
+            rating=resp.get("vote_average"),
+            scraperID=resp.get("id"),
+            premiered=resp.get("release_date"),
+            scraperName="tmdb",
+            scraperData=None,
+            collection=c,
+            scraperLink="https://www.themoviedb.org/movie/" + str(id),
+        )
 
     def getMovieCollection(self, id):
         resp = json.loads(
@@ -301,16 +330,17 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                 self._endpoint + "collection/" + str(id) + "?api_key=" + self._apikey
             ).text
         )
-        return {
-            "title": resp.get("name"),
-            "overview": resp.get("overview"),
-            "icon": self.__getImg(resp.get("poster_path")),
-            "fanart": self.__getImg(resp.get("backdrop_path")),
-            "id": resp.get("id"),
-            "premiered": resp["parts"][0].get("release_date"),
-            "scraperName": "tmdb",
-            "scraperData": None,
-        }
+        return MovieCollectionData(
+            title=resp.get("name"),
+            overview=resp.get("overview"),
+            icon=self.__getImg(resp.get("poster_path")),
+            fanart=self.__getImg(resp.get("backdrop_path")),
+            scraperID=resp.get("id"),
+            premiered=resp["parts"][0].get("release_date"),
+            scraperName="tmdb",
+            scraperData=None,
+            scraperLink=None,
+        )
 
     def searchMovie(self, name, year=-1):
         if year == -1:
@@ -341,15 +371,16 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         results = []
         for item in data:
             results.append(
-                {
-                    "title": item.get("title"),
-                    "overview": item.get("overview"),
-                    "icon": self.__getImg(item.get("poster_path")),
-                    "premiered": item.get("release_date"),
-                    "id": item.get("id"),
-                    "scraperName": "tmdb",
-                    "scraperData": None,
-                }
+                MediaSearchData(
+                    title=item.get("title"),
+                    overview=item.get("overview"),
+                    icon=self.__getImg(item.get("poster_path")),
+                    premiered=item.get("release_date"),
+                    scraperID=item.get("id"),
+                    scraperName="tmdb",
+                    scraperData=None,
+                    scraperLink="https://www.themoviedb.org/movie/" + str(item["id"]),
+                )
             )
         return results
 
@@ -365,9 +396,15 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         )
         people = []
         for p in resp["cast"]:
-            people.append([p.get("name"), p.get("character")])
+            people.append(
+                PersonData(name=p.get("name"), role=p.get("character"), character=True)
+            )
         for p in resp["crew"]:
-            people.append([p.get("name"), p.get("department")])
+            people.append(
+                PersonData(
+                    name=p.get("name"), role=p.get("department"), character=False
+                )
+            )
         return people
 
     def getMovieTags(self, idMov):
@@ -382,17 +419,33 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             and len(d["production_countries"]) > 0
             and "iso_3166_1" in d["production_countries"][0]
         ):
-            tags.append(["country", d["production_countries"][0]["iso_3166_1"], None])
+            tags.append(
+                TagData(
+                    name="country",
+                    value=d["production_countries"][0]["iso_3166_1"],
+                    icon=None,
+                )
+            )
 
         if "production_companies" in d:
             for c in d["production_companies"]:
                 tags.append(
-                    ["production", c.get("name"), self.__getImg(c.get("logo_path"))]
+                    TagData(
+                        name="production",
+                        value=c.get("name"),
+                        icon=self.__getImg(c.get("logo_path")),
+                    )
                 )
 
         if "genres" in d:
             for c in d["genres"]:
-                tags.append(["genre", c.get("name"), None])
+                tags.append(
+                    TagData(
+                        name="genre",
+                        value=c.get("name"),
+                        icon=None,
+                    )
+                )
 
         return tags
 
@@ -408,14 +461,14 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         ic = None
         if data.get("profile_path") is not None:
             ic = self.baseImgUrl + data.get("profile_path")
-        return {
-            "birthdate": data.get("birthday"),
-            "deathdate": data.get("deathday"),
-            "gender": data.get("gender"),
-            "description": data.get("biography"),
-            "icon": ic,
-            "known_for": data.get("known_for_department"),
-        }
+        return PersonData(
+            birthdate=data.get("birthday"),
+            deathdate=data.get("deathday"),
+            gender=data.get("gender"),
+            description=data.get("biography"),
+            icon=ic,
+            knownFor=data.get("known_for_department"),
+        )
 
     def getPersonData(self, name):
         response = json.loads(

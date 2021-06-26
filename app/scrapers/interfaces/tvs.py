@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 
 class TVSScraper(ABC):
@@ -7,45 +8,45 @@ class TVSScraper(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSEpisodes(self, id, season, episode, scraperData=None):
+    def getTVSEpisodes(self, season, episode):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSTags(self, idTvs):
+    def getTVSTags(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSUpcomingEpisodes(self, idTvs):
+    def getTVSUpcomingEpisodes(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSPeople(self, idTvs):
+    def getTVSPeople(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSSeason(self, idTvs, season):
+    def getTVSSeason(self, season):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVS(self, idTvs):
+    def getTVS(self):
         raise NotImplementedError()
 
 
-@dataclass
+@dataclass(frozen=True)
 class TVSData:
     title: str
     overview: str
     icon: str
     fanart: str
-    permiered: str
+    premiered: str
     rating: float
+    scraperID: str
     scraperName: str
     scraperData: str
     scraperLink: str
-    scraperID: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class TVSSeasonData:
     title: str
     overview: str
@@ -54,22 +55,23 @@ class TVSSeasonData:
     scraperID: str
     scraperName: str
     scraperData: str
+    scraperLink: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class TVSTagData:
     name: str
     value: str
     icon: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class TVSPersonData:
     name: str
     role: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class TVSEpisodeData:
     title: str
     overview: str
@@ -81,28 +83,17 @@ class TVSEpisodeData:
     premiered: str
     scraperName: str
     scraperData: str
+    scraperLink: str
 
 
-@dataclass
-class TVSSearchData:
-    title: str
-    overview: str
-    inProduction: str
-    icon: str
-    premiered: str
-    scraperID: str
-    scraperName: str
-    scraperData: str
-
-
-@dataclass
+@dataclass(frozen=True)
 class TVSUpcomingEpisode:
     title: str
     overview: str
     season: int
     episode: int
     icon: str
-    date: str
+    premiered: str
     scraperID: str
     scraperName: str
     scraperData: str

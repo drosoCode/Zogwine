@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from app.scrapers.BaseScraper import BaseScraper
+from app.scrapers.interfaces.base import BaseSearchData
+from dataclasses import dataclass
 
 
 class MovieScraper(BaseScraper, ABC):
@@ -24,7 +26,7 @@ class MovieScraper(BaseScraper, ABC):
         raise NotImplementedError()
 
 
-@dataclass
+@dataclass(frozen=True)
 class MovieData:
     title: str
     overview: str
@@ -39,7 +41,7 @@ class MovieData:
     scraperLink: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class MovieCollectionData:
     title: str
     overview: str
@@ -49,27 +51,5 @@ class MovieCollectionData:
     scraperID: str
     scraperName: str
     scraperData: str
+    scraperLink: str
 
-
-@dataclass
-class MovieSearchData:
-    title: str
-    overview: str
-    icon: str
-    premiered: str
-    scraperID: str
-    scraperName: str
-    scraperData: str
-
-
-@dataclass
-class MoviePersonData:
-    name: str
-    role: str
-
-
-@dataclass
-class MovieTagData:
-    name: str
-    value: str
-    icon: str
