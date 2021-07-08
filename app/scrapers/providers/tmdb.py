@@ -17,6 +17,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         self._baseImgUrl = "https://image.tmdb.org/t/p/w500"
         self._apikey = apikey
         self._cache = (None, None, None)
+        self.scraperName = "tmdb"
 
     def __getImg(self, img):
         if img is None:
@@ -39,7 +40,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             fanart=self.__getImg(resp.get("backdrop_path")),
             premiered=resp.get("first_air_date"),
             rating=resp.get("vote_average"),
-            scraperName="tmdb",
+            scraperName=self.scraperName,
             scraperData=None,
             scraperLink="https://www.themoviedb.org/tv/" + str(idTvs),
             scraperID=resp.get("id"),
@@ -62,7 +63,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             n = "Season" + str(season)
 
         return TVSSeasonData(
-            scraperName="tmdb",
+            scraperName=self.scraperName,
             scraperData=None,
             scraperID=resp.get("id"),
             scraperLink=None,
@@ -70,6 +71,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             title=n,
             overview=resp.get("overview"),
             icon=self.__getImg(resp.get("poster_path")),
+            rating=-1,
         )
 
     def getTVSPeople(self, idTvs):
@@ -104,7 +106,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             > datetime.now()
         ):
             return TVSUpcomingEpisode(
-                scraperName="tmdb",
+                scraperName=self.scraperName,
                 scraperData=None,
                 scraperID=d["next_episode_to_air"].get("id"),
                 premiered=d["next_episode_to_air"].get("air_date"),
@@ -158,7 +160,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
 
         return tags
 
-    def getTVSEpisodes(self, id, season, episode, scraperData=None):
+    def getTVSEpisode(self, id, season, episode, scraperData=None):
         if scraperData == None:
             resp = json.loads(
                 requests.get(
@@ -182,7 +184,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                 rating=resp.get("vote_average"),
                 scraperID=resp.get("id"),
                 premiered=resp.get("air_date"),
-                scraperName="tmdb",
+                scraperName=self.scraperName,
                 scraperData=None,
                 scraperLink=None,
             )
@@ -217,7 +219,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                     rating=d.get("vote_average"),
                     scraperID=d.get("id"),
                     premiered=d.get("air_date"),
-                    scraperName="tmdb",
+                    scraperName=self.scraperName,
                     scraperData=None,
                     scraperLink=None,
                 )
@@ -231,7 +233,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                     rating=None,
                     scraperID=None,
                     premiered=None,
-                    scraperName="tmdb",
+                    scraperName=self.scraperName,
                     scraperData=None,
                     scraperLink=None,
                 )
@@ -286,7 +288,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                     icon=self.__getImg(item.get("poster_path")),
                     premiered=item.get("first_air_date"),
                     scraperID=item.get("id"),
-                    scraperName="tmdb",
+                    scraperName=self.scraperName,
                     scraperData=item.get("scraperData"),
                     scraperLink="https://www.themoviedb.org/tv/" + str(item["id"]),
                 )
@@ -318,7 +320,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             rating=resp.get("vote_average"),
             scraperID=resp.get("id"),
             premiered=resp.get("release_date"),
-            scraperName="tmdb",
+            scraperName=self.scraperName,
             scraperData=None,
             collection=c,
             scraperLink="https://www.themoviedb.org/movie/" + str(id),
@@ -337,7 +339,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             fanart=self.__getImg(resp.get("backdrop_path")),
             scraperID=resp.get("id"),
             premiered=resp["parts"][0].get("release_date"),
-            scraperName="tmdb",
+            scraperName=self.scraperName,
             scraperData=None,
             scraperLink=None,
         )
@@ -377,7 +379,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                     icon=self.__getImg(item.get("poster_path")),
                     premiered=item.get("release_date"),
                     scraperID=item.get("id"),
-                    scraperName="tmdb",
+                    scraperName=self.scraperName,
                     scraperData=None,
                     scraperLink="https://www.themoviedb.org/movie/" + str(item["id"]),
                 )

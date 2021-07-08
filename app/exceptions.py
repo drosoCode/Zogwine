@@ -8,3 +8,11 @@ class InvalidLibraryException(Exception):
 
 class UnknownScraperException(Exception):
     pass
+
+
+class InvalidFileException(Exception):
+    pass
+
+
+class NoDataException(Exception):
+    pass

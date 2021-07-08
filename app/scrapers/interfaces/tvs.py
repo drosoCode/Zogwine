@@ -8,7 +8,7 @@ class TVSScraper(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getTVSEpisodes(self, season, episode):
+    def getTVSEpisode(self, season, episode):
         raise NotImplementedError()
 
     @abstractmethod
@@ -52,6 +52,7 @@ class TVSSeasonData:
     overview: str
     premiered: str
     icon: str
+    rating: float
     scraperID: str
     scraperName: str
     scraperData: str

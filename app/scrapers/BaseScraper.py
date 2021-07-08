@@ -5,8 +5,10 @@ import json
 from dataclasses import asdict
 
 from app.log import logger
-from app.dbHelper import getSqlConnection, configData
-from app.exceptions import InvalidLibraryException, UnknownScraperException
+from app.dbHelper import getSqlConnection
+from app.exceptions import UnknownScraperException
+from app.utils import encodeImg
+from app.scrapers.interfaces.common import TagData, PersonData
 
 
 class BaseScraper:
@@ -64,27 +66,6 @@ class BaseScraper:
             {"mediaType": self._mediaType, "mediaData": mediaData, "data": data},
         )
         sqlConnection.close()
-
-    def _getBasePath(self, idLib):
-        """
-        returns the absolute path to the root folder of a library
-        Args:
-            idLib: the library id
-        """
-        sqlConnection, cursor = getSqlConnection()
-        cursor.execute(
-            "SELECT path FROM libraries WHERE id = %(id)s;",
-            {"id": idLib},
-        )
-        data = cursor.fetchone()
-        sqlConnection.close()
-        if data is not None and data.get("path") is not None:
-            return os.path.join(
-                configData["config"]["contentPath"],
-                data["path"],
-            )
-        else:
-            raise InvalidLibraryException(f"library not found for id {idLib}")
 
     def _selectBestItem(self, items, title, year=None):
         searchItems = []
@@ -144,3 +125,102 @@ class BaseScraper:
             )
         sqlConnection.commit()
         sqlConnection.close()
+
+    # region common db methods
+
+    def _addTag(self, mediaData: str, tag: TagData):
+        sqlConnection, cursor = getSqlConnection()
+
+        reqData = {"name": tag.name, "value": tag.value}
+        cursor.execute(
+            "SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;",
+            reqData,
+        )
+        idTag = cursor.fetchone()
+        if idTag == None:
+            # create tag if new
+            cursor.execute(
+                "INSERT INTO tags (name, value, icon) VALUES (%(name)s, %(value)s, %(icon)s);",
+                {"name": tag.name, "value": tag.value, "icon": encodeImg(tag.icon)},
+            )
+            # get tag id
+            cursor.execute(
+                "SELECT idTag FROM tags where name = %(name)s AND value = %(value)s;",
+                reqData,
+            )
+            idTag = cursor.fetchone()["idTag"]
+        else:
+            idTag = idTag["idTag"]
+
+        # link tag to media
+        cursor.execute(
+            "INSERT INTO tags_link (idTag, idMedia, mediaType) VALUES (%(idTag)s, %(mediaData)s, %(mediaType)s);",
+            {"idTag": idTag, "mediaData": mediaData, "mediaType": self._mediaType},
+        )
+
+        sqlConnection.commit()
+        sqlConnection.close()
+
+    def _addPerson(self, mediaData: str, person: PersonData):
+        sqlConnection, cursor = getSqlConnection()
+
+        reqData = {"name": person.name}
+        cursor.execute(
+            "SELECT idPers FROM people where name = %(name)s;",
+            reqData,
+        )
+        idPers = cursor.fetchone()
+        if idPers == None:
+            # create person if new
+            cursor.execute(
+                "INSERT INTO people (name) VALUES (%(name)s);",
+                reqData,
+            )
+            # get person id
+            cursor.execute(
+                "SELECT idPers FROM people where name = %(name)s;",
+                reqData,
+            )
+            idPers = cursor.fetchone()["idPers"]
+        else:
+            idPers = idPers["idPers"]
+
+        # link tag to media
+        cursor.execute(
+            "INSERT INTO people_link (idPers, idMedia, mediaType, role) VALUES (%(idPers)s, %(mediaData)s, %(mediaType)s, %(role)s);",
+            {
+                "idPers": idPers,
+                "mediaData": mediaData,
+                "mediaType": self._mediaType,
+                "role": person.role,
+            },
+        )
+
+        sqlConnection.commit()
+        sqlConnection.close()
+
+    # endregion
+
+
+"""
+scrapers:
+ - tvs (tvs, season, episode, person, tag)
+ - movie (movie, collection, person, tag)
+ - music (artist, album, track, person, tag?, lyrics)
+ - books (book, person, tag)
+ - webtoon/manga (item, person, tag)
+ - game (item, collection, person, tag)
+
+
+types:
+    - tvs
+    - movie
+    - person
+    - filler
+
+    - music
+    - lyrics
+    - manga
+    - game
+    - book
+"""

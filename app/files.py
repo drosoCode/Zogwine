@@ -7,6 +7,7 @@ import base64
 from .dbHelper import getSqlConnection, configData, r_userFiles
 from .urlResolver import getInfos
 from .utils import getUID
+from .exceptions import InvalidLibraryException
 
 
 def _getSubtitleFilesList(filePath: bytes) -> list:
@@ -57,7 +58,7 @@ def _getFileInfos(path: bytes) -> dict:
     dat = json.loads(proc.communicate()[0].decode("utf-8"))
 
     data = {
-        "extension": fileName[fileName.rfind(u".") + 1 :],
+        "extension": fileName[fileName.rfind(".") + 1 :],
         "stereo3d": stereo3d,
         "audio": [],
         "subtitles": [],
@@ -75,40 +76,40 @@ def _getFileInfos(path: bytes) -> dict:
     i = 0
     if "streams" in dat:
         for stream in dat["streams"]:
-            lang = u""
-            if stream["codec_type"] == u"video":
-                data["video_codec"] = stream.get(u"codec_name")
-                data["pix_fmt"] = stream.get(u"pix_fmt")
-                data["ratio"] = stream.get(u"display_aspect_ratio")
+            lang = ""
+            if stream["codec_type"] == "video":
+                data["video_codec"] = stream.get("codec_name")
+                data["pix_fmt"] = stream.get("pix_fmt")
+                data["ratio"] = stream.get("display_aspect_ratio")
                 data["dimension"] = (
-                    str(stream.get(u"width")) + "x" + str(stream.get(u"height"))
+                    str(stream.get("width")) + "x" + str(stream.get("height"))
                 )
 
-            elif stream["codec_type"] == u"audio":
-                if u"tags" in stream and u"language" in stream["tags"]:
+            elif stream["codec_type"] == "audio":
+                if "tags" in stream and "language" in stream["tags"]:
                     lang = stream["tags"]["language"]
                 data["audio"].append(
                     {
-                        u"index": stream["index"],
-                        u"codec": stream["codec_name"],
-                        u"channels": stream["channels"],
-                        u"language": lang,
+                        "index": stream["index"],
+                        "codec": stream["codec_name"],
+                        "channels": stream["channels"],
+                        "language": lang,
                     }
                 )
 
-            elif stream[u"codec_type"] == u"subtitle":
-                t = u"SUB" + str(i)
-                if u"tags" in stream:
-                    if u"title" in stream["tags"]:
+            elif stream["codec_type"] == "subtitle":
+                t = "SUB" + str(i)
+                if "tags" in stream:
+                    if "title" in stream["tags"]:
                         t = stream["tags"]["title"]
-                    if u"language" in stream["tags"]:
+                    if "language" in stream["tags"]:
                         lang = stream["tags"]["language"]
-                data[u"subtitles"].append(
+                data["subtitles"].append(
                     {
-                        u"index": stream["index"],
-                        u"codec": stream["codec_name"],
-                        u"language": lang,
-                        u"title": t,
+                        "index": stream["index"],
+                        "codec": stream["codec_name"],
+                        "language": lang,
+                        "title": t,
                     }
                 )
                 i += 1
@@ -121,39 +122,60 @@ def _getFileInfos(path: bytes) -> dict:
     return data
 
 
-def addFile(file: bytes, mediaType: int) -> int:
-    if mediaType == 1:
-        filePath = os.path.join(
-            configData["config"]["contentPath"].encode(),
-            configData["config"]["tvsPath"].encode(),
-            file,
-        )
-    elif mediaType == 3:
-        filePath = os.path.join(
-            configData["config"]["contentPath"].encode(),
-            configData["config"]["moviePath"].encode(),
-            file,
-        )
-    else:
-        return -1
+def addFile(file: bytes, idLib: int) -> int:
 
-    infos = _getFileInfos(filePath)
-    infos.update({u"mediaType": mediaType, u"path": file})
-    infos.update({u"subtitles": json.dumps(infos[u"subtitles"])})
-    infos.update({u"audio": json.dumps(infos[u"audio"])})
+    fullPath = os.path.join(
+        getLibPath(idLib),
+        file,
+    )
+
+    infos = _getFileInfos(fullPath)
+    infos.update({"idLib": idLib, "path": file})
+    infos.update({"subtitles": json.dumps(infos["subtitles"])})
+    infos.update({"audio": json.dumps(infos["audio"])})
 
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
-        u"INSERT INTO video_files (mediaType, path, format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size) VALUES (%(mediaType)s, %(path)s, %(format)s, %(duration)s, %(extension)s, %(audio)s, %(subtitles)s, %(stereo3d)s, %(ratio)s, %(dimension)s, %(pix_fmt)s, %(video_codec)s, %(size)s)",
+        "INSERT INTO video_files (idLib, path, format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size) VALUES (%(idLib)s, %(path)s, %(format)s, %(duration)s, %(extension)s, %(audio)s, %(subtitles)s, %(stereo3d)s, %(ratio)s, %(dimension)s, %(pix_fmt)s, %(video_codec)s, %(size)s)",
         infos,
     )
     sqlConnection.commit()
     cursor.execute(
-        u"SELECT idVid FROM video_files WHERE path = %(path)s;", {u"path": file}
+        "SELECT idVid FROM video_files WHERE path = %(path)s;", {"path": file}
     )
     dat = cursor.fetchone()
     sqlConnection.close()
-    return int(dat[u"idVid"])
+    return int(dat["idVid"])
+
+
+def updateFile(idVid: int, file: bytes = None, idLib: int = None):
+    sqlConnection, cursor = getSqlConnection()
+
+    if file is None or idLib is None:
+        cursor.execute(
+            "SELECT idLib, path FROM video_files WHERE idVid = %(idVid)s;",
+            {"idVid": idVid},
+        )
+        d = cursor.fetchone()
+        idLib = d["idLib"]
+        file = d["path"]
+
+    fullPath = os.path.join(
+        getLibPath(idLib),
+        file,
+    )
+    infos = _getFileInfos(fullPath)
+    infos.update({"idLib": idLib, "path": file})
+    infos.update({"subtitles": json.dumps(infos["subtitles"])})
+    infos.update({"audio": json.dumps(infos["audio"])})
+    infos.update({"idVid": idVid})
+
+    cursor.execute(
+        "UPDATE video_files SET idLib = %(idLib)s, path = %(path)s, format = %(format)s, duration = %(duration)s, extension = %(extension)s, audio = %(audio)s, subtitles = %(subtitles)s, stereo3d = %(stereo3d)s, ratio = %(ratio)s, dimension = %(dimension)s, pix_fmt = %(pix_fmt)s, video_codec = %(video_codec)s, size = %(size)s WHERE idVid = %(idVid)s",
+        infos,
+    )
+    sqlConnection.commit()
+    sqlConnection.close()
 
 
 def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> bytes:
@@ -164,10 +186,10 @@ def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> by
 
     if mediaType == 1:
         cursor.execute(
-            u"SELECT CONCAT(l.path, t.path, v.path) FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) INNER JOIN tv_shows t ON (e.idShow = t.idShow) INNER JOIN libraries l ON (t.idLib = l.id) WHERE idEpisode = %(mediaData)s;",
-            {u"mediaData": mediaData},
+            "SELECT CONCAT(l.path, t.path, v.path) FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) INNER JOIN tv_shows t ON (e.idShow = t.idShow) INNER JOIN libraries l ON (t.idLib = l.id) WHERE idEpisode = %(mediaData)s;",
+            {"mediaData": mediaData},
         )
-        dat = cursor.fetchone()[u"path"]
+        dat = cursor.fetchone()["path"]
         sqlConnection.close()
         return os.path.join(
             base,
@@ -175,7 +197,7 @@ def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> by
         )
     elif mediaType == 3:
         cursor.execute(
-            u"SELECT CONCAT(l.path, v.path) FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) INNER JOIN libraries l ON (m.idLib = l.id) WHERE idMovie = %(mediaData)s;",
+            "SELECT CONCAT(l.path, v.path) FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) INNER JOIN libraries l ON (m.idLib = l.id) WHERE idMovie = %(mediaData)s;",
             {"mediaData": mediaData},
         )
         dat = cursor.fetchone()["path"]
@@ -193,13 +215,13 @@ def getFileInfos(mediaType: int, mediaData: int) -> dict:
     dat = {}
     if mediaType == 1:
         cursor.execute(
-            u"SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) WHERE idEpisode = %(mediaData)s;",
-            {u"mediaData": mediaData},
+            "SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) WHERE idEpisode = %(mediaData)s;",
+            {"mediaData": mediaData},
         )
         dat = cursor.fetchone()
     elif mediaType == 3:
         cursor.execute(
-            u"SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
+            "SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
             {"mediaData": mediaData},
         )
         dat = cursor.fetchone()
@@ -265,3 +287,25 @@ def getMediaFromUrl(url: str) -> dict:
             dat = cursor.fetchone()["idEpisode"]
             sqlConnection.close()
             return {"mediaType": 1, "mediaData": str(dat)}
+
+
+def getLibPath(idLib: int) -> str:
+    """
+    returns the absolute path to the root folder of a library
+    Args:
+        idLib: the library id
+    """
+    sqlConnection, cursor = getSqlConnection()
+    cursor.execute(
+        "SELECT path FROM libraries WHERE id = %(id)s;",
+        {"id": idLib},
+    )
+    data = cursor.fetchone()
+    sqlConnection.close()
+    if data is not None and data.get("path") is not None:
+        return os.path.join(
+            configData["config"]["contentPath"],
+            data["path"],
+        )
+    else:
+        raise InvalidLibraryException(f"library not found for id {idLib}")
