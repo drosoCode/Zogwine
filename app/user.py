@@ -3,13 +3,12 @@ import redis
 import json
 import hashlib
 import time
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, unquote
 
 from .transcoder import transcoder
-from .log import logger, getLogs
+from .log import logger
 from .utils import checkArgs, getUID, generateToken, checkUser
-from .dbHelper import getSqlConnection, r_userFiles, r_userTokens, configData
-from .indexer import scanner
+from .dbHelper import getSqlConnection, r_userFiles, r_userTokens
 from .files import getMediaFromUrl
 
 user = Blueprint("user", __name__)

@@ -1,16 +1,11 @@
 from abc import ABC, abstractmethod
 from app.scrapers.BaseScraper import BaseScraper
-from app.scrapers.interfaces.base import BaseSearchData
 from dataclasses import dataclass
 
 
 class MovieScraper(BaseScraper, ABC):
     @abstractmethod
     def getMovieCollection(self, id):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def getCollection(self, id):
         raise NotImplementedError()
 
     @abstractmethod
@@ -52,4 +47,3 @@ class MovieCollectionData:
     scraperName: str
     scraperData: str
     scraperLink: str
-
