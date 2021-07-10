@@ -122,12 +122,12 @@ def _getFileInfos(path: bytes) -> dict:
     return data
 
 
-def addFile(file: bytes, idLib: int) -> int:
+def addFile(file: str, idLib: int) -> int:
 
     fullPath = os.path.join(
         getLibPath(idLib),
         file,
-    )
+    ).encode("utf-8")
 
     infos = _getFileInfos(fullPath)
     infos.update({"idLib": idLib, "path": file})
@@ -148,7 +148,7 @@ def addFile(file: bytes, idLib: int) -> int:
     return int(dat["idVid"])
 
 
-def updateFile(idVid: int, file: bytes = None, idLib: int = None):
+def updateFile(idVid: int, file: str = None, idLib: int = None):
     sqlConnection, cursor = getSqlConnection()
 
     if file is None or idLib is None:
@@ -163,7 +163,7 @@ def updateFile(idVid: int, file: bytes = None, idLib: int = None):
     fullPath = os.path.join(
         getLibPath(idLib),
         file,
-    )
+    ).encode("utf-8")
     infos = _getFileInfos(fullPath)
     infos.update({"idLib": idLib, "path": file})
     infos.update({"subtitles": json.dumps(infos["subtitles"])})
@@ -180,32 +180,26 @@ def updateFile(idVid: int, file: bytes = None, idLib: int = None):
 
 def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> bytes:
     sqlConnection, cursor = getSqlConnection()
-    base = b""
+    base = ""
     if addBasePath:
-        base = configData["config"]["contentPath"].encode()
+        base = configData["config"]["contentPath"]
 
     if mediaType == 1:
         cursor.execute(
-            "SELECT CONCAT(l.path, t.path, v.path) FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) INNER JOIN tv_shows t ON (e.idShow = t.idShow) INNER JOIN libraries l ON (t.idLib = l.id) WHERE idEpisode = %(mediaData)s;",
+            "SELECT l.path AS lib, v.path AS path FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) INNER JOIN tv_shows t ON (e.idShow = t.idShow) INNER JOIN libraries l ON (t.idLib = l.id) WHERE idEpisode = %(mediaData)s;",
             {"mediaData": mediaData},
         )
-        dat = cursor.fetchone()["path"]
+        dat = cursor.fetchone()
         sqlConnection.close()
-        return os.path.join(
-            base,
-            dat.encode("utf-8"),
-        )
+        return os.path.join(base, dat["lib"], dat["path"]).encode("utf-8")
     elif mediaType == 3:
         cursor.execute(
-            "SELECT CONCAT(l.path, v.path) FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) INNER JOIN libraries l ON (m.idLib = l.id) WHERE idMovie = %(mediaData)s;",
+            "SELECT l.path AS lib, v.path AS path AS path FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) INNER JOIN libraries l ON (m.idLib = l.id) WHERE idMovie = %(mediaData)s;",
             {"mediaData": mediaData},
         )
-        dat = cursor.fetchone()["path"]
+        dat = cursor.fetchone()
         sqlConnection.close()
-        return os.path.join(
-            base,
-            dat.encode("utf-8"),
-        )
+        return os.path.join(base, dat["lib"], dat["path"]).encode("utf-8")
     else:
         return None
 

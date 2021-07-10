@@ -3,6 +3,7 @@ from app.scrapers.interfaces.tvs import *
 from app.scrapers.interfaces.person import *
 from app.scrapers.interfaces.common import *
 from app.scrapers.BaseProvider import BaseProvider
+from app.exceptions import NoDataException
 
 import requests
 import json
@@ -12,7 +13,7 @@ from datetime import datetime
 
 class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
     def __init__(self, apikey):
-        super().__init__(apikey)
+        super().__init__()
         self._endpoint = "https://api.themoviedb.org/3/"
         self._baseImgUrl = "https://image.tmdb.org/t/p/w500"
         self._apikey = apikey
@@ -27,12 +28,19 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
 
     # region TVS
 
-    def getTVS(self, idTvs):
+    def getTVS(self):
         resp = json.loads(
             requests.get(
-                self._endpoint + "tv/" + str(idTvs) + "?api_key=" + self._apikey
+                self._endpoint
+                + "tv/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
+        if resp.get("success") == False:
+            raise NoDataException()
+
         return TVSData(
             title=resp.get("name"),
             overview=resp.get("overview"),
@@ -42,22 +50,25 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             rating=resp.get("vote_average"),
             scraperName=self.scraperName,
             scraperData=None,
-            scraperLink="https://www.themoviedb.org/tv/" + str(idTvs),
+            scraperLink="https://www.themoviedb.org/tv/" + str(self._scraperID),
             scraperID=resp.get("id"),
         )
 
-    def getTVSSeason(self, idTvs, season):
+    def getTVSSeason(self, season):
         resp = json.loads(
             requests.get(
                 self._endpoint
                 + "tv/"
-                + str(idTvs)
+                + str(self._scraperID)
                 + "/season/"
                 + str(season)
                 + "?api_key="
                 + self._apikey
             ).text
         )
+        if resp.get("success") == False:
+            raise NoDataException()
+
         n = resp.get("name")
         if n is None:
             n = "Season" + str(season)
@@ -74,10 +85,14 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             rating=-1,
         )
 
-    def getTVSPeople(self, idTvs):
+    def getTVSPeople(self):
         resp = json.loads(
             requests.get(
-                self._endpoint + "tv/" + str(idTvs) + "/credits?api_key=" + self._apikey
+                self._endpoint
+                + "tv/"
+                + str(self._scraperID)
+                + "/credits?api_key="
+                + self._apikey
             ).text
         )
         people = []
@@ -93,12 +108,19 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             )
         return people
 
-    def getTVSUpcomingEpisodes(self, idTvs):
+    def getTVSUpcomingEpisodes(self):
         d = json.loads(
             requests.get(
-                self._endpoint + "tv/" + str(idTvs) + "?api_key=" + self._apikey
+                self._endpoint
+                + "tv/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
+        if d.get("success") == False:
+            raise NoDataException()
+
         if (
             "next_episode_to_air" in d
             and d["next_episode_to_air"] is not None
@@ -118,14 +140,19 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             )
         return None
 
-    def getTVSTags(self, idTvs):
+    def getTVSTags(self):
         d = json.loads(
             requests.get(
-                self._endpoint + "tv/" + str(idTvs) + "?api_key=" + self._apikey
+                self._endpoint
+                + "tv/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
+
         tags = []
-        if "origin_country" in d:
+        if "origin_country" in d and len(d["origin_country"]) > 0:
             tags.append(
                 TagData(name="country", value=d["origin_country"][0], icon=None)
             )
@@ -133,25 +160,21 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         if "network" in d:
             for c in d["networks"]:
                 tags.append(
-                    [
-                        TagData(
-                            name="network",
-                            value=c.get("name"),
-                            icon=self.__getImg(c.get("logo_path")),
-                        )
-                    ]
+                    TagData(
+                        name="network",
+                        value=c.get("name"),
+                        icon=self.__getImg(c.get("logo_path")),
+                    )
                 )
 
         if "production_companies" in d:
             for c in d["production_companies"]:
                 tags.append(
-                    [
-                        TagData(
-                            name="production",
-                            value=c.get("name"),
-                            icon=self.__getImg(c.get("logo_path")),
-                        )
-                    ]
+                    TagData(
+                        name="production",
+                        value=c.get("name"),
+                        icon=self.__getImg(c.get("logo_path")),
+                    )
                 )
 
         if "genres" in d:
@@ -160,13 +183,13 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
 
         return tags
 
-    def getTVSEpisode(self, id, season, episode, scraperData=None):
-        if scraperData == None:
+    def getTVSEpisode(self, season, episode):
+        if self._scraperData == None:
             resp = json.loads(
                 requests.get(
                     self._endpoint
                     + "tv/"
-                    + str(id)
+                    + str(self._scraperID)
                     + "/season/"
                     + str(season)
                     + "/episode/"
@@ -175,12 +198,15 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                     + self._apikey
                 ).text
             )
+            if resp.get("success") == False:
+                raise NoDataException()
+
             return TVSEpisodeData(
                 title=resp.get("name"),
                 overview=resp.get("overview"),
                 icon=self.__getImg(resp.get("still_path")),
-                season=resp.get("season_number"),
-                episode=resp.get("episode_number"),
+                season=resp.get("season_number") or str(season),
+                episode=resp.get("episode_number") or str(episode),
                 rating=resp.get("vote_average"),
                 scraperID=resp.get("id"),
                 premiered=resp.get("air_date"),
@@ -189,15 +215,15 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
                 scraperLink=None,
             )
         else:
-            if self._cache[0] != id or self._cache[1] != scraperData:
+            if self._cache[0] != self._scraperID or self._cache[1] != self._scraperData:
                 self._cache = (
-                    id,
-                    scraperData,
+                    self._scraperID,
+                    self._scraperData,
                     json.loads(
                         requests.get(
                             self._endpoint
                             + "tv/episode_group/"
-                            + str(scraperData)
+                            + str(self._scraperData)
                             + "?api_key="
                             + self._apikey
                         ).text
@@ -299,12 +325,19 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
 
     # region Movie
 
-    def getMovie(self, id):
+    def getMovie(self):
         resp = json.loads(
             requests.get(
-                self._endpoint + "movie/" + str(id) + "?api_key=" + self._apikey
+                self._endpoint
+                + "movie/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
+        if resp.get("success") == False:
+            raise NoDataException()
+
         c = None
         if (
             "belongs_to_collection" in resp
@@ -323,15 +356,22 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             scraperName=self.scraperName,
             scraperData=None,
             collection=c,
-            scraperLink="https://www.themoviedb.org/movie/" + str(id),
+            scraperLink="https://www.themoviedb.org/movie/" + str(self._scraperID),
         )
 
-    def getMovieCollection(self, id):
+    def getMovieCollection(self):
         resp = json.loads(
             requests.get(
-                self._endpoint + "collection/" + str(id) + "?api_key=" + self._apikey
+                self._endpoint
+                + "collection/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
+        if resp.get("success") == False:
+            raise NoDataException()
+
         return MovieCollectionData(
             title=resp.get("name"),
             overview=resp.get("overview"),
@@ -386,12 +426,12 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             )
         return results
 
-    def getMoviePeople(self, idMov):
+    def getMoviePeople(self):
         resp = json.loads(
             requests.get(
                 self._endpoint
                 + "movie/"
-                + str(idMov)
+                + str(self._scraperID)
                 + "/credits?api_key="
                 + self._apikey
             ).text
@@ -409,10 +449,14 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             )
         return people
 
-    def getMovieTags(self, idMov):
+    def getMovieTags(self):
         d = json.loads(
             requests.get(
-                self._endpoint + "movie/" + str(idMov) + "?api_key=" + self._apikey
+                self._endpoint
+                + "movie/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
         tags = []

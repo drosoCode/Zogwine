@@ -35,28 +35,29 @@ class tvs(BaseScraper):
         try:
             self.__basePath = getLibPath(self.__idLib)
             tvsData = self.__getTVSData(self.__idLib)
-            paths = [x["a"] for x in tvsData]
+            paths = [x["path"] for x in tvsData]
 
             for i in os.listdir(self.__basePath):
                 try:
-                    currentShow = paths.index(i)
-                    if currentShow < 0:
-                        # this is a newly discovered tvs
-                        data = self._addTVS(i)
-                    else:
+                    data = None
+                    try:
+                        currentShow = paths.index(i)
                         data = tvsData[currentShow]
                         if tvsData[currentShow]["forceUpdate"] > 0:
                             # update tvs metadata [tv_shows, tags, people]
                             self._updateTVS(tvsData[currentShow])
+                    except ValueError:
+                        # this is a newly discovered tvs
+                        data = self._addTVS(i)
 
-                    if data is not None:
+                    if data is not None and data["selectedResult"] == 1:
                         # update tvs files [video_files, seasons, episodes]
                         self._updateEpisodes(data)
                 except Exception as e:
-                    logger.error(e)
+                    logger.exception(e)
 
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
 
     def _listEpisodes(self, basePath, addPath=""):
         """
@@ -88,7 +89,6 @@ class tvs(BaseScraper):
         # insert a new tvs and get its id
         idShow = self._insertNewTVS(tvsDir)
 
-        askForSelection = not self.__autoAdd
         if self.__autoAdd:
             # if the item should be added automatically
             selected = self._selectBestItem(searchResults, tvsDir)
@@ -100,13 +100,13 @@ class tvs(BaseScraper):
                     selected.scraperID,
                     selected.scraperData,
                 )
-            else:
-                # else, follow the normal way
-                askForSelection = True
+                tvsData = self.__getTVSData(idShow=idShow)
+                self._updateTVS(tvsData)
+                return tvsData
 
-        if askForSelection:
-            # store the multiple results in the scrapers table to let the user select the right item
-            self._addMultipleResults(idShow, searchResults)
+        # store the multiple results in the scrapers table to let the user select the right item
+        self._addMultipleResults(idShow, searchResults)
+        return None
 
     def _updateTVS(self, tvsData):
         """
@@ -158,11 +158,11 @@ class tvs(BaseScraper):
                 path = os.path.join(tvsData["path"], i)
 
                 # ensure that the path actually exists
-                os.stat(path)
+                os.stat(os.path.join(self.__basePath, path))
 
                 # check if there are existing entries for this episode
                 cursor.execute(
-                    "SELECT idEpisode, idVid, forceUpdate FROM episodes e, video_files v WHERE e.idVid = v.idVid AND path = %(path)s",
+                    "SELECT idEpisode, e.idVid, forceUpdate FROM episodes e, video_files v WHERE e.idVid = v.idVid AND path = %(path)s",
                     {"path": path},
                 )
                 data = cursor.fetchone()
@@ -184,7 +184,7 @@ class tvs(BaseScraper):
                     # extract the season and episode number from the file name
                     item = pathlib.Path(path)
                     seasonSearch = re.findall("(?i)(?:s)(\\d+)(?:e)", item.stem)
-                    episodeSearch = re.findall("(?i)(?:s\\d+e)(\\d+)(?:\\.)", item.stem)
+                    episodeSearch = re.findall("(?i)(?:s\\d+e)(\\d+)", item.stem)
                     if len(seasonSearch) == 0 or len(episodeSearch) == 0:
                         raise InvalidFileException(
                             "Cannot determine season/episode number from file name"
@@ -205,11 +205,14 @@ class tvs(BaseScraper):
                         logger.error(f"no data available for episode {path}")
                         # create a new episode anyway, to allow the user to edit manually the fields
                         self._insertNewEpisode(
-                            TVSData(
+                            tvsData["idShow"],
+                            idVid,
+                            TVSEpisodeData(
                                 title=item.name,
                                 overview="",
                                 icon=None,
-                                fanart=None,
+                                season=season,
+                                episode=episode,
                                 premiered="",
                                 rating=-1,
                                 scraperID=None,
@@ -217,8 +220,6 @@ class tvs(BaseScraper):
                                 scraperData=None,
                                 scraperLink=None,
                             ),
-                            idVid,
-                            result,
                         )
 
                     sqlConnection.commit()
@@ -226,7 +227,7 @@ class tvs(BaseScraper):
                 logger.error(
                     f"Error while scanning episode {path} for tv show {tvsData['idShow']}"
                 )
-                logger.debug(e)
+                logger.exception(e)
 
         sqlConnection.close()
 
@@ -275,13 +276,21 @@ class tvs(BaseScraper):
         sqlConnection.close()
 
     # region db utils
-    def __getTVSData(self, idLib):
+    def __getTVSData(self, idLib=None, idShow=None):
         sqlConnection, cursor = getSqlConnection()
-        cursor.execute(
-            "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate, selectedResult FROM tv_shows WHERE idLib = %(idLib)s;",
-            {"idLib": idLib},
-        )
-        data = cursor.fetchall()
+        if idShow is None:
+            cursor.execute(
+                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate, selectedResult FROM tv_shows WHERE idLib = %(idLib)s;",
+                {"idLib": idLib},
+            )
+            data = cursor.fetchall()
+        else:
+            cursor.execute(
+                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate, selectedResult FROM tv_shows WHERE idShow = %(idShow)s;",
+                {"idShow": idShow},
+            )
+            data = cursor.fetchone()
+
         sqlConnection.close()
         return data
 
@@ -303,17 +312,19 @@ class tvs(BaseScraper):
 
     def _insertNewTVS(self, tvsDir):
         sqlConnection, cursor = getSqlConnection()
+        queryData = {
+            "path": tvsDir,
+            "addDate": round(time.time()),
+            "idLib": self.__idLib,
+        }
         cursor.execute(
-            "INSERT INTO tv_shows (title, selectedResult, path, addDate) VALUES (%(path)s, 0, %(path)s, %(addDate)s);",
-            {
-                "path": tvsDir,
-                "addDate": time.time(),
-            },
+            "INSERT INTO tv_shows (title, selectedResult, path, addDate, updateDate, idLib) VALUES (%(path)s, 0, %(path)s, %(addDate)s, %(addDate)s, %(idLib)s);",
+            queryData,
         )
         sqlConnection.commit()
         cursor.execute(
-            "SELECT idShow FROM tv_shows WHERE title = %(path)s AND selectedResult = 0 AND path = %(path)s;",
-            {"path": tvsDir},
+            "SELECT idShow FROM tv_shows WHERE title = %(path)s AND selectedResult = 0 AND path = %(path)s AND idLib = %(idLib)s AND addDate = %(addDate)s;",
+            queryData,
         )
         idShow = cursor.fetchone()["idShow"]
         sqlConnection.close()
@@ -321,15 +332,17 @@ class tvs(BaseScraper):
 
     def _insertNewEpisode(self, idShow: int, idVid: int, data: TVSEpisodeData):
         sqlConnection, cursor = getSqlConnection()
-        queryData = asdict(data).update(
+        queryData = asdict(data)
+        queryData.update(
             {
-                "addDate": time.time(),
+                "addDate": round(time.time()),
                 "idShow": idShow,
                 "idVid": idVid,
+                "icon": encodeImg(queryData["icon"]),
             }
         )
         cursor.execute(
-            "INSERT INTO episodes (title, overview, icon, fanart, premiered, rating, scraperID, scraperName, scraperData, scraperLink, idShow, idVid, addDate, forceUpdate) VALUES (%(title)s, %(overview)s, %(icon)s, %(fanart)s, %(premiered)s, %(rating)s, %(scraperID)s, %(scraperName)s, %(scraperData)s, %(scraperLink)s, %(idShow)s, %(idVid)s, %(addDate)s, 0);",
+            "INSERT INTO episodes (title, overview, icon, premiered, rating, season, episode, scraperID, scraperName, scraperData, scraperLink, idShow, idVid, addDate, updateDate, forceUpdate) VALUES (%(title)s, %(overview)s, %(icon)s, %(premiered)s, %(rating)s, %(season)s, %(episode)s, %(scraperID)s, %(scraperName)s, %(scraperData)s, %(scraperLink)s, %(idShow)s, %(idVid)s, %(addDate)s, %(addDate)s, 0);",
             queryData,
         )
         sqlConnection.commit()
@@ -337,15 +350,17 @@ class tvs(BaseScraper):
 
     def _insertNewSeason(self, idShow: int, season: int, data: TVSSeasonData):
         sqlConnection, cursor = getSqlConnection()
-        queryData = asdict(data).update(
+        queryData = asdict(data)
+        queryData.update(
             {
-                "addDate": time.time(),
+                "addDate": round(time.time()),
                 "idShow": idShow,
                 "season": season,
+                "icon": encodeImg(queryData["icon"]),
             }
         )
         cursor.execute(
-            "INSERT INTO seasons (title, overview, icon, premiered, rating, scraperID, scraperName, scraperData, scraperLink, idShow, season, addDate, forceUpdate) VALUES (%(title)s, %(overview)s, %(icon)s, %(premiered)s, %(rating)s, %(scraperID)s, %(scraperName)s, %(scraperData)s, %(scraperLink)s, %(idShow)s, %(season)s, %(addDate)s, 0);",
+            "INSERT INTO seasons (title, overview, icon, premiered, rating, scraperID, scraperName, scraperData, scraperLink, idShow, season, addDate, updateDate, forceUpdate) VALUES (%(title)s, %(overview)s, %(icon)s, %(premiered)s, %(rating)s, %(scraperID)s, %(scraperName)s, %(scraperData)s, %(scraperLink)s, %(idShow)s, %(season)s, %(addDate)s, %(addDate)s, 0);",
             queryData,
         )
         sqlConnection.commit()
@@ -353,13 +368,16 @@ class tvs(BaseScraper):
 
     def _updateEpisodeData(self, idEpisode, data: TVSEpisodeData):
         sqlConnection, cursor = getSqlConnection()
-        queryData = asdict(data).update(
+        queryData = asdict(data)
+        queryData.update(
             {
                 "idEpisode": idEpisode,
+                "updateDate": round(time.time()),
+                "icon": encodeImg(queryData["icon"]),
             }
         )
         cursor.execute(
-            "UPDATE episodes SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, fanart = %(fanart)s, premiered = %(premiered)s, rating = %(rating)s, scraperID = %(scraperID)s, scraperName = %(scraperName)s, scraperData = %(scraperData)s, scraperLink = %(scraperLink)s, forceUpdate = 0 WHERE idEpisode = %(idEpisode)s;",
+            "UPDATE episodes SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, season = %(season)s, episode = %(episode)s, premiered = %(premiered)s, rating = %(rating)s, scraperID = %(scraperID)s, scraperName = %(scraperName)s, scraperData = %(scraperData)s, scraperLink = %(scraperLink)s, updateDate = %(updateDate)s, forceUpdate = 0 WHERE idEpisode = %(idEpisode)s;",
             queryData,
         )
         sqlConnection.commit()
@@ -379,7 +397,7 @@ class tvs(BaseScraper):
                 "rating": data.rating,
                 "scraperLink": data.scraperLink,
                 "scraperData": data.scraperData,
-                "updateDate": time.time(),
+                "updateDate": round(time.time()),
             },
         )
         sqlConnection.commit()
@@ -387,14 +405,17 @@ class tvs(BaseScraper):
 
     def _updateSeasonData(self, idShow: int, season: int, data: TVSSeasonData):
         sqlConnection, cursor = getSqlConnection()
-        queryData = asdict(data).update(
+        queryData = asdict(data)
+        queryData.update(
             {
                 "idShow": idShow,
                 "season": season,
+                "updateDate": round(time.time()),
+                "icon": encodeImg(queryData["icon"]),
             }
         )
         cursor.execute(
-            "UPDATE seasons SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, premiered = %(premiered)s, rating = %(rating)s, scraperID = %(scraperID)s, scraperName = %(scraperName)s, scraperData = %(scraperData)s, scraperLink = %(scraperLink)s, forceUpdate = 0 WHERE idShow = %(idShow)s AND season = %(season)s;",
+            "UPDATE seasons SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, premiered = %(premiered)s, rating = %(rating)s, scraperID = %(scraperID)s, scraperName = %(scraperName)s, scraperData = %(scraperData)s, scraperLink = %(scraperLink)s, updateDate = %(updateDate)s, forceUpdate = 0 WHERE idShow = %(idShow)s AND season = %(season)s;",
             queryData,
         )
         sqlConnection.commit()

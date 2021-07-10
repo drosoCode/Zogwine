@@ -3,6 +3,7 @@ from importlib import import_module
 from fuzzywuzzy import fuzz, process
 import json
 from dataclasses import asdict
+import time
 
 from app.log import logger
 from app.dbHelper import getSqlConnection
@@ -28,14 +29,14 @@ class BaseScraper:
         """
         providers = []
         logger.info("loading provider for scraper type: " + str(self._scraperType))
-        for i in os.listdir("providers"):
+        for i in os.listdir("app/scrapers/providers"):
             l = len(i)
             if i[l - 3 :] == ".py":
                 name = i[0 : l - 3]
                 module = import_module("app.scrapers.providers." + name)
                 provider = getattr(module, name)
                 if (
-                    isinstance(provider, self._scraperType)
+                    issubclass(provider, self._scraperType)
                     and name in self.__providersConfig
                 ):
                     logger.info("imported provider: " + name)
@@ -164,21 +165,21 @@ class BaseScraper:
     def _addPerson(self, mediaData: str, person: PersonData):
         sqlConnection, cursor = getSqlConnection()
 
-        reqData = {"name": person.name}
         cursor.execute(
             "SELECT idPers FROM people where name = %(name)s;",
-            reqData,
+            {"name": person.name},
         )
         idPers = cursor.fetchone()
         if idPers == None:
+            reqData = {"name": person.name, "updateDate": round(time.time())}
             # create person if new
             cursor.execute(
-                "INSERT INTO people (name) VALUES (%(name)s);",
+                "INSERT INTO people (name, updateDate, forceUpdate) VALUES (%(name)s, %(updateDate)s, 1);",
                 reqData,
             )
             # get person id
             cursor.execute(
-                "SELECT idPers FROM people where name = %(name)s;",
+                "SELECT idPers FROM people where name = %(name)s AND updateDate = %(updateDate)s;",
                 reqData,
             )
             idPers = cursor.fetchone()["idPers"]
@@ -200,27 +201,3 @@ class BaseScraper:
         sqlConnection.close()
 
     # endregion
-
-
-"""
-scrapers:
- - tvs (tvs, season, episode, person, tag)
- - movie (movie, collection, person, tag)
- - music (artist, album, track, person, tag?, lyrics)
- - books (book, person, tag)
- - webtoon/manga (item, person, tag)
- - game (item, collection, person, tag)
-
-
-types:
-    - tvs
-    - movie
-    - person
-    - filler
-
-    - music
-    - lyrics
-    - manga
-    - game
-    - book
-"""
