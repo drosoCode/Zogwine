@@ -91,7 +91,7 @@ class BaseScraper:
         serializedResults = json.dumps([asdict(i) for i in searchResults])
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
-            "INSERT INTO scrapers (mediaType, mediaData, data) VALUES (%(mediaType)s, %(mediaData)s, %(data)s);",
+            "INSERT INTO selections (mediaType, mediaData, data) VALUES (%(mediaType)s, %(mediaData)s, %(data)s);",
             {
                 "mediaType": self._mediaType,
                 "mediaData": mediaData,
@@ -107,18 +107,19 @@ class BaseScraper:
         )
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
-            "SELECT data FROM scrapers WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s;",
+            "SELECT data FROM selections WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s;",
             {"mediaType": self._mediaType, "mediaData": mediaData},
         )
         data = cursor.fetchone().get("data")
         if data is not None and id < len(data):
-            # delete scrapers row
+            # delete selection row
             cursor.execute(
-                "DELETE FROM scrapers WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s;",
+                "DELETE FROM selections WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s;",
                 {"mediaType": self._mediaType, "mediaData": mediaData},
             )
+            data = json.loads(data)
             # update entry
-            self.__updateWithSelectionResult(
+            self._updateWithSelectionResult(
                 mediaData,
                 data[id]["scraperName"],
                 data[id]["scraperID"],

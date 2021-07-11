@@ -1,3 +1,4 @@
+from app.common import VIDEO_FILES
 from dataclasses import asdict
 from app.scrapers.interfaces.tvs import *
 from app.scrapers.interfaces.common import *
@@ -179,16 +180,22 @@ class tvs(BaseScraper):
                         except NoDataException:
                             logger.error(f"no data available for episode {path}")
                 else:
-                    # we need to create an entry for the episode and for the new video_file
-                    idVid = addFile(path, self.__idLib)
                     # extract the season and episode number from the file name
                     item = pathlib.Path(path)
+                    if item.suffix[1:] not in VIDEO_FILES:
+                        raise InvalidFileException(
+                            f"File extension {item.suffix} is not supported"
+                        )
+
                     seasonSearch = re.findall("(?i)(?:s)(\\d+)(?:e)", item.stem)
                     episodeSearch = re.findall("(?i)(?:s\\d+e)(\\d+)", item.stem)
                     if len(seasonSearch) == 0 or len(episodeSearch) == 0:
                         raise InvalidFileException(
                             "Cannot determine season/episode number from file name"
                         )
+
+                    # we need to create an entry for the episode and for the new video_file
+                    idVid = addFile(path, self.__idLib)
 
                     season = int(seasonSearch[0])
                     episode = int(episodeSearch[0])
@@ -294,7 +301,7 @@ class tvs(BaseScraper):
         sqlConnection.close()
         return data
 
-    def __updateWithSelectionResult(
+    def _updateWithSelectionResult(
         self, mediaData, scraperName, scraperID, scraperData
     ):
         sqlConnection, cursor = getSqlConnection()

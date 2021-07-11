@@ -11,8 +11,6 @@ _bootlocale.getpreferredencoding = lambda *args: "UTF-8"
 from flask import request, abort, Flask, send_from_directory, jsonify
 import socketio
 
-import json
-import redis
 import yaml
 
 from .log import logger
@@ -23,6 +21,7 @@ from .core import core
 from .player import player
 from .device import device
 from .tracker import tracker
+from .scraper import scraper
 from .dbHelper import r_runningThreads, r_userTokens, configData
 from .utils import getUID, checkUser
 from .watcher import startWatcher
@@ -55,6 +54,7 @@ app.register_blueprint(core, url_prefix="/api")
 app.register_blueprint(player, url_prefix="/api/player")
 app.register_blueprint(device, url_prefix="/api/device")
 app.register_blueprint(tracker, url_prefix="/api/tracker")
+app.register_blueprint(scraper, url_prefix="/api/scraper")
 
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
