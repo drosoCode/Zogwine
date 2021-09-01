@@ -24,6 +24,10 @@ tags:
   description: Search Operations
 - name: tracker
   description: Tracker Operations
+- name: scraper
+  description: Scraper Operations
+- name: library
+  description: Library Operations
 servers:
 - url: /api/
 - url: http://10.10.2.1:8083/api
@@ -324,43 +328,6 @@ paths:
       security:
       - admin: []
 
-  /tvs/{idShow}/scanTitle:
-    put:
-      tags:
-      - tvs
-      summary: Change the search title for a show
-      operationId: tvs_change_title
-      parameters:
-      - name: idShow
-        in: path
-        description: tv show ID
-        required: true
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
 
   /tvs/episode/{idEpisode}:
     get:
@@ -780,44 +747,6 @@ paths:
       - user: []
       - admin: []
                   
-  /movie/{idMovie}/scanTitle:
-    put:
-      tags:
-      - movie
-      summary: Change the search title for a movie
-      operationId: movie_change_title
-      parameters:
-      - name: idMovie
-        in: path
-        description: movie ID
-        required: true
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
-                    
   /movie/scan:
     get:
       tags:
@@ -1935,6 +1864,271 @@ paths:
       security:
       - admin: []
 
+  /scraper/result:
+    get:
+      tags:
+      - scraper
+      summary: Return the medias that needs a result selection
+      operationId: scraper_result
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        mediaType:
+                          type: integer
+                        mediaData:
+                          type: string
+      security:
+      - admin: []
+
+  /scraper/result/{mediaType}:
+    get:
+      tags:
+      - scraper
+      summary: Return the medias that needs a result selection for a specific mediaType
+      operationId: scraper_result_mediatype
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        mediaType:
+                          type: integer
+                        mediaData:
+                          type: string
+      security:
+      - admin: []
+
+  /scraper/result/{mediaType}/{mediaData}:
+    get:
+      tags:
+      - scraper
+      summary: Return the scraping results for a specific media
+      operationId: scraper_result_media
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: path
+        description: media data
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/media_search_data'
+      security:
+      - admin: []
+
+
+  /scraper/select/{mediaType}/{mediaData}/{id}:
+    post:
+      tags:
+      - scraper
+      summary: Select a scraping result for a specific media
+      operationId: scraper_select
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: path
+        description: media data
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        description: id of the selected result
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+      security:
+      - admin: []
+      
+  /scraper/scan/{mediaType}/{idLib}:
+    post:
+      tags:
+      - scraper
+      summary: Start a scraper scan for a specific media library
+      operationId: scraper_scan
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: idLib
+        in: path
+        description: id of the media library
+        required: true
+        schema:
+          type: string
+      - name: autoadd
+        in: query
+        description: if the system should try to automatically select the appropriate scraper result
+        required: false
+        schema:
+          type: boolean
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+      security:
+      - admin: []
+      
+  
+  /library:
+    get:
+      tags:
+      - library
+      summary: Get a list of all libraries
+      operationId: library_list
+      parameters:
+      - name: mediatype
+        in: query
+        description: return only the libraries corresponding to this media type
+        required: false
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: 
+                          type: integer
+                        mediaType: 
+                          type: integer
+                        name: 
+                          type: string
+                        path: 
+                          type: string
+      security:
+      - admin: []
+
+  /library/{idLib}:
+    get:
+      tags:
+      - library
+      summary: Get the data for a given library
+      operationId: library_get
+      parameters:
+      - name: idLib
+        in: path
+        description: library id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      id: 
+                        type: integer
+                      mediaType: 
+                        type: integer
+                      name: 
+                        type: string
+                      path: 
+                        type: string
+      security:
+      - admin: []
+
+      
 components:
   schemas:
     tvshow:
@@ -2102,6 +2296,26 @@ components:
         description:
           type: string
         known_for:
+          type: string
+          
+    media_search_data:
+      type: object
+      properties:
+        title:
+          type: string
+        overview:
+          type: string
+        icon: 
+          type: string
+        premiered: 
+          type: string
+        scraperID: 
+          type: string
+        scraperName: 
+          type: string
+        scraperData: 
+          type: string
+        scraperLink: 
           type: string
         
         
