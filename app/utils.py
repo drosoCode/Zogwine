@@ -17,11 +17,11 @@ def checkArgs(args, data=None):
     for a in args:
         if data is not None:
             if a not in data:
-                abort(404)
+                abort(400)
                 return False
         else:
             if a not in request.args:
-                abort(404)
+                abort(400)
                 return False
     return True
 
