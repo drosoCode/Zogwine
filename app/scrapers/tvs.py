@@ -35,7 +35,7 @@ class tvs(BaseScraper):
         self.__autoAdd = autoAdd
         try:
             self.__basePath = getLibPath(self.__idLib)
-            tvsData = self.__getTVSData(self.__idLib)
+            tvsData = self._getTVSData(self.__idLib)
             paths = [x["path"] for x in tvsData]
 
             for i in os.listdir(self.__basePath):
@@ -95,13 +95,13 @@ class tvs(BaseScraper):
             selected = self._selectBestItem(searchResults, tvsDir)
             if selected:
                 # if an item was selected with enough confidence
-                self.__updateWithSelectionResult(
+                self._updateWithSelectionResult(
                     idShow,
                     selected.scraperName,
                     selected.scraperID,
                     selected.scraperData,
                 )
-                tvsData = self.__getTVSData(idShow=idShow)
+                tvsData = self._getTVSData(idShow=idShow)
                 self._updateTVS(tvsData)
                 return tvsData
 
@@ -113,7 +113,7 @@ class tvs(BaseScraper):
         """
         update the data (tvs, tags and people) of a specific tvs
         Args:
-            tvsData: data of the tvs to update (retrieved using __getTVSData)
+            tvsData: data of the tvs to update (retrieved using _getTVSData)
         """
         provider = self._getProviderFromName(tvsData["scraperName"])
         provider.configure(tvsData["scraperID"], tvsData["scraperData"])
@@ -130,7 +130,7 @@ class tvs(BaseScraper):
         """
         update the data (episode, season and video_files) of the episodes of a specific tvs
         Args:
-            tvsData: data of the tvs (retrieved using __getTVSData)
+            tvsData: data of the tvs (retrieved using _getTVSData)
         """
         sqlConnection, cursor = getSqlConnection()
 
@@ -242,7 +242,7 @@ class tvs(BaseScraper):
         """
         create a new season for a specific tvs
         Args:
-            tvsData: data of the tvs (retrieved using __getTVSData)
+            tvsData: data of the tvs (retrieved using _getTVSData)
             season: the season number
         """
         provider = self._getProviderFromName(tvsData["scraperName"])
@@ -260,7 +260,7 @@ class tvs(BaseScraper):
         """
         update the seasons for a specific tvs
         Args:
-            tvsData: data of the tvs (retrieved using __getTVSData)
+            tvsData: data of the tvs (retrieved using _getTVSData)
             seasons: a list of the season numbers to update
         """
         sqlConnection, cursor = getSqlConnection()
@@ -283,7 +283,7 @@ class tvs(BaseScraper):
         sqlConnection.close()
 
     # region db utils
-    def __getTVSData(self, idLib=None, idShow=None):
+    def _getTVSData(self, idLib=None, idShow=None):
         sqlConnection, cursor = getSqlConnection()
         if idShow is None:
             cursor.execute(
