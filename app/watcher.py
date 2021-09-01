@@ -2,35 +2,19 @@ from uwsgidecorators import thread
 import time
 import os
 import json
-import signal
-import croniter
-import datetime
-
 from .dbHelper import r_userFiles, configData
 from .log import logger
 from .transcoder import transcoder
-
-from .movie import mov_runScan
-from .tvs import tvs_runScan, tvs_runUpcomingScan
-from .core import refreshCache, runPeopleScan
-from .tracker import scanAll, syncAll
 
 
 @thread
 def startWatcher():
     if not os.path.exists("/tmp/zogwine/ffmpeg/"):
         os.makedirs("/tmp/zogwine/ffmpeg/")
-
-    cronData = setupCron(configData["cron"])
     sleepTime = configData["config"]["checkInterval"]
-    lastCheck = 0
 
     while True:
         checkTranscodingErrors()
-        if lastCheck + 60 <= time.time():
-            # check only once per minute
-            lastCheck = time.time()
-            checkCron(cronData)
         time.sleep(sleepTime)
 
 
@@ -82,39 +66,3 @@ def killAndRestart(data, tr, uid):
         )
     else:
         r_userFiles.delete(uid)
-
-
-def setupCron(cron):
-    cronData = []
-    now = datetime.datetime.now()
-    for k in cron.keys():
-        if cron[k] != "":
-            cr = croniter.croniter(cron[k], now)
-            cronData.append([k, cr, cr.get_next(datetime.datetime)])
-    return cronData
-
-
-def checkCron(cronData):
-    now = datetime.datetime.now()
-    for i in range(len(cronData)):
-        if cronData[i][2] <= now:
-            execCronProcess(cronData[i][0])
-            cronData[i][2] = cronData[i][1].get_next(datetime.datetime)
-
-
-def execCronProcess(name):
-    logger.info("[CRON] running " + name)
-    if name == "tvs":
-        tvs_runScan()
-    elif name == "movie":
-        mov_runScan()
-    elif name == "upcomingEpisode":
-        tvs_runUpcomingScan()
-    elif name == "cache":
-        refreshCache()
-    elif name == "person":
-        runPeopleScan()
-    elif name == "trackerScan":
-        scanAll()
-    elif name == "trackerSync":
-        syncAll()
