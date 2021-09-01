@@ -22,6 +22,7 @@ from .player import player
 from .device import device
 from .tracker import tracker
 from .scraper import scraper
+from .library import library
 from .dbHelper import r_runningThreads, r_userTokens, configData
 from .utils import getUID, checkUser
 from .watcher import startWatcher
@@ -55,6 +56,7 @@ app.register_blueprint(player, url_prefix="/api/player")
 app.register_blueprint(device, url_prefix="/api/device")
 app.register_blueprint(tracker, url_prefix="/api/tracker")
 app.register_blueprint(scraper, url_prefix="/api/scraper")
+app.register_blueprint(library, url_prefix="/api/library")
 
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
