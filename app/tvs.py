@@ -3,13 +3,10 @@ import redis
 import json
 from uwsgidecorators import thread
 import os.path
-
-from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, checkUser, addCache, getUID
+from .utils import checkUser, addCache, getUID
 
-from .dbHelper import getSqlConnection, r_runningThreads, configData
-from .indexer import scanner
+from .dbHelper import getSqlConnection, r_runningThreads
 
 tvs = Blueprint("tvs", __name__)
 
@@ -29,33 +26,8 @@ def tvs_runUpcomingScanThreaded():
 def tvs_runUpcomingScan():
     r_runningThreads.set("upEpisodes", 1)
     sqlConnection = getSqlConnection(False)
-    scanner(sqlConnection, "tvs", configData["api"]).getObject().scanUpcomingEpisodes()
+    # scanner(sqlConnection, "tvs", configData["api"]).getObject().scanUpcomingEpisodes()
     r_runningThreads.set("upEpisodes", 0)
-    sqlConnection.close()
-
-
-@tvs.route("scan/result", methods=["GET"])
-def tvs_getShowsMr():
-    return jsonify({"status": "ok", "data": tvs_getShows(True)})
-
-
-@tvs.route("scan", methods=["GET"])
-def tvs_runScanThreaded():
-    checkUser("admin")
-    tvs_runScan()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-@thread
-def tvs_runScan():
-    sqlConnection = getSqlConnection(False)
-    r_runningThreads.set("tvs", 1)
-    scanner(sqlConnection, "tvs", configData["api"]).scanDir(
-        os.path.join(
-            configData["config"]["contentPath"], configData["config"]["tvsPath"]
-        )
-    )
-    r_runningThreads.set("tvs", 0)
     sqlConnection.close()
 
 
@@ -150,7 +122,7 @@ def get_show_episodes(idShow: int, season: int = None):
 
 @tvs.route("<int:idShow>", methods=["GET"])
 def get_show(idShow: int):
-    return jsonify({"status": "ok", "data": tvs_getShows(False, int(idShow))})
+    return jsonify({"status": "ok", "data": tvs_getShows(int(idShow))})
 
 
 @tvs.route("<int:idShow>/season", methods=["GET"])
@@ -180,7 +152,7 @@ def get_season(idShow: int, season: int = None):
 
 @tvs.route("", methods=["GET"])
 def tvs_getShowsFlask():
-    return jsonify({"status": "ok", "data": tvs_getShows(False)})
+    return jsonify({"status": "ok", "data": tvs_getShows()})
 
 
 ################################# POST ####################################################
@@ -288,11 +260,8 @@ def delete_show(idShow: int):
 def tvs_getShows(mr=False, idShow=None):
     idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
-    mrDat = ""
     show = ""
     queryData = {"idUser": int(idUser)}
-    if mr:
-        mrDat = "NOT "
     if idShow is not None:
         show = " AND idShow = %(idShow)s"
         queryData.update({"idShow": idShow})
@@ -300,14 +269,13 @@ def tvs_getShows(mr=False, idShow=None):
     query = (
         "SELECT idShow AS id,"
         "title, overview, CONCAT('/api/core/image/',icon) AS icon, CONCAT('/api/core/image/',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, multipleResults, "
+        "rating, premiered, scraperName, scraperID, scraperLink, addDate, updateDate, "
         "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
         "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
         "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
-        "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes,"
-        "CONCAT((SELECT scraperURL FROM scrapers WHERE scraperName = t.scraperName AND mediaType = 1),scraperID) AS scraperLink "
+        "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes "
         "FROM tv_shows t "
-        "WHERE multipleResults IS " + mrDat + "NULL" + show + " ORDER BY title;"
+        "WHERE selectedResult = 1" + show + " ORDER BY title;"
     )
 
     cursor.execute(query, queryData)
