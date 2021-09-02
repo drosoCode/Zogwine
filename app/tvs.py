@@ -257,7 +257,7 @@ def delete_show(idShow: int):
 # endregion
 
 # region HELPERS
-def tvs_getShows(mr=False, idShow=None):
+def tvs_getShows(idShow=None):
     idUser = getUID()
     sqlConnection, cursor = getSqlConnection()
     show = ""
