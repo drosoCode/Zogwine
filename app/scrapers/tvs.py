@@ -21,7 +21,7 @@ class tvs(BaseScraper):
         self.__basePath = ""
         self.__idLib = -1
         self.__autoAdd = False
-
+        self.__addUnknown = True
         self._mediaType = 2
 
     def scan(self, idLib: int, autoAdd: bool = False):
@@ -46,7 +46,7 @@ class tvs(BaseScraper):
                         data = tvsData[currentShow]
                         if tvsData[currentShow]["forceUpdate"] > 0:
                             # update tvs metadata [tv_shows, tags, people]
-                            self._updateTVS(tvsData[currentShow])
+                            data.update(self._updateTVS(tvsData[currentShow]))
                     except ValueError:
                         # this is a newly discovered tvs
                         data = self._addTVS(i)
@@ -54,6 +54,7 @@ class tvs(BaseScraper):
                     if data is not None and data["selectedResult"] == 1:
                         # update tvs files [video_files, seasons, episodes]
                         self._updateEpisodes(data)
+
                 except Exception as e:
                     logger.exception(e)
 
@@ -101,9 +102,7 @@ class tvs(BaseScraper):
                     selected.scraperID,
                     selected.scraperData,
                 )
-                tvsData = self._getTVSData(idShow=idShow)
-                self._updateTVS(tvsData)
-                return tvsData
+                return self._updateTVS(self._getTVSData(idShow=idShow))
 
         # store the multiple results in the scrapers table to let the user select the right item
         self._addMultipleResults(idShow, searchResults)
@@ -118,13 +117,15 @@ class tvs(BaseScraper):
         provider = self._getProviderFromName(tvsData["scraperName"])
         provider.configure(tvsData["scraperID"], tvsData["scraperData"])
         # update tvs data
-        self._updateTVSData(tvsData["idShow"], provider.getTVS())
+        tvsData.update(self._updateTVSData(tvsData["idShow"], provider.getTVS()))
         # update tvs tags
         for i in provider.getTVSTags():
             self._addTag(tvsData["idShow"], i)
         # update tvs people
         for i in provider.getTVSPeople():
             self._addPerson(tvsData["idShow"], i)
+
+        return tvsData
 
     def _updateEpisodes(self, tvsData):
         """
@@ -211,23 +212,24 @@ class tvs(BaseScraper):
                     except NoDataException:
                         logger.error(f"no data available for episode {path}")
                         # create a new episode anyway, to allow the user to edit manually the fields
-                        self._insertNewEpisode(
-                            tvsData["idShow"],
-                            idVid,
-                            TVSEpisodeData(
-                                title=item.name,
-                                overview="",
-                                icon=None,
-                                season=season,
-                                episode=episode,
-                                premiered="",
-                                rating=-1,
-                                scraperID=None,
-                                scraperName=provider.scraperName,
-                                scraperData=None,
-                                scraperLink=None,
-                            ),
-                        )
+                        if self.__addUnknown:
+                            self._insertNewEpisode(
+                                tvsData["idShow"],
+                                idVid,
+                                TVSEpisodeData(
+                                    title=item.name,
+                                    overview="",
+                                    icon=None,
+                                    season=season,
+                                    episode=episode,
+                                    premiered="",
+                                    rating=-1,
+                                    scraperID=None,
+                                    scraperName=provider.scraperName,
+                                    scraperData=None,
+                                    scraperLink=None,
+                                ),
+                            )
 
                     sqlConnection.commit()
             except Exception as e:
@@ -255,6 +257,22 @@ class tvs(BaseScraper):
             logger.error(
                 f"no data available for season {season} of tvs {tvsData['idShow']}"
             )
+            if self.__addUnknown:
+                self._insertNewSeason(
+                    tvsData["idShow"],
+                    season,
+                    TVSSeasonData(
+                        title="Season " + str(season),
+                        overview="",
+                        icon=None,
+                        premiered="",
+                        rating=-1,
+                        scraperID=None,
+                        scraperName=provider.scraperName,
+                        scraperData=None,
+                        scraperLink=None,
+                    ),
+                )
 
     def _updateSeasons(self, tvsData, seasons):
         """
@@ -409,6 +427,16 @@ class tvs(BaseScraper):
         )
         sqlConnection.commit()
         sqlConnection.close()
+
+        # return equivalent data to _getTVSData method (without path)
+        return {
+            "idShow": id,
+            "scraperName": data.scraperName,
+            "scraperID": data.scraperID,
+            "scraperData": data.scraperData,
+            "forceUpdate": 0,
+            "selectedResult": 1,
+        }
 
     def _updateSeasonData(self, idShow: int, season: int, data: TVSSeasonData):
         sqlConnection, cursor = getSqlConnection()
