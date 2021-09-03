@@ -33,6 +33,7 @@ class tvs(BaseScraper):
         """
         self.__idLib = idLib
         self.__autoAdd = autoAdd
+
         try:
             self.__basePath = getLibPath(self.__idLib)
             tvsData = self._getTVSData(self.__idLib)
@@ -60,22 +61,6 @@ class tvs(BaseScraper):
 
         except Exception as e:
             logger.exception(e)
-
-    def _listEpisodes(self, basePath, addPath=""):
-        """
-        list all absolute paths to episodes in a specified directory
-        Args:
-            basePath: absolute path to the tvs directory
-            addPath: optionnal additionnal path after the tvs dir
-        """
-        episodes = []
-        searchDir = os.path.join(basePath, addPath)
-        for i in os.listdir(searchDir):
-            if os.path.isdir(os.path.join(searchDir, i)):
-                episodes += self._listEpisodes(basePath, os.path.join(addPath, i))
-            else:
-                episodes.append(os.path.join(addPath, i))
-        return episodes
 
     def _addTVS(self, tvsDir):
         """
@@ -154,7 +139,7 @@ class tvs(BaseScraper):
         provider.configure(tvsData["scraperID"], tvsData["scraperData"])
 
         # list all episode files of this tvs
-        for i in self._listEpisodes(tvsPath):
+        for i in self._listFiles(tvsPath):
             try:
                 # get the path to the episode (without the library path)
                 path = os.path.join(tvsData["path"], i)

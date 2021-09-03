@@ -51,6 +51,22 @@ class BaseScraper:
             f"provider {scraperName} cannot be found for scraper {self.__class__.__name__}"
         )
 
+    def _listFiles(self, basePath, addPath=""):
+        """
+        list all absolute paths to the files located in the basePath or in a subdirectory
+        Args:
+            basePath: absolute path to the directory
+            addPath: optionnal additionnal path after the dir
+        """
+        files = []
+        searchDir = os.path.join(basePath, addPath)
+        for i in os.listdir(searchDir):
+            if os.path.isdir(os.path.join(searchDir, i)):
+                files += self._listFiles(basePath, os.path.join(addPath, i))
+            else:
+                files.append(os.path.join(addPath, i))
+        return files
+
     def _addScraperResults(self, mediaData, data):
         """
         add a row in database when there is mutliple results available for one item
