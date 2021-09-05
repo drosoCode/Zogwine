@@ -52,7 +52,7 @@ class tvs(BaseScraper):
                         # this is a newly discovered tvs
                         data = self._addTVS(i)
 
-                    if data is not None and data["selectedResult"] == 1:
+                    if data is not None and data["scraperID"] is not None:
                         # update tvs files [video_files, seasons, episodes]
                         self._updateEpisodes(data)
 
@@ -290,13 +290,13 @@ class tvs(BaseScraper):
         sqlConnection, cursor = getSqlConnection()
         if idShow is None:
             cursor.execute(
-                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate, selectedResult FROM tv_shows WHERE idLib = %(idLib)s;",
+                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate FROM tv_shows WHERE idLib = %(idLib)s;",
                 {"idLib": idLib},
             )
             data = cursor.fetchall()
         else:
             cursor.execute(
-                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate, selectedResult FROM tv_shows WHERE idShow = %(idShow)s;",
+                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate FROM tv_shows WHERE idShow = %(idShow)s;",
                 {"idShow": idShow},
             )
             data = cursor.fetchone()
@@ -328,12 +328,12 @@ class tvs(BaseScraper):
             "idLib": self.__idLib,
         }
         cursor.execute(
-            "INSERT INTO tv_shows (title, selectedResult, path, addDate, updateDate, idLib) VALUES (%(path)s, 0, %(path)s, %(addDate)s, %(addDate)s, %(idLib)s);",
+            "INSERT INTO tv_shows (title, path, addDate, updateDate, idLib) VALUES (%(path)s, %(path)s, %(addDate)s, %(addDate)s, %(idLib)s);",
             queryData,
         )
         sqlConnection.commit()
         cursor.execute(
-            "SELECT idShow FROM tv_shows WHERE title = %(path)s AND selectedResult = 0 AND path = %(path)s AND idLib = %(idLib)s AND addDate = %(addDate)s;",
+            "SELECT idShow FROM tv_shows WHERE title = %(path)s AND scraperID IS NULL AND path = %(path)s AND idLib = %(idLib)s AND addDate = %(addDate)s;",
             queryData,
         )
         idShow = cursor.fetchone()["idShow"]
@@ -396,7 +396,7 @@ class tvs(BaseScraper):
     def _updateTVSData(self, id: int, data: TVSData):
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
-            "UPDATE tv_shows SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, fanart = %(fanart)s, premiered = %(premiered)s, rating = %(rating)s, scraperLink = %(scraperLink)s, scraperData = %(scraperData)s, updateDate = %(updateDate)s, forceUpdate = 0, selectedResult = 1 WHERE idShow = %(mediaData)s;",
+            "UPDATE tv_shows SET title = %(title)s, overview = %(overview)s, icon = %(icon)s, fanart = %(fanart)s, premiered = %(premiered)s, rating = %(rating)s, scraperLink = %(scraperLink)s, scraperData = %(scraperData)s, updateDate = %(updateDate)s, forceUpdate = 0 WHERE idShow = %(mediaData)s;",
             {
                 "mediaData": id,
                 "title": data.title,
@@ -420,7 +420,6 @@ class tvs(BaseScraper):
             "scraperID": data.scraperID,
             "scraperData": data.scraperData,
             "forceUpdate": 0,
-            "selectedResult": 1,
         }
 
     def _updateSeasonData(self, idShow: int, season: int, data: TVSSeasonData):
