@@ -7,13 +7,19 @@ library = Blueprint("library", __name__)
 
 
 @library.route("", methods=["GET"])
-def getLibraries():
+def getLibrariesF():
     checkUser("admin")
+    return jsonify(
+        {"status": "ok", "data": getLibraries(request.args.get("mediatype"))}
+    )
+
+
+def getLibraries(mediaType=None):
     sqlConnection, cursor = getSqlConnection()
-    if "mediatype" in request.args:
+    if mediaType is not None:
         cursor.execute(
             "SELECT id, name, path, mediaType FROM libraries WHERE mediaType = %(mediatype)s;",
-            {"mediatype": request.args["mediatype"]},
+            {"mediatype": mediaType},
         )
     else:
         cursor.execute(
@@ -21,12 +27,20 @@ def getLibraries():
         )
     data = cursor.fetchall()
     sqlConnection.close()
-    return jsonify({"status": "ok", "data": data})
+    return data
+
+
+def checkLibraryType(idLib, mediaType) -> bool:
+    return int(getLibrary(idLib)["mediaType"]) == int(mediaType)
 
 
 @library.route("<int:idLib>", methods=["GET"])
-def getLibrary(idLib: int):
+def getLibraryF(idLib: int):
     checkUser("admin")
+    return jsonify({"status": "ok", "data": getLibrary(idLib)})
+
+
+def getLibrary(idLib: int):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT id, name, path, mediaType FROM libraries WHERE id = %(idLib)s;",
@@ -34,4 +48,4 @@ def getLibrary(idLib: int):
     )
     data = cursor.fetchone()
     sqlConnection.close()
-    return jsonify({"status": "ok", "data": data})
+    return data
