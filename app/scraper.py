@@ -27,6 +27,11 @@ def __getScraperFromMediaType(mediaType: int) -> BaseScraper:
 
         return tvs(config)
 
+    elif mediaType == 3:
+        from app.scrapers.movie import movie
+
+        return movie(config)
+
 
 @scraper.route("result/<mediaType>/<mediaData>", methods=["GET"])
 def getScraperResultsMedia(mediaType, mediaData):
