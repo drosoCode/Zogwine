@@ -96,16 +96,21 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             ).text
         )
         people = []
-        for p in resp["cast"]:
-            people.append(
-                PersonData(name=p.get("name"), role=p.get("character"), character=True)
-            )
-        for p in resp["crew"]:
-            people.append(
-                PersonData(
-                    name=p.get("name"), role=p.get("department"), character=False
+        if "cast" in resp:
+            for p in resp["cast"]:
+                people.append(
+                    PersonData(
+                        name=p.get("name"), role=p.get("character"), character=True
+                    )
                 )
-            )
+
+        if "crew" in resp:
+            for p in resp["crew"]:
+                people.append(
+                    PersonData(
+                        name=p.get("name"), role=p.get("department"), character=False
+                    )
+                )
         return people
 
     def getTVSUpcomingEpisodes(self):
@@ -437,16 +442,21 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             ).text
         )
         people = []
-        for p in resp["cast"]:
-            people.append(
-                PersonData(name=p.get("name"), role=p.get("character"), character=True)
-            )
-        for p in resp["crew"]:
-            people.append(
-                PersonData(
-                    name=p.get("name"), role=p.get("department"), character=False
+        if "cast" in resp:
+            for p in resp["cast"]:
+                people.append(
+                    PersonData(
+                        name=p.get("name"), role=p.get("character"), character=True
+                    )
                 )
-            )
+
+        if "crew" in resp:
+            for p in resp["crew"]:
+                people.append(
+                    PersonData(
+                        name=p.get("name"), role=p.get("department"), character=False
+                    )
+                )
         return people
 
     def getMovieTags(self):
