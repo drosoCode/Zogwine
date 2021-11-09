@@ -4,7 +4,8 @@ import json
 from uwsgidecorators import thread
 import os.path
 from .log import logger
-from .utils import checkUser, addCache, getUID
+from .utils import checkUser, addCache, encodeImg, getUID
+from .library import checkLibraryType
 
 from .dbHelper import getSqlConnection, r_runningThreads
 
@@ -155,34 +156,89 @@ def tvs_getShowsFlask():
     return jsonify({"status": "ok", "data": tvs_getShows()})
 
 
-################################# POST ####################################################
-
-
-@tvs.route("<int:idShow>/select/<int:id>", methods=["POST"])
-def tvs_setID(idShow: int, id: int):
-    checkUser("admin")
-    # the resultID is the one from the json list of multipleResults entry
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT multipleResults FROM tv_shows WHERE idShow = %(idShow)s;",
-        {"idShow": str(idShow)},
-    )
-    data = json.loads(cursor.fetchone()["multipleResults"])[int(id)]
-    cursor.execute(
-        "UPDATE tv_shows SET scraperName = %(scraperName)s, scraperID = %(scraperId)s, scraperData = %(scraperData)s, forceUpdate = 1, multipleResults = NULL WHERE idShow = %(idShow)s;",
-        {
-            "scraperName": data["scraperName"],
-            "scraperId": data["id"],
-            "scraperData": data["scraperData"],
-            "idShow": idShow,
-        },
-    )
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
 ################################# PUT ####################################################
+
+
+@tvs.route("<int:idShow>", methods=["PUT"])
+def tvs_editTVSData(idShow: int):
+    allowedFields = [
+        "title",
+        "overview",
+        "icon",
+        "fanart",
+        "rating",
+        "premiered",
+        "scraperID",
+        "scraperName",
+        "scraperData",
+        "scraperLink",
+        "path",
+        "idLib",
+        "forceUpdate",
+    ]
+    sqlConnection, cursor = getSqlConnection()
+    data = json.loads(request.data)
+    err = False
+    msg = ""
+
+    for i, val in data.items():
+        if i in allowedFields:
+            if (i == "icon" or i == "fanart") and val is not None and val[0:4] == "http":
+                val = encodeImg(val)
+
+            # check int types
+            if i in ["rating", "idLib", "forceUpdate"] and not isinstance(val, int):
+                err = True
+                msg = val + " must be of type int"
+                break
+
+            if i == "idLib":
+                if not checkLibraryType(val, 2):
+                    err = True
+                    msg = "Invalid library type"
+                    break
+
+            if i == "forceUpdate" and (int(val) < -1 or int(val) > 1):
+                err = True
+                msg = "Invalid value for forceUpdate"
+                break
+
+            cursor.execute(
+                "UPDATE tv_shows SET " + i + " = %(val)s WHERE idShow = %(ids)s",
+                {"val": val, "ids": idShow},
+            )
+        else:
+            err = True
+            msg = "Unknonw field"
+            break
+
+    if not err:
+        if "path" in data:
+            # propagate path changes
+            cursor.execute(
+                "SELECT path FROM tv_shows WHERE idShow = %(idShow)s",
+                {"idShow": idShow},
+            )
+            path = cursor.fetchone()["path"]
+            cursor.execute(
+                "UPDATE video_files SET path = REGEXP_REPLACE(path, %(path)s, %(new_path)s) WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(idShow)s);",
+                {"path": "^" + path, "new_path": val, "idShow": idShow},
+            )
+        if "idLib" in data:
+            # propagate idLib changes
+            cursor.execute(
+                "UPDATE video_files SET idLib = %(idLib)s WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(idShow)s);",
+                {"idLib": val, "idShow": idShow},
+            )
+
+        sqlConnection.commit()
+
+    sqlConnection.close()
+
+    if not err:
+        return jsonify({"status": "ok", "data": "ok"})
+    else:
+        return jsonify({"status": "err", "data": msg})
 
 
 @tvs.route("<int:idShow>/status", methods=["PUT"])
@@ -275,7 +331,7 @@ def tvs_getShows(idShow=None):
         "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
         "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes "
         "FROM tv_shows t "
-        "WHERE selectedResult = 1" + show + " ORDER BY title;"
+        "WHERE scraperName IS NOT NULL" + show + " ORDER BY title;"
     )
 
     cursor.execute(query, queryData)
