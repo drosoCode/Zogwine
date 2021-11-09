@@ -56,7 +56,7 @@ class BaseScraper:
         list all absolute paths to the files located in the basePath or in a subdirectory
         Args:
             basePath: absolute path to the directory
-            addPath: optionnal additionnal path after the dir
+            addPath: optionnal additionnal path after the dir (used for recursion)
         """
         files = []
         searchDir = os.path.join(basePath, addPath)
@@ -88,20 +88,19 @@ class BaseScraper:
         searchItems = []
         if year is not None:
             for i in items:
-                if i.year == year:
+                if i.premiered[0:4] == year:
                     searchItems.append(i)
         else:
             searchItems = items
 
         titles = [i.title for i in searchItems]
 
-        result, percent = process.extractOne(
-            title, titles, scorer=fuzz.token_sort_ratio
-        )
-        if percent > 85:
-            return searchItems[titles.index(result)]
-        else:
-            return False
+        result = process.extractOne(title, titles, scorer=fuzz.token_sort_ratio)
+
+        if result and result[1] > 85:
+            return searchItems[titles.index(result[0])]
+
+        return False
 
     def _addMultipleResults(self, mediaData, searchResults):
         serializedResults = json.dumps([asdict(i) for i in searchResults])
