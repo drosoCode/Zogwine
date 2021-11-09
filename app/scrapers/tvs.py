@@ -46,8 +46,12 @@ class tvs(BaseScraper):
                         currentShow = paths.index(i)
                         data = tvsData[currentShow]
                         if tvsData[currentShow]["forceUpdate"] > 0:
-                            # update tvs metadata [tv_shows, tags, people]
-                            data.update(self._updateTVS(tvsData[currentShow]))
+                            if tvsData[currentShow]["scraperName"] is None or tvsData[currentShow]["scraperID"] is None:
+                                # if no scraper is associated, re-run a search
+                                self._addTVS(tvsData[currentShow]["title"], tvsData[currentShow]["idShow"])
+                            else:
+                                # update tvs metadata [tv_shows, tags, people]
+                                data.update(self._updateTVS(tvsData[currentShow]))
                     except ValueError:
                         # this is a newly discovered tvs
                         data = self._addTVS(i)
@@ -62,7 +66,7 @@ class tvs(BaseScraper):
         except Exception as e:
             logger.exception(e)
 
-    def _addTVS(self, tvsDir):
+    def _addTVS(self, tvsDir, idShow=None):
         """
         add a newly discovered TV Show
         Args:
@@ -73,24 +77,28 @@ class tvs(BaseScraper):
             for i in p.searchTVS(tvsDir):
                 searchResults.append(i)
 
-        # insert a new tvs and get its id
-        idShow = self._insertNewTVS(tvsDir)
+        if len(searchResults) > 0 or self.__addUnknown:
+            if idShow is None:
+                # insert a new tvs and get its id
+                idShow = self._insertNewTVS(tvsDir)
+            else:
+                idShow = int(idShow)
+                
+            if self.__autoAdd:
+                # if the item should be added automatically
+                selected = self._selectBestItem(searchResults, tvsDir)
+                if selected:
+                    # if an item was selected with enough confidence
+                    self._updateWithSelectionResult(
+                        idShow,
+                        selected.scraperName,
+                        selected.scraperID,
+                        selected.scraperData,
+                    )
+                    return self._updateTVS(self._getTVSData(idShow=idShow))
 
-        if self.__autoAdd:
-            # if the item should be added automatically
-            selected = self._selectBestItem(searchResults, tvsDir)
-            if selected:
-                # if an item was selected with enough confidence
-                self._updateWithSelectionResult(
-                    idShow,
-                    selected.scraperName,
-                    selected.scraperID,
-                    selected.scraperData,
-                )
-                return self._updateTVS(self._getTVSData(idShow=idShow))
-
-        # store the multiple results in the scrapers table to let the user select the right item
-        self._addMultipleResults(idShow, searchResults)
+            # store the multiple results in the scrapers table to let the user select the right item
+            self._addMultipleResults(idShow, searchResults)
         return None
 
     def _updateTVS(self, tvsData):
@@ -114,7 +122,7 @@ class tvs(BaseScraper):
 
     def _updateEpisodes(self, tvsData):
         """
-        update the data (episode, season and video_files) of the episodes of a specific tvs
+        add or update the data (episode, season and video_files) of the episodes of a specific tvs
         Args:
             tvsData: data of the tvs (retrieved using _getTVSData)
         """
@@ -149,7 +157,7 @@ class tvs(BaseScraper):
 
                 # check if there are existing entries for this episode
                 cursor.execute(
-                    "SELECT idEpisode, e.idVid, forceUpdate FROM episodes e, video_files v WHERE e.idVid = v.idVid AND path = %(path)s",
+                    "SELECT idEpisode, e.idVid, season, episode, forceUpdate FROM episodes e, video_files v WHERE e.idVid = v.idVid AND path = %(path)s",
                     {"path": path},
                 )
                 data = cursor.fetchone()
@@ -161,14 +169,14 @@ class tvs(BaseScraper):
                         updateFile(idVid)
                         # update the episode data
                         try:
-                            result = provider.getTVSEpisode(season, episode)
-                            self._updateEpisodeData(tvsData["idShow"], result)
+                            result = provider.getTVSEpisode(data["season"], data["episode"])
+                            self._updateEpisodeData(data["idEpisode"], result)
                         except NoDataException:
                             logger.error(f"no data available for episode {path}")
                 else:
                     # extract the season and episode number from the file name
                     item = pathlib.Path(path)
-                    if item.suffix[1:] not in VIDEO_FILES:
+                    if item.suffix[1:].lower() not in VIDEO_FILES:
                         raise InvalidFileException(
                             f"File extension {item.suffix} is not supported"
                         )
@@ -218,10 +226,10 @@ class tvs(BaseScraper):
 
                     sqlConnection.commit()
             except Exception as e:
-                logger.error(
+                logger.warning(
                     f"Error while scanning episode {path} for tv show {tvsData['idShow']}"
                 )
-                logger.exception(e)
+                logger.debug(e, exc_info=True)
 
         sqlConnection.close()
 
@@ -290,13 +298,13 @@ class tvs(BaseScraper):
         sqlConnection, cursor = getSqlConnection()
         if idShow is None:
             cursor.execute(
-                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate FROM tv_shows WHERE idLib = %(idLib)s;",
+                "SELECT idShow, title, path, scraperName, scraperID, scraperData, forceUpdate FROM tv_shows WHERE idLib = %(idLib)s;",
                 {"idLib": idLib},
             )
             data = cursor.fetchall()
         else:
             cursor.execute(
-                "SELECT idShow, path, scraperName, scraperID, scraperData, forceUpdate FROM tv_shows WHERE idShow = %(idShow)s;",
+                "SELECT idShow, title, path, scraperName, scraperID, scraperData, forceUpdate FROM tv_shows WHERE idShow = %(idShow)s;",
                 {"idShow": idShow},
             )
             data = cursor.fetchone()
@@ -307,6 +315,7 @@ class tvs(BaseScraper):
     def _updateWithSelectionResult(
         self, mediaData, scraperName, scraperID, scraperData
     ):
+        """update database when a specific scraper item is selected for a tvshow"""
         sqlConnection, cursor = getSqlConnection()
         cursor.execute(
             "UPDATE tv_shows SET scraperID = %(scraperID)s, scraperName = %(scraperName)s, scraperData = %(scraperData)s, forceUpdate = 1 WHERE idShow = %(mediaData)s;",
@@ -317,6 +326,13 @@ class tvs(BaseScraper):
                 "scraperData": scraperData,
             },
         )
+        # purge old data if present
+        md = {"mediaData": mediaData}
+        cursor.execute("UPDATE episodes SET scraperID = NULL, scraperName = NULL, forceUpdate = 1 WHERE idShow = %(mediaData)s;", md)
+        cursor.execute("UPDATE seasons SET scraperID = NULL, scraperName = NULL, forceUpdate = 1 WHERE idShow = %(mediaData)s;", md)
+        cursor.execute("DELETE FROM tags_link WHERE mediaType = 2 AND idMedia = %(mediaData)s;", md)
+        cursor.execute("DELETE FROM people_link WHERE mediaType = 2 AND idMedia = %(mediaData)s;", md)
+
         sqlConnection.commit()
         sqlConnection.close()
 
