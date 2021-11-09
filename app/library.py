@@ -31,7 +31,10 @@ def getLibraries(mediaType=None):
 
 
 def checkLibraryType(idLib, mediaType) -> bool:
-    return int(getLibrary(idLib)["mediaType"]) == int(mediaType)
+    lib = getLibrary(idLib)
+    if lib is None:
+        return False
+    return int(lib["mediaType"]) == int(mediaType)
 
 
 @library.route("<int:idLib>", methods=["GET"])
