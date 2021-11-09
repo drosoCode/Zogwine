@@ -3,6 +3,7 @@ import json
 from uwsgidecorators import thread
 from flask import request, Blueprint, jsonify
 
+from .files import getMediaPath
 from .log import logger
 from .dbHelper import getSqlConnection, r_runningThreads
 from app.scrapers.BaseScraper import BaseScraper
@@ -33,8 +34,8 @@ def __getScraperFromMediaType(mediaType: int) -> BaseScraper:
         return movie(config)
 
 
-@scraper.route("result/<mediaType>/<mediaData>", methods=["GET"])
-def getScraperResultsMedia(mediaType, mediaData):
+@scraper.route("result/<int:mediaType>/<mediaData>", methods=["GET"])
+def getScraperResultsMedia(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT data FROM selections WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s",
@@ -42,11 +43,11 @@ def getScraperResultsMedia(mediaType, mediaData):
     )
     data = cursor.fetchone()["data"]
     sqlConnection.close()
-    return jsonify({"status": "ok", "data": json.loads(data)})
+    return jsonify({"status": "ok", "data": {"data": json.loads(data), "path": getMediaPath(mediaType, mediaData, False).decode('utf-8')}})
 
 
 @scraper.route("result", methods=["GET"])
-@scraper.route("result/<mediaType>", methods=["GET"])
+@scraper.route("result/<int:mediaType>", methods=["GET"])
 def getScraperResults(mediaType=None):
     sqlConnection, cursor = getSqlConnection()
     if mediaType is not None:
@@ -77,7 +78,7 @@ def selectScraperResults(mediaType, mediaData, id):
 @scraper.route("scan/<int:mediaType>/<int:idLib>", methods=["POST"])
 def tvs_runScanThreaded(mediaType, idLib):
     checkUser("admin")
-    runScan(mediaType, idLib, (request.args.get("autoadd") or False))
+    runScan(mediaType, idLib, (request.args.get("autoadd") == "true" or False))
     return jsonify({"status": "ok", "data": "ok"})
 
 
