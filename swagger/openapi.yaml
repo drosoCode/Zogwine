@@ -88,6 +88,68 @@ paths:
       - user: []
       - admin: []
       
+    put:
+      tags:
+      - tvs
+      summary: Edit a tv show
+      operationId: tvs_update
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show ID
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                overview:
+                  type: string
+                icon:
+                  type: string
+                fanart:
+                  type: string
+                rating:
+                  type: integer
+                premiered:
+                  type: string
+                scraperID:
+                  type: string
+                scraperName:
+                  type: string
+                scraperData:
+                  type: string
+                scraperLink:
+                  type: string
+                path:
+                  type: string
+                idLib:
+                  type: integer
+                forceUpdate:
+                  type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+      
     delete:
       tags:
       - tvs
