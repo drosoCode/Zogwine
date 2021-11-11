@@ -79,6 +79,55 @@ def tvs_toggleWatchedEpisodeFlask(idEpisode: int):
     tvs_toggleWatchedEpisode(getUID(), idEpisode)
     return jsonify({"status": "ok", "data": "ok"})
 
+@tvs.route("episode/<int:idEpisode>", methods=["PUT"])
+def tvs_editTVSEpisodeData(idEpisode: int):
+    checkUser("admin")
+    allowedFields = [
+        "title",
+        "overview",
+        "icon",
+        "fanart",
+        "rating",
+        "season",
+        "episode",
+        "premiered",
+        "scraperID",
+        "scraperName",
+        "scraperData",
+        "scraperLink",
+        "forceUpdate",
+    ]
+    sqlConnection, cursor = getSqlConnection()
+    data = json.loads(request.data)
+    err = False
+    msg = ""
+
+    for i, val in data.items():
+        if i in allowedFields:
+            err, msg = tvs_checkPutField(i, val)
+            if err:
+                break
+            else:
+                val = msg
+
+            cursor.execute(
+                "UPDATE episodes SET " + i + " = %(val)s WHERE idEpisode = %(idEpisode)s",
+                {"val": val, "idEpisode": idEpisode},
+            )
+        else:
+            err = True
+            msg = "Unknown field"
+            break
+
+    if not err:
+        sqlConnection.commit()
+    sqlConnection.close()
+
+    if not err:
+        return jsonify({"status": "ok", "data": "ok"})
+    else:
+        return jsonify({"status": "err", "data": msg}), 400
+
 
 ################################# DELETE ####################################################
 
@@ -162,6 +211,7 @@ def tvs_getShowsFlask():
 
 @tvs.route("<int:idShow>", methods=["PUT"])
 def tvs_editTVSData(idShow: int):
+    checkUser("admin")
     allowedFields = [
         "title",
         "overview",
@@ -185,25 +235,11 @@ def tvs_editTVSData(idShow: int):
 
     for i, val in data.items():
         if i in allowedFields:
-            if (i == "icon" or i == "fanart") and val is not None and val[0:4] == "http":
-                val = encodeImg(val)
-
-            # check int types
-            if i in ["rating", "idLib", "forceUpdate"] and not isinstance(val, int):
-                err = True
-                msg = val + " must be of type int"
+            err, msg = tvs_checkPutField(i, val)
+            if err:
                 break
-
-            if i == "idLib":
-                if not checkLibraryType(val, 2):
-                    err = True
-                    msg = "Invalid library type"
-                    break
-
-            if i == "forceUpdate" and (int(val) < -1 or int(val) > 1):
-                err = True
-                msg = "Invalid value for forceUpdate"
-                break
+            else:
+                val = msg
 
             if i not in ["scraperID", "scraperName", "scraperData"]:
                 cursor.execute(
@@ -406,6 +442,22 @@ def tvs_toggleWatchedEpisode(uid, idEpisode, watched=None):
     sqlConnection.close()
     return True
 
+def tvs_checkPutField(i, val):
+    if (i == "icon" or i == "fanart") and val is not None and val[0:4] == "http":
+        val = encodeImg(val)
+
+    # check int types
+    if i in ["rating", "idLib", "forceUpdate"] and not isinstance(val, int):
+        return True, val + " must be of type int"
+
+    if i == "idLib":
+        if not checkLibraryType(val, 2):
+            return True, "Invalid library type"
+
+    if i == "forceUpdate" and (int(val) < -1 or int(val) > 1):
+        return True, "Invalid value for forceUpdate"
+
+    return False, val
 
 def tvs_refreshCache():
     sqlConnection, cursor = getSqlConnection()
