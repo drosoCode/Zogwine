@@ -354,43 +354,6 @@ paths:
       - user: []
       - admin: []
 
-  /tvs/{idShow}/select/{id}:
-    post:
-      tags:
-      - tvs
-      summary: Select a show from a scan results
-      operationId: tvs_select_show
-      parameters:
-      - name: idShow
-        in: path
-        description: tv show ID
-        required: true
-        schema:
-          type: integer
-      - name: id
-        in: path
-        description: id of the selected result
-        required: true
-        schema:
-          type: integer
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
-
-
   /tvs/episode/{idEpisode}:
     get:
       tags:
@@ -434,6 +397,68 @@ paths:
         required: true
         schema:
           type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+      
+    put:
+      tags:
+      - tvs
+      summary: Edit an episode
+      operationId: tvs_ep_put
+      parameters:
+      - name: idEpisode
+        in: path
+        description: episode id
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                overview:
+                  type: string
+                icon:
+                  type: string
+                fanart:
+                  type: string
+                season:
+                  type: number
+                episode:
+                  type: number
+                rating:
+                  type: integer
+                premiered:
+                  type: string
+                scraperID:
+                  type: string
+                scraperName:
+                  type: string
+                scraperData:
+                  type: string
+                scraperLink:
+                  type: string
+                forceUpdate:
+                  type: integer
       responses:
         200:
           description: successful operation
@@ -740,42 +765,6 @@ paths:
                       $ref: '#/components/schemas/movie'
       security:
       - user: []
-      - admin: []
-
-  /movie/{idMovie}/select/{id}:
-    post:
-      tags:
-      - movie
-      summary: Select a movie from a scan results
-      operationId: movie_select_show
-      parameters:
-      - name: idMovie
-        in: path
-        description: movie ID
-        required: true
-        schema:
-          type: integer
-      - name: id
-        in: path
-        description: id of the selected result
-        required: true
-        schema:
-          type: integer
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
       - admin: []
 
   /movie/{idMovie}/status:
@@ -1206,35 +1195,69 @@ paths:
       - user: []
       - admin: []
 
-  /player/subtitle:
+  /player/subtitle/{mediaType}/{mediaData}/stream/{subStream}:
     get:
       tags:
       - player
-      summary: Get subtitles for a specified media
-      operationId: player_subtitle
+      summary: Get subtitles for a specified media (from a stream id)
+      operationId: player_subtitle_stream
       parameters:
       - name: mediaType
-        in: query
+        in: path
         description: media type
         required: true
         schema:
           type: integer
       - name: mediaData
-        in: query
+        in: path
         description: media data
         required: true
         schema:
           type: string
       - name: subStream
-        in: query
+        in: path
         description: subtitle stream index, required or subFile
+        required: true
+        schema:
+          type: integer
+      - name: startFrom
+        in: query
+        description: cut x seconds at the beginning of the subtitles
         required: false
         schema:
           type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/vtt: {}
+      security:
+      - user: []
+      - admin: []
+      
+  /player/subtitle/{mediaType}/{mediaData}/file/{subFile}:
+    get:
+      tags:
+      - player
+      summary: Get subtitles for a specified media (from a stream file)
+      operationId: player_subtitle_file
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: path
+        description: media data
+        required: true
+        schema:
+          type: string
       - name: subFile
-        in: query
+        in: path
         description: subtitle file identifier, required or subStream
-        required: false
+        required: true
         schema:
           type: string
       - name: startFrom
@@ -1251,7 +1274,7 @@ paths:
       security:
       - user: []
       - admin: []
-
+      
   /player/m3u8:
     get:
       tags:
@@ -1267,12 +1290,25 @@ paths:
       - user: []
       - admin: []
 
-  /player/file:
+  /player/file/{mediaType}/{mediaData}:
     get:
       tags:
       - player
       summary: Get the media file url
       operationId: player_file
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: path
+        description: media data
+        required: true
+        schema:
+          type: string
       responses:
         200:
           description: successful operation
@@ -1290,12 +1326,25 @@ paths:
       - user: []
       - admin: []
 
-  /player/property:
+  /player/property/{mediaType}/{mediaData}:
     get:
       tags:
       - player
       summary: Get the media file properties
       operationId: player_props
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: path
+        description: media data
+        required: true
+        schema:
+          type: string
       responses:
         200:
           description: successful operation
@@ -1332,10 +1381,65 @@ paths:
                         type: string
                       size:
                         type: string
-                      startFrom:
-                        type: number
       security:
       - user: []
+      - admin: []
+      
+    put:
+      tags:
+      - player
+      summary: Set the media file properties
+      operationId: player_props_put
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: mediaData
+        in: path
+        description: media data
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    properties:
+                      format:
+                        type: string
+                      duration:
+                        type: number
+                      extension:
+                        type: string
+                      audio:
+                        type: string
+                      subtitles:
+                        type: string
+                      stereo3d:
+                        type: string
+                      ratio:
+                        type: string
+                      dimension:
+                        type: string
+                      pix_fmt:
+                        type: string
+                      video_codec:
+                        type: string
+                      size:
+                        type: string
+      security:
       - admin: []
 
   /player/stop:
@@ -1345,18 +1449,6 @@ paths:
       summary: Stop the player
       operationId: player_stop
       parameters:
-      - name: mediaType
-        in: query
-        description: media type
-        required: true
-        schema:
-          type: integer
-      - name: mediaData
-        in: query
-        description: media data
-        required: true
-        schema:
-          type: string
       - name: endTime
         in: query
         description: end time (in seconds)
@@ -2216,10 +2308,20 @@ components:
           type: integer
         watchedEpisodes:
           type: integer
+        scraperName:
+          type: string
+        scraperID:
+          type: number
+        scraperData:
+          type: string
         scraperLink:
           type: string
-        multipleResults:
+        path:
           type: string
+        idLib:
+          type: integer
+        forceUpdate:
+          type: integer
 
     tvshow_season:
       type: object
