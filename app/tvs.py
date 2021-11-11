@@ -248,7 +248,7 @@ def tvs_editTVSData(idShow: int):
     if not err:
         return jsonify({"status": "ok", "data": "ok"})
     else:
-        return jsonify({"status": "err", "data": msg})
+        return jsonify({"status": "err", "data": msg}), 400
 
 
 @tvs.route("<int:idShow>/status", methods=["PUT"])
@@ -335,7 +335,7 @@ def tvs_getShows(idShow=None):
     query = (
         "SELECT idShow AS id,"
         "title, overview, CONCAT('/api/core/image/',icon) AS icon, CONCAT('/api/core/image/',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, scraperData, scraperLink, addDate, updateDate, forceUpdate, "
+        "rating, premiered, scraperName, scraperID, scraperData, scraperLink, addDate, updateDate, forceUpdate, idLib, path, "
         "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
         "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
         "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
