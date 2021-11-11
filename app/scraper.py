@@ -75,6 +75,21 @@ def selectScraperResults(mediaType, mediaData, id):
     return jsonify({"status": "ok", "data": "ok"})
 
 
+def updateWithSelectionResult(
+        mediaType, mediaData, scraperName, scraperID, scraperData = None
+    ):
+    """
+    set the scraper data for a specific item
+    Args:
+        mediaType: the item type
+        mediaData: the item id
+        scraperName: the scraper name
+        scraperID: the scraper ID
+        scraperData: optionnal scraper data
+    """
+    __getScraperFromMediaType(int(mediaType))._updateWithSelectionResult(mediaData, scraperName, scraperID, scraperData)
+
+
 @scraper.route("scan/<int:mediaType>/<int:idLib>", methods=["POST"])
 def tvs_runScanThreaded(mediaType, idLib):
     checkUser("admin")

@@ -6,6 +6,7 @@ import os.path
 from .log import logger
 from .utils import checkUser, addCache, encodeImg, getUID
 from .library import checkLibraryType
+from .scraper import updateWithSelectionResult
 
 from .dbHelper import getSqlConnection, r_runningThreads
 
@@ -180,6 +181,7 @@ def tvs_editTVSData(idShow: int):
     data = json.loads(request.data)
     err = False
     msg = ""
+    setNewScraper = False
 
     for i, val in data.items():
         if i in allowedFields:
@@ -203,10 +205,13 @@ def tvs_editTVSData(idShow: int):
                 msg = "Invalid value for forceUpdate"
                 break
 
-            cursor.execute(
-                "UPDATE tv_shows SET " + i + " = %(val)s WHERE idShow = %(ids)s",
-                {"val": val, "ids": idShow},
-            )
+            if i not in ["scraperID", "scraperName", "scraperData"]:
+                cursor.execute(
+                    "UPDATE tv_shows SET " + i + " = %(val)s WHERE idShow = %(ids)s",
+                    {"val": val, "ids": idShow},
+                )
+            else:
+                setNewScraper = True
         else:
             err = True
             msg = "Unknonw field"
@@ -230,10 +235,15 @@ def tvs_editTVSData(idShow: int):
                 "UPDATE video_files SET idLib = %(idLib)s WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(idShow)s);",
                 {"idLib": val, "idShow": idShow},
             )
-
         sqlConnection.commit()
-
     sqlConnection.close()
+
+    if setNewScraper:
+        tvs_data = tvs_getShows(idShow)
+        scraperName = data.get("scraperName") or tvs_data["scraperName"]
+        scraperID = data.get("scraperID") or tvs_data["scraperID"]
+        scraperData = data.get("scraperData") or tvs_data["scraperData"]
+        updateWithSelectionResult(1, idShow, scraperName, scraperID, scraperData)
 
     if not err:
         return jsonify({"status": "ok", "data": "ok"})
@@ -319,19 +329,19 @@ def tvs_getShows(idShow=None):
     show = ""
     queryData = {"idUser": int(idUser)}
     if idShow is not None:
-        show = " AND idShow = %(idShow)s"
+        show = " WHERE idShow = %(idShow)s"
         queryData.update({"idShow": idShow})
 
     query = (
         "SELECT idShow AS id,"
         "title, overview, CONCAT('/api/core/image/',icon) AS icon, CONCAT('/api/core/image/',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, scraperLink, addDate, updateDate, "
+        "rating, premiered, scraperName, scraperID, scraperData, scraperLink, addDate, updateDate, forceUpdate, "
         "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
         "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
         "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
         "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes "
         "FROM tv_shows t "
-        "WHERE scraperName IS NOT NULL" + show + " ORDER BY title;"
+        "" + show + " ORDER BY title;"
     )
 
     cursor.execute(query, queryData)
