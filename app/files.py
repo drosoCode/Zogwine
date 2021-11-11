@@ -212,20 +212,32 @@ def getMediaPath(mediaType: int, mediaData: str, addBasePath: bool = True) -> by
         sqlConnection.close()
         return None
 
+def getIdVid(mediaType: int, mediaData: str):
+    sqlConnection, cursor = getSqlConnection()
+    dat = None
+    if mediaType == 1:
+        cursor.execute(
+            "SELECT idVid FROM episodes WHERE idEpisode = %(mediaData)s;",
+            {"mediaData": mediaData},
+        )
+        dat = cursor.fetchone()["idVid"]
+    elif mediaType == 3:
+        cursor.execute(
+            "SELECT idVid FROM movies WHERE idMovie = %(mediaData)s;",
+            {"mediaData": mediaData},
+        )
+        dat = cursor.fetchone()["idVid"]
+    sqlConnection.close()
+
+    return dat
 
 def getFileInfos(mediaType: int, mediaData: int) -> dict:
     sqlConnection, cursor = getSqlConnection()
     dat = {}
-    if mediaType == 1:
+    if mediaType in [1,3]:
         cursor.execute(
-            "SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v INNER JOIN episodes e ON (e.idVid = v.idVid) WHERE idEpisode = %(mediaData)s;",
-            {"mediaData": mediaData},
-        )
-        dat = cursor.fetchone()
-    elif mediaType == 3:
-        cursor.execute(
-            "SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v INNER JOIN movies m ON (m.idVid = v.idVid) WHERE idMovie = %(mediaData)s;",
-            {"mediaData": mediaData},
+            "SELECT format, duration, extension, audio, subtitles, stereo3d, ratio, dimension, pix_fmt, video_codec, size FROM video_files v WHERE idVid = %(idVid)s;",
+            {"idVid": getIdVid(mediaType, mediaData)},
         )
         dat = cursor.fetchone()
     elif mediaType == 4:

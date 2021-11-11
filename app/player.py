@@ -5,10 +5,12 @@ import os
 import json
 from uwsgidecorators import thread
 
+from app.library import checkLibraryType
+
 from .transcoder import transcoder
 from .log import logger
-from .utils import checkArgs, getUID, generateToken
-from .files import getMediaPath, getFileInfos
+from .utils import checkArgs, checkUser, getUID, generateToken
+from .files import getIdVid, getMediaPath, getFileInfos
 from .device import importDevice
 from app.devices.PlayerBase import PlayerBase
 
@@ -58,15 +60,16 @@ def startPlayer():
             data["password"],
             data["device"],
         )
-        deviceData, startData = device.playMedia(
+        deviceData["data"], startData = device.playMedia(
             int(reqData["mediaType"]),
             int(reqData["mediaData"]),
             reqData,
         )
-        deviceData.update({"idDevice": reqData["idDevice"]})
+        deviceData["settings"] = data
         if hasattr(device, "doWork"):
             doWork(device)
     else:
+        deviceData = None
         obj = transcoder(int(reqData["mediaType"]), int(reqData["mediaData"]))
         obj.enableHLS(True, configData["config"]["hlsTime"])
         obj.configure(reqData)
@@ -91,15 +94,20 @@ def doWork(obj: PlayerBase):
     obj.doWork()
 
 
-@player.route("subtitle", methods=["GET"])
-def getSubtitles():
-    checkArgs(["mediaType", "mediaData"])
-    if "subStream" in request.args or "subFile" in request.args:
-        obj = transcoder(int(request.args["mediaType"]), int(request.args["mediaData"]))
-        obj.configure(request.args)
-        return Response(obj.getSubtitles(), mimetype="text/vtt")
+@player.route("subtitle/<int:mediaType>/<mediaData>/stream/<int:subStream>", methods=["GET"])
+@player.route("subtitle/<int:mediaType>/<mediaData>/file/<subFile>", methods=["GET"])
+def getSubtitles(mediaType: int, mediaData: str, subStream = None, subFile = None):
+    obj = transcoder(int(mediaType), mediaData)
+
+    if "startFrom" in request.args:
+        obj.setStartTime(request.args['startFrom'])
+
+    if subStream is not None:
+        obj.setSubStream(subStream)
     else:
-        abort(404)
+        obj.setSubFile(subFile)
+    
+    return Response(obj.getSubtitles(), mimetype="text/vtt")
 
 
 @player.route("status", methods=["GET"])
@@ -153,19 +161,18 @@ def getTranscoderM3U8():
         abort(404)
 
 
-@player.route("file", methods=["GET"])
-def player_getFile():
-    checkArgs(["mediaType", "mediaData"])
+@player.route("file/<int:mediaType>/<mediaData>", methods=["GET"])
+def player_getFile(mediaType: int, mediaData: str):
     path = getMediaPath(
-        int(request.args["mediaType"]), str(request.args["mediaData"]), False
+        int(mediaType), mediaData, False
     )
     uid = getUID()
     r_userFiles.set(
         uid,
         json.dumps(
             {
-                "mediaType": request.args["mediaType"],
-                "mediaData": request.args["mediaData"],
+                "mediaType": mediaType,
+                "mediaData": mediaData,
                 "transcoder": {},
                 "device": {},
             }
@@ -186,12 +193,8 @@ def player_getFile():
     #    return getFile(path, "video")
 
 
-@player.route("property", methods=["GET"])
-def player_getFileInfos():
-    checkArgs(["mediaType", "mediaData"])
-    mediaType = int(request.args["mediaType"])
-    mediaData = int(request.args["mediaData"])
-
+@player.route("property/<int:mediaType>/<mediaData>", methods=["GET"])
+def player_getFileInfos(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
     st = 0
     if mediaType == 1 or mediaType == 3:
@@ -217,44 +220,86 @@ def player_getFileInfos():
         }
     )
 
+@player.route("property/<int:mediaType>/<mediaData>", methods=["PUT"])
+def player_setFileInfos(mediaType: int, mediaData: str):
+    checkUser("admin")
+    idVid = getIdVid(mediaType, mediaData)
+
+    allowedFields = [
+        "idLib",
+        "path",
+        "format",
+        "duration",
+        "extension",
+        "stereo3d",
+        "ratio",
+        "dimension",
+        "pix_fmt",
+        "video_codec",
+        "size"
+    ]
+    sqlConnection, cursor = getSqlConnection()
+    data = json.loads(request.data)
+    err = False
+    msg = ""
+
+    for i, val in data.items():
+        if i in allowedFields:
+            if i == "idLib" and not checkLibraryType(val, mediaType):
+                err = True
+                msg = "Invalid library type"
+                break
+
+            cursor.execute(
+                "UPDATE video_files SET " + i + " = %(val)s WHERE idVid = %(idVid)s",
+                {"val": val, "idVid": idVid})
+        else:
+            err = True
+            msg = "Unknown field"
+            break
+
+    if not err:
+        sqlConnection.commit()
+    sqlConnection.close()
+
+    if not err:
+        return jsonify({"status": "ok", "data": "ok"})
+    else:
+        return jsonify({"status": "err", "data": msg}), 400
+
 
 @player.route("stop", methods=["GET"])
 def player_stop():
-    checkArgs(["mediaType", "mediaData", "endTime"])
+    checkArgs(["endTime"])
     uid = getUID()
-    mediaType = int(request.args["mediaType"])
-    mediaData = int(request.args["mediaData"])
-    endTime = float(request.args["endTime"])
-    # set watch time
-    player_setWatchTime(uid, mediaType, mediaData, endTime)
-    # stop transcoder
+    endTime = float(request.args["endTime"])    
+
     logger.info("Stopping transcoder for user " + str(uid))
 
-    if "idDevice" in request.args and request.args["idDevice"] != "-1":
-        sqlConnection, cursor = getSqlConnection()
-        cursor.execute(
-            "SELECT * FROM devices WHERE idDevice = %(idDevice)s",
-            {"idDevice": request.args["idDevice"]},
-        )
-        data = cursor.fetchone()
-        sqlConnection.close()
-        if data["enabled"] == 0:
-            return False
-        dev = importDevice(data["type"])
-        device = dev(
-            uid,
-            getToken(),
-            data["address"],
-            data["port"],
-            data["user"],
-            data["password"],
-            data["device"],
-        )
-        device.stop()
-    else:
-        data = r_userFiles.get(uid)
-        if data is not None:
-            transcoder.stop(json.loads(data)["transcoder"])
+    fileData = r_userFiles.get(uid)
+    if fileData is not None:
+        fileData = json.loads(fileData)
+
+        if fileData["device"] is not None:
+            # stop device
+            data = fileData["device"]["settings"]
+            if data["enabled"] != 0:
+                dev = importDevice(data["type"])
+                device = dev(
+                    uid,
+                    getToken(),
+                    data["address"],
+                    data["port"],
+                    data["user"],
+                    data["password"],
+                    data["device"],
+                )
+                device.stop()
+
+        # set watch time
+        player_setWatchTime(uid, fileData["mediaType"], fileData["mediaData"], endTime)
+        # stop transcoder
+        transcoder.stop(fileData["transcoder"])
 
     r_userFiles.delete(uid)
 
