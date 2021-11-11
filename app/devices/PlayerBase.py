@@ -27,4 +27,4 @@ class PlayerBase(ABC):
 
     @property
     def available(self) -> bool:
-        ping(self._address)
+        return ping(self._address)
