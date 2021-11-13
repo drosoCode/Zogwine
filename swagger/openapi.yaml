@@ -316,6 +316,105 @@ paths:
       security:
       - user: []
       - admin: []
+      
+    put:
+      tags:
+      - tvs
+      summary: Edit a season
+      operationId: tvs_season_put
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show id
+        required: true
+        schema:
+          type: integer
+      - name: season
+        in: path
+        description: season
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                overview:
+                  type: string
+                icon:
+                  type: string
+                season:
+                  type: number
+                rating:
+                  type: integer
+                premiered:
+                  type: string
+                scraperID:
+                  type: string
+                scraperName:
+                  type: string
+                scraperData:
+                  type: string
+                scraperLink:
+                  type: string
+                forceUpdate:
+                  type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+      
+    delete:
+      tags:
+      - tvs
+      summary: Delete a season
+      operationId: tvs_season_delete
+      parameters:
+      - name: idShow
+        in: path
+        description: tv show id
+        required: true
+        schema:
+          type: integer
+      - name: season
+        in: path
+        description: season
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
 
   /tvs/{idShow}/season/{season}/status:
     put:
@@ -385,35 +484,6 @@ paths:
       - user: []
       - admin: []
       
-    delete:
-      tags:
-      - tvs
-      summary: Delete episode
-      operationId: tvs_ep_delete
-      parameters:
-      - name: idEpisode
-        in: path
-        description: episode id
-        required: true
-        schema:
-          type: integer
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
-      
     put:
       tags:
       - tvs
@@ -459,6 +529,35 @@ paths:
                   type: string
                 forceUpdate:
                   type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+      
+    delete:
+      tags:
+      - tvs
+      summary: Delete episode
+      operationId: tvs_ep_delete
+      parameters:
+      - name: idEpisode
+        in: path
+        description: episode id
+        required: true
+        schema:
+          type: integer
       responses:
         200:
           description: successful operation
@@ -1388,7 +1487,7 @@ paths:
     put:
       tags:
       - player
-      summary: Set the media file properties
+      summary: Edit a media file properties
       operationId: player_props_put
       parameters:
       - name: mediaType
@@ -2326,6 +2425,8 @@ components:
     tvshow_season:
       type: object
       properties:
+        idShow:
+          type: integer
         title:
           type: string
         overview:
@@ -2338,6 +2439,8 @@ components:
           type: integer
         watchedEpisodes:
           type: integer
+        scraperLink:
+          type: string
 
     tvshow_episode:
       type: object
