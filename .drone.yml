@@ -19,13 +19,18 @@ steps:
 #      - pip install --no-cache-dir -r requirements_test.txt
 #      - pytest
 
-  - name: code_analysis
-    image: aosapps/drone-sonar-plugin
+  - name: analysis
+    image: registry.droso.io/ci/sonar:latest
     settings:
       sonar_host:
         from_secret: sonar_host
       sonar_token:
         from_secret: sonar_token
+      sources: "src/"
+      sonar_name: Zogwine
+      sonar_key: Zogwine
+      sonar_quality_enabled: true
+      showProfiling: true
 
   - name: discord_notification
     image: appleboy/drone-discord
@@ -65,6 +70,9 @@ services:
     image: redis:6.0.8
     ports:
       - 6379
+
+image_pull_secrets:
+  - dockerconfigjson
 
 trigger:
   event: 
@@ -139,6 +147,16 @@ trigger:
   - promote
   target:
   - production
+
+depends_on:
+  - test
+
+---
+kind: secret
+name: dockerconfigjson
+get:
+  path: kv/data/drone/registry/readonly
+  name: dockerconfigjson
 
 ---
 kind: secret
