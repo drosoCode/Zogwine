@@ -59,7 +59,7 @@ def get_episode(idEpisode: int):
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT idEpisode AS id, title, overview, idShow, CONCAT('/api/core/image/',icon) AS icon,"
-        "season, episode, rating, scraperName, scraperID, filler, "
+        "season, episode, rating, scraperName, scraperID, filler, addDate, updateDate, "
         "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount "
         "FROM episodes e "
         "WHERE idEpisode = %(idEpisode)s",
@@ -261,7 +261,7 @@ def get_season(idShow: int, season: int = None):
         s = "AND season = %(season)s "
     cursor.execute(
         "SELECT idShow, title, overview, CONCAT('/api/core/image/',icon) AS icon,"
-        "season, premiered, scraperLink, "
+        "season, premiered, scraperLink, addDate, updateDate, "
         "(SELECT COUNT(*) FROM episodes WHERE idShow = s.idShow AND season = s.season) AS episodes, "
         "(SELECT COUNT(watchCount) FROM status WHERE idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = s.idShow AND season = s.season) AND mediaType = 1  AND watchCount > 0 AND idUser = %(idUser)s) AS watchedEpisodes "
         "FROM seasons s "
@@ -474,7 +474,7 @@ def tvs_getEps(idShow, season=None):
         s = "AND season = %(season)s "
     cursor.execute(
         "SELECT idEpisode AS id, title, overview, CONCAT('/api/core/image/',icon) AS icon,"
-        "season, episode, rating, scraperName, scraperID, filler, "
+        "season, episode, rating, scraperName, scraperID, filler, addDate, updateDate, "
         "(SELECT watchCount FROM status WHERE idMedia = e.idEpisode AND mediaType = 1 AND idUser = %(idUser)s) AS watchCount "
         "FROM episodes e "
         "WHERE idShow = %(idShow)s " + s + ""
