@@ -777,7 +777,67 @@ paths:
       security:
       - user: []
       - admin: []
-                    
+      
+    put:
+      tags:
+      - movie
+      summary: Edit a movie
+      operationId: mov_data_put
+      parameters:
+      - name: idMovie
+        in: path
+        description: movie ID
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                overview:
+                  type: string
+                icon:
+                  type: string
+                fanart:
+                  type: string
+                rating:
+                  type: integer
+                premiered:
+                  type: string
+                scraperID:
+                  type: string
+                scraperName:
+                  type: string
+                scraperData:
+                  type: string
+                scraperLink:
+                  type: string
+                idCollection:
+                  type: integer
+                forceUpdate:
+                  type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+
   /movie/collection:
     get:
       tags:
@@ -2421,6 +2481,10 @@ components:
           type: integer
         forceUpdate:
           type: integer
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
 
     tvshow_season:
       type: object
@@ -2441,6 +2505,10 @@ components:
           type: integer
         scraperLink:
           type: string
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
 
     tvshow_episode:
       type: object
@@ -2469,6 +2537,10 @@ components:
           type: integer
         idShow:
           type: integer
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
 
     movie:
       type: object
@@ -2490,11 +2562,17 @@ components:
         scraperName:
           type: string
         scraperID:
+          type: number
+        scraperData:
+          type: string
+        scraperLink:
           type: string
         watchCount:
           type: integer
-        scraperLink:
-          type: string
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
 
     movie_collection:
       type: object
@@ -2515,6 +2593,10 @@ components:
           type: integer
         scraperLink:
           type: string
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
         
     device:
       type: object
