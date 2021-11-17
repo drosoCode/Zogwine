@@ -837,6 +837,35 @@ paths:
                     default: ok
       security:
       - admin: []
+    
+    delete:
+      tags:
+      - movie
+      summary: Delete a movie
+      operationId: movie_delete
+      parameters:
+      - name: idMovie
+        in: path
+        description: movie ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+        - admin: []
 
   /movie/collection:
     get:

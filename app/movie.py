@@ -171,6 +171,26 @@ def mov_editMovieData(idMovie: int):
     else:
         return jsonify({"status": "err", "data": msg}), 400
 
+################### DELETE ##########################
+
+@movie.route("<int:idMovie>", methods=["DELETE"])
+def delete_episode(idMovie: int):
+    checkUser("admin")
+
+    sqlConnection, cursor = getSqlConnection()
+    idMov = {"id": idMovie}
+    cursor.execute(
+        "DELETE FROM status WHERE mediaType = 3 AND idMedia = %(id)s;",
+        idMov,
+    )
+    cursor.execute(
+        "DELETE FROM video_files WHERE idVid = (SELECT idVid FROM episodes WHERE idMovie = %(id)s);",
+        idMov,
+    )
+    cursor.execute("DELETE FROM movies WHERE idMovie = %(id)s;", idMov)
+    sqlConnection.commit()
+    sqlConnection.close()
+    return jsonify({"status": "ok", "data": "ok"})
 
 # endregion
 

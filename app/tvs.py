@@ -139,7 +139,7 @@ def delete_episode(idEpisode: int):
     sqlConnection, cursor = getSqlConnection()
     idEp = {"id": idEpisode}
     cursor.execute(
-        "DELETE FROM status WHERE mediaType = 1 AND idMedia = (SELECT idEpisode FROM episodes WHERE idEpisode = %(id)s);",
+        "DELETE FROM status WHERE mediaType = 1 AND idMedia = %(id)s",
         idEp,
     )
     cursor.execute(
