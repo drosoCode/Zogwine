@@ -1,15 +1,12 @@
-from flask import request, Blueprint, jsonify, send_file, redirect, abort
-import redis
+from flask import request, Blueprint, jsonify, redirect, abort
 import json
 from uwsgidecorators import thread
 from base64 import b64decode
 import os
 
-from .transcoder import transcoder
-from .log import logger, getLogs
-from .utils import checkArgs, checkUser, addCache, getUID
+from .log import getLogs
+from .utils import checkUser, addCache, getUID
 from .dbHelper import getSqlConnection, r_runningThreads, configData
-from .indexer import scanner
 
 core = Blueprint("core", __name__)
 
@@ -40,8 +37,7 @@ def getStatistics():
     cursor.execute(
         "SELECT SUM(duration*watchCount) AS epTime "
         "FROM video_files v, episodes e, status s "
-        "WHERE v.mediaType = 1 "
-        "AND s.mediaType = 1 "
+        "WHERE s.mediaType = 1 "
         "AND v.idVid = e.idVid "
         "AND e.idEpisode = s.idMedia "
         "AND watchCount > 0 "
@@ -52,8 +48,7 @@ def getStatistics():
     cursor.execute(
         "SELECT SUM(duration*watchCount) AS movTime "
         "FROM video_files v, movies m, status s "
-        "WHERE v.mediaType = 3 "
-        "AND s.mediaType = 3 "
+        "WHERE s.mediaType = 3 "
         "AND v.idVid = m.idVid "
         "AND m.idMovie = s.idMedia "
         "AND watchCount > 0 "
@@ -121,7 +116,6 @@ def getImage(id: str):
 
     if "/" not in id and os.path.exists(file):
         return redirect("/cache/" + id, code=302)
-        # return send_file(open(file, "rb"), mimetype=mime)
     else:
         return redirect(url, code=302)
 
@@ -162,17 +156,9 @@ def refreshCache():
 @core.route("core/scan/person", methods=["GET"])
 def runPeopleScanThreaded():
     checkUser("admin")
-    runPeopleScan()
+    # TODO
     return jsonify({"status": "ok", "data": "ok"})
 
-
-@thread
-def runPeopleScan():
-    r_runningThreads.set("people", 1)
-    sqlConnection = getSqlConnection(False)
-    scanner(sqlConnection, "people", configData["api"]).getObject().scan()
-    r_runningThreads.set("people", 0)
-    sqlConnection.close()
 
 
 @core.route("person/<int:mediaType>/<mediaData>", methods=["GET"])
