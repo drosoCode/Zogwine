@@ -3,7 +3,6 @@
 SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
-SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 DROP DATABASE IF EXISTS `zogwine`;
 CREATE DATABASE `zogwine` /*!40100 DEFAULT CHARACTER SET utf8 */;
@@ -30,21 +29,42 @@ CREATE TABLE `episodes` (
   `title` varchar(255) DEFAULT NULL,
   `overview` text DEFAULT NULL,
   `icon` varchar(255) DEFAULT NULL,
+  `premiered` varchar(255) DEFAULT NULL,
   `season` int(11) DEFAULT NULL,
   `episode` int(11) DEFAULT NULL,
   `rating` int(11) DEFAULT NULL,
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(11) DEFAULT NULL,
   `scraperData` text DEFAULT NULL,
+  `scraperLink` text DEFAULT NULL,
   `filler` int(11) DEFAULT 0,
   `idShow` int(11) DEFAULT NULL,
   `idVid` int(11) DEFAULT NULL,
-  `addDate` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  `addDate` int(11) DEFAULT NULL,
+  `updateDate` int(11) DEFAULT NULL,
   `forceUpdate` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idEpisode`),
   KEY `idShow` (`idShow`),
   KEY `idVid` (`idVid`),
   CONSTRAINT `episodes_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `fillers`;
+CREATE TABLE `fillers` (
+  `mediaType` int(11) NOT NULL,
+  `mediaData` int(11) NOT NULL,
+  `fillerType` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `libraries`;
+CREATE TABLE `libraries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `path` text NOT NULL,
+  `mediaType` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -61,9 +81,10 @@ CREATE TABLE `movies` (
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(10) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
+  `scraperLink` text DEFAULT NULL,
   `idVid` int(11) DEFAULT NULL,
-  `addDate` datetime DEFAULT NULL ON UPDATE current_timestamp(),
-  `multipleResults` longtext DEFAULT NULL,
+  `addDate` int(11) DEFAULT NULL,
+  `updateDate` int(11) DEFAULT NULL,
   `forceUpdate` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idMovie`),
   KEY `idCollection` (`idCollection`),
@@ -84,7 +105,10 @@ CREATE TABLE `movie_collections` (
   `scraperName` varchar(255) NOT NULL,
   `scraperID` int(11) NOT NULL,
   `scraperData` text DEFAULT NULL,
+  `scraperLink` text DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
+  `addDate` int(11) NOT NULL,
+  `updateDate` int(11) NOT NULL,
   PRIMARY KEY (`idCollection`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -99,6 +123,12 @@ CREATE TABLE `people` (
   `description` text DEFAULT NULL,
   `icon` text DEFAULT NULL,
   `known_for` varchar(255) DEFAULT NULL,
+  `updateDate` int(11) NOT NULL,
+  `addDate` int(11) NOT NULL,
+  `scraperName` varchar(255) DEFAULT NULL,
+  `scraperID` varchar(255) DEFAULT NULL,
+  `scraperData` text DEFAULT NULL,
+  `scraperLink` text DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idPers`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -115,20 +145,37 @@ CREATE TABLE `people_link` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-DROP TABLE IF EXISTS `scrapers`;
-CREATE TABLE `scrapers` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `scraperName` varchar(255) NOT NULL,
-  `scraperURL` varchar(255) NOT NULL,
-  `mediaType` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+DROP TABLE IF EXISTS `role`;
+CREATE TABLE `role` (
+  `idRole` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `forceUpdate` int(11) NOT NULL,
+  PRIMARY KEY (`idRole`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO `scrapers` (`id`, `scraperName`, `scraperURL`, `mediaType`) VALUES
-(1,	'tmdb',	'https://www.themoviedb.org/tv/',	1),
-(2,	'tvdb',	'https://thetvdb.com/?tab=series&id=',	1),
-(3,	'imdb',	'https://www.imdb.com/title/',	1),
-(4,	'tmdb',	'https://www.themoviedb.org/movie/',	3);
+
+DROP TABLE IF EXISTS `role_link`;
+CREATE TABLE `role_link` (
+  `mediaType` int(11) NOT NULL,
+  `mediaData` text NOT NULL,
+  `idPers` int(11) NOT NULL,
+  `idRole` int(11) NOT NULL,
+  KEY `idPers` (`idPers`),
+  KEY `idRole` (`idRole`),
+  CONSTRAINT `role_link_ibfk_1` FOREIGN KEY (`idPers`) REFERENCES `people` (`idPers`),
+  CONSTRAINT `role_link_ibfk_2` FOREIGN KEY (`idRole`) REFERENCES `role` (`idRole`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `scrapers`;
+CREATE TABLE `scrapers` (
+  `providerName` varchar(255) NOT NULL,
+  `priority` int(11) NOT NULL,
+  `mediaTypes` varchar(255) NOT NULL,
+  `settings` text NOT NULL,
+  `enabled` tinyint(4) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 
 DROP TABLE IF EXISTS `seasons`;
 CREATE TABLE `seasons` (
@@ -138,10 +185,25 @@ CREATE TABLE `seasons` (
   `overview` text DEFAULT NULL,
   `icon` text DEFAULT NULL,
   `premiered` varchar(255) DEFAULT NULL,
+  `rating` int(11) DEFAULT NULL,
+  `scraperName` char(10) DEFAULT NULL,
+  `scraperID` int(11) DEFAULT NULL,
+  `scraperData` text DEFAULT NULL,
+  `scraperLink` text DEFAULT NULL,
+  `addDate` int(11) DEFAULT NULL,
+  `updateDate` int(11) DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL,
   KEY `idShow` (`idShow`),
   KEY `season` (`season`),
   CONSTRAINT `seasons_ibfk_1` FOREIGN KEY (`idShow`) REFERENCES `tv_shows` (`idShow`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS `selections`;
+CREATE TABLE `selections` (
+  `mediaType` int(11) NOT NULL,
+  `mediaData` text NOT NULL,
+  `data` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -222,25 +284,33 @@ CREATE TABLE `tv_shows` (
   `scraperName` char(10) DEFAULT NULL,
   `scraperID` int(11) DEFAULT NULL,
   `scraperData` varchar(255) DEFAULT NULL,
+  `scraperLink` text DEFAULT NULL,
   `fillerLink` text DEFAULT NULL,
   `path` varchar(255) DEFAULT NULL,
-  `multipleResults` longtext DEFAULT NULL,
+  `idLib` int(11) DEFAULT NULL,
+  `selectedResult` tinyint(4) DEFAULT NULL,
+  `updateDate` int(11) DEFAULT NULL,
+  `addDate` int(11) DEFAULT NULL,
   `forceUpdate` tinyint(4) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`idShow`)
+  PRIMARY KEY (`idShow`),
+  KEY `idLib` (`idLib`),
+  CONSTRAINT `tv_shows_ibfk_1` FOREIGN KEY (`idLib`) REFERENCES `libraries` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-DROP TABLE IF EXISTS `upcoming_episodes`;
-CREATE TABLE `upcoming_episodes` (
-  `idEpisode` int(11) NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) DEFAULT NULL,
+DROP TABLE IF EXISTS `upcoming`;
+CREATE TABLE `upcoming` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `mediaType` int(2) NOT NULL,
+  `refMediaData` varchar(255) DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
   `overview` text DEFAULT NULL,
-  `season` int(11) DEFAULT NULL,
-  `episode` int(11) DEFAULT NULL,
-  `date` date DEFAULT NULL,
   `icon` varchar(255) DEFAULT NULL,
-  `idShow` int(11) NOT NULL,
-  PRIMARY KEY (`idEpisode`)
+  `date` date NOT NULL,
+  `id_1` int(11) DEFAULT NULL,
+  `id_2` int(11) DEFAULT NULL,
+  PRIMARY KEY (`mediaType`),
+  UNIQUE KEY `id` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -263,7 +333,7 @@ CREATE TABLE `users` (
 DROP TABLE IF EXISTS `video_files`;
 CREATE TABLE `video_files` (
   `idVid` int(11) NOT NULL AUTO_INCREMENT,
-  `mediaType` int(11) NOT NULL,
+  `idLib` int(11) NOT NULL,
   `path` text NOT NULL,
   `format` varchar(255) DEFAULT NULL,
   `duration` float NOT NULL,
@@ -280,4 +350,4 @@ CREATE TABLE `video_files` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
--- 2021-05-02 19:31:50
+-- 2021-11-21 21:41:20
