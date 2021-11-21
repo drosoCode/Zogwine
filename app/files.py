@@ -127,7 +127,7 @@ def addFile(file: str, idLib: int) -> int:
     fullPath = os.path.join(
         getLibPath(idLib),
         file,
-    ).encode("utf-8")
+    ).encode("utf-8", "surrogateess")
 
     infos = _getFileInfos(fullPath)
     infos.update({"idLib": idLib, "path": file})

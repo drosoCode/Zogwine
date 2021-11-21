@@ -105,6 +105,14 @@ class BaseScraper:
     def _addMultipleResults(self, mediaData, searchResults):
         serializedResults = json.dumps([asdict(i) for i in searchResults])
         sqlConnection, cursor = getSqlConnection()
+        # clear previous entries
+        cursor.execute(
+            "DELETE FROM selections WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s",
+            {
+                "mediaType": self._mediaType,
+                "mediaData": mediaData
+            },
+        )
         cursor.execute(
             "INSERT INTO selections (mediaType, mediaData, data) VALUES (%(mediaType)s, %(mediaData)s, %(data)s);",
             {
@@ -190,12 +198,12 @@ class BaseScraper:
             reqData = {"name": person.name, "updateDate": round(time.time())}
             # create person if new
             cursor.execute(
-                "INSERT INTO people (name, updateDate, forceUpdate) VALUES (%(name)s, %(updateDate)s, 1);",
+                "INSERT INTO people (name, addDate, updateDate, forceUpdate) VALUES (%(name)s, %(updateDate)s, %(updateDate)s, 1);",
                 reqData,
             )
             # get person id
             cursor.execute(
-                "SELECT idPers FROM people where name = %(name)s AND updateDate = %(updateDate)s;",
+                "SELECT idPers FROM people where name = %(name)s AND addDate = %(updateDate)s;",
                 reqData,
             )
             idPers = cursor.fetchone()["idPers"]

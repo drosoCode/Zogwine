@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from app.scrapers.BaseScraper import BaseScraper
 from dataclasses import dataclass
 
 
-class MovieScraper(BaseScraper, ABC):
+class MovieProvider(ABC):
     @abstractmethod
-    def getMovieCollection(self, id):
+    def getMovieCollection(self):
         raise NotImplementedError()
 
     @abstractmethod
@@ -13,11 +12,15 @@ class MovieScraper(BaseScraper, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getMoviePeople(self, idMov):
+    def getMoviePeople(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def getMovieTags(self, idMov):
+    def getMovieTags(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getMovie(self):
         raise NotImplementedError()
 
 
