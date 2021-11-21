@@ -17,7 +17,7 @@ import re
 
 class tvs(BaseScraper):
     def __init__(self, config):
-        super().__init__(TVSScraper, config)
+        super().__init__(TVSProvider, config)
         self.__basePath = ""
         self.__idLib = -1
         self.__autoAdd = False

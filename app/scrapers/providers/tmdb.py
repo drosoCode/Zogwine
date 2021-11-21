@@ -11,7 +11,7 @@ import urllib.parse
 from datetime import datetime
 
 
-class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
+class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
     def __init__(self, apikey):
         super().__init__()
         self._endpoint = "https://api.themoviedb.org/3/"
@@ -508,16 +508,16 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
     # endregion
 
     # region Person
-    def getPersonDetails(self, id):
+    def getPersonDetails(self):
         data = json.loads(
             requests.get(
-                self._endpoint + "person/" + str(id) + "?api_key=" + self._apikey
+                self._endpoint + "person/" + str(self._scraperID) + "?api_key=" + self._apikey
             ).text
         )
         ic = None
         if data.get("profile_path") is not None:
             ic = self.baseImgUrl + data.get("profile_path")
-        return PersonData(
+        return PersonDetails(
             birthdate=data.get("birthday"),
             deathdate=data.get("deathday"),
             gender=data.get("gender"),
@@ -526,7 +526,7 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
             knownFor=data.get("known_for_department"),
         )
 
-    def getPersonData(self, name):
+    def searchPerson(self, name):
         response = json.loads(
             requests.get(
                 self._endpoint
@@ -539,6 +539,6 @@ class tmdb(BaseProvider, TVSScraper, MovieScraper, PersonScraper):
         if len(response["results"]) == 0:
             return None
         else:
-            return self.getPersonDetails(response["results"][0]["id"])
+            return response["results"]
 
     # endregion

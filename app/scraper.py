@@ -41,7 +41,7 @@ def getScraperResultsMedia(mediaType: int, mediaData: str):
         "SELECT data FROM selections WHERE mediaType = %(mediaType)s AND mediaData = %(mediaData)s",
         {"mediaType": mediaType, "mediaData": mediaData},
     )
-    data = cursor.fetchone()["data"]
+    data = cursor.fetchone().get("data") or []
     sqlConnection.close()
     return jsonify({"status": "ok", "data": {"data": json.loads(data), "path": getMediaPath(mediaType, mediaData, False).decode('utf-8')}})
 

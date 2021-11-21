@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 
-class TVSScraper(ABC):
+class TVSProvider(ABC):
     @abstractmethod
     def searchTVS(self, name):
         raise NotImplementedError()
