@@ -8,9 +8,11 @@ steps:
     image: python:3.8.6-slim
     commands:
       - python -m pip install --upgrade pip
-      - pip install flake8
+      - pip install flake8 gixy sqlfluff
       - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
+      - sqlfluff lint database.sql
+      - gixy nginx.conf
+    
 #  - name: test
 #    image: python:3.8.6-slim
 #    commands:
@@ -188,6 +190,6 @@ get:
 
 ---
 kind: signature
-hmac: 49643b1b73302b967f8b45b71a2f7e9fd76024c7cd6719d99571f93d7634e513
+hmac: d1c250f1a603727aa014e0c75b7aeda7e4aedc041bda6f9f68907d2354957764
 
 ...
