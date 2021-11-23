@@ -36,6 +36,7 @@ DB:
                4=url (youtube, twitch, direct video ...)
                5=reserved (tvshow season ?)
                6=reserved (movie collection ?)
+               7=reserved (people ?)
 """
 
 startWatcher()
@@ -65,6 +66,7 @@ logger.info("Server Started Successfully")
 
 @app.before_request
 def before_request():
+    print("================================================= ", request.endpoint)
     if (
         request.endpoint
         not in ["user.signin", "user.nginx", "core.getImage", "swaggerAssets"]

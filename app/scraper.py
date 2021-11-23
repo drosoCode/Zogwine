@@ -33,6 +33,11 @@ def __getScraperFromMediaType(mediaType: int) -> BaseScraper:
 
         return movie(config)
 
+    elif mediaType == 7:
+        from app.scrapers.person import person
+
+        return person(config)
+
 
 @scraper.route("result/<int:mediaType>/<mediaData>", methods=["GET"])
 def getScraperResultsMedia(mediaType: int, mediaData: str):
@@ -91,7 +96,8 @@ def updateWithSelectionResult(
 
 
 @scraper.route("scan/<int:mediaType>/<int:idLib>", methods=["POST"])
-def tvs_runScanThreaded(mediaType, idLib):
+@scraper.route("scan/<int:mediaType>", methods=["POST"])
+def tvs_runScanThreaded(mediaType, idLib = None):
     checkUser("admin")
     runScan(mediaType, idLib, (request.args.get("autoadd") == "true" or False))
     return jsonify({"status": "ok", "data": "ok"})

@@ -1,23 +1,26 @@
 from abc import ABC, abstractmethod
-from app.scrapers.BaseScraper import BaseScraper
 from dataclasses import dataclass
 
 
-class PersonScraper(BaseScraper, ABC):
+class PersonProvider(ABC):
     @abstractmethod
-    def getPersonDetails(self, id):
+    def getPersonDetails(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def getPersonData(self, name):
+    def searchPerson(self, name):
         raise NotImplementedError()
 
 
 @dataclass(frozen=True)
-class PersonData:
+class PersonDetails:
     birthdate: str
     deathdate: str
     gender: int
     description: str
     icon: str
     knownFor: str
+    scraperID: str
+    scraperName: str
+    scraperData: str
+    scraperLink: str

@@ -515,15 +515,17 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             ).text
         )
         ic = None
-        if data.get("profile_path") is not None:
-            ic = self.baseImgUrl + data.get("profile_path")
         return PersonDetails(
             birthdate=data.get("birthday"),
             deathdate=data.get("deathday"),
             gender=data.get("gender"),
             description=data.get("biography"),
-            icon=ic,
+            icon=self.__getImg(data.get("profile_path")),
             knownFor=data.get("known_for_department"),
+            scraperID=data.get("id"),
+            scraperName=self.scraperName,
+            scraperData=None,
+            scraperLink="https://www.themoviedb.org/person/" + str(data["id"])
         )
 
     def searchPerson(self, name):
@@ -536,9 +538,21 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
                 + self._apikey
             ).text
         )
-        if len(response["results"]) == 0:
-            return None
-        else:
-            return response["results"]
 
+        results = []
+        for item in response["results"]:
+            results.append(
+                MediaSearchData(
+                    title=item.get("name"),
+                    overview=None,
+                    icon=self.__getImg(item.get("profile_path")),
+                    premiered=None,
+                    scraperID=item.get("id"),
+                    scraperName=self.scraperName,
+                    scraperData=None,
+                    scraperLink="https://www.themoviedb.org/person/" + str(item["id"]),
+                )
+            )
+
+        return results
     # endregion

@@ -162,7 +162,7 @@ class BaseScraper:
             reqData,
         )
         idTag = cursor.fetchone()
-        if idTag == None:
+        if idTag is None:
             # create tag if new
             cursor.execute(
                 "INSERT INTO tags (name, value, icon) VALUES (%(name)s, %(value)s, %(icon)s);",
@@ -194,7 +194,7 @@ class BaseScraper:
             {"name": person.name},
         )
         idPers = cursor.fetchone()
-        if idPers == None:
+        if idPers is None:
             reqData = {"name": person.name, "updateDate": round(time.time())}
             # create person if new
             cursor.execute(
