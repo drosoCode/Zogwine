@@ -8,3 +8,4 @@ docker-compose.yml
 .vs/*
 static/*
 *.pyc
+config.yml
