@@ -1,0 +1,30 @@
+version: 1
+packages:
+  - path: "../internal/database"
+    name: "database"
+    engine: "postgresql"
+    schema: "schema.sql"
+    queries: "queries/"
+    emit_json_tags: true
+    emit_prepared_queries: false
+    json_tags_case_style: "camel"
+#overrides:
+#  - go_type: "gopkg.in/guregu/null.v4/null.String"
+#    db_type: "text"
+#    nullable: true
+#
+#  - go_type: "gopkg.in/guregu/null.v4/null.Int"
+#    db_type: "integer"
+#    nullable: true
+#
+#  - go_type: "gopkg.in/guregu/null.v4/null.Float"
+#    db_type: "pg_catalog.float4"
+#    nullable: true
+#
+#  - go_type: "gopkg.in/guregu/null.v4/null.Time"
+#    db_type: "pg_catalog.timestamp"
+#    nullable: true
+#
+#  - go_type: "gopkg.in/guregu/null.v4/null.Bool"
+#    db_type: "boolean"
+#    nullable: true
