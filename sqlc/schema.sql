@@ -207,6 +207,8 @@ CREATE TABLE "public"."library" (
 CREATE TABLE "public"."video_file" (
     "id" BIGSERIAL PRIMARY KEY,
     "id_lib" BIGINT NOT NULL REFERENCES library("id"),
+    "media_type" media_type NOT NULL,
+    "media_data" BIGINT NOT NULL,
     "path" text NOT NULL,
     "format" text NOT NULL,
     "duration" real NOT NULL,
@@ -218,7 +220,10 @@ CREATE TABLE "public"."video_file" (
     "dimension" text NOT NULL,
     "pix_fmt" text NOT NULL,
     "video_codec" text NOT NULL,
-    "size" real NOT NULL
+    "size" real NOT NULL,
+    "tmp" boolean NOT NULL,
+    "add_date" timestamp NOT NULL,
+    "update_date" timestamp NOT NULL
 ) WITH (oids = false);
 
 -- ========================= UPCOMING =========================
@@ -293,7 +298,6 @@ CREATE TABLE "public"."episode" (
     "scraper_link" text NOT NULL,
     "scraper_id" text NOT NULL,
     "id_show" BIGINT NOT NULL REFERENCES tv_show("id"),
-    "id_vid" BIGINT NOT NULL REFERENCES video_file("id"),
     "add_date" timestamp NOT NULL,
     "update_date" timestamp NOT NULL,
     "update_mode" BIGINT NOT NULL
@@ -332,7 +336,6 @@ CREATE TABLE "public"."movie" (
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "id_vid" BIGINT NOT NULL REFERENCES video_file("id"),
     "add_date" timestamp NOT NULL,
     "update_date" timestamp NOT NULL,
     "update_mode" BIGINT NOT NULL
