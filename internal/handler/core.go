@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Zogwine/Zogwine/internal/status"
 	"github.com/Zogwine/Zogwine/internal/util/srv"
@@ -29,6 +30,10 @@ func CoreImage(s *status.Status) http.HandlerFunc {
 			}
 
 			// else, decode the base64 id
+			// make sure that the padding is correct
+			if i := len(id) % 4; i != 0 {
+				id += strings.Repeat("=", 4-i)
+			}
 			url, err := base64.StdEncoding.DecodeString(id)
 			if srv.IfError(w, r, err) {
 				return
