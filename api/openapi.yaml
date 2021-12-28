@@ -118,7 +118,7 @@ paths:
                 rating:
                   type: integer
                 premiered:
-                  type: string
+                  type: integer
                 scraperID:
                   type: string
                 scraperName:
@@ -353,7 +353,7 @@ paths:
                 rating:
                   type: integer
                 premiered:
-                  type: string
+                  type: integer
                 scraperID:
                   type: string
                 scraperName:
@@ -518,7 +518,7 @@ paths:
                 rating:
                   type: integer
                 premiered:
-                  type: string
+                  type: integer
                 scraperID:
                   type: string
                 scraperName:
@@ -693,7 +693,7 @@ paths:
                 rating:
                   type: integer
                 premiered:
-                  type: string
+                  type: integer
                 scraperID:
                   type: string
                 scraperName:
@@ -2507,7 +2507,7 @@ components:
         rating:
           type: number
         premiered:
-          type: string
+          type: integer
         scraperName:
           type: string
         scraperID:
@@ -2606,7 +2606,7 @@ components:
         icon: 
           type: string
         premiered: 
-          type: string
+          type: integer
         scraperID: 
           type: string
         scraperName: 
