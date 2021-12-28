@@ -155,78 +155,6 @@ def delete_episode(idEpisode: int):
 
 # endregion
 
-# region SEASON
-
-# For GET methods, see SHOWS region
-
-########################################################## PUT 
-
-@tvs.route("<int:idShow>/season/<int:season>", methods=["PUT"])
-def tvs_editTVSSeasonData(idShow:int, season: int):
-    checkUser("admin")
-    allowedFields = [
-        "title",
-        "season",
-        "overview",
-        "icon",
-        "rating",
-        "premiered",
-        "scraperLink",
-        "forceUpdate",
-    ]
-    sqlConnection, cursor = getSqlConnection()
-    data = json.loads(request.data)
-    err = False
-    msg = ""
-
-    for i, val in data.items():
-        if i in allowedFields:
-            err, msg = tvs_checkPutField(i, val)
-            if err:
-                break
-            else:
-                val = msg
-
-            cursor.execute(
-                "UPDATE seasons SET " + i + " = %(val)s WHERE idShow = %(idShow)s AND season = %(season)s",
-                {"val": val, "idShow": idShow, "season": season},
-            )
-        else:
-            err = True
-            msg = "Unknown field"
-            break
-
-    if not err:
-        sqlConnection.commit()
-    sqlConnection.close()
-
-    if not err:
-        return jsonify({"status": "ok", "data": "ok"})
-    else:
-        return jsonify({"status": "err", "data": msg}), 400
-
-@tvs.route("<int:idShow>/season/<int:season>", methods=["DELETE"])
-def tvs_deleteTVSSeason(idShow:int, season: int):
-    checkUser("admin")
-
-    sqlConnection, cursor = getSqlConnection()
-    idS = {"id": idShow, "season": season}
-    cursor.execute(
-        "DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(id)s AND season = %(season)s);",
-        idS,
-    )
-    cursor.execute(
-        "DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(id)s AND season = %(season)s);",
-        idS,
-    )
-    cursor.execute("DELETE FROM episodes WHERE idShow = %(id)s AND season = %(season)s", idS)
-    cursor.execute("DELETE FROM seasons WHERE idShow = %(id)s AND season = %(season)s", idS)
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-# endregion
-
 
 # region SHOW
 
@@ -243,34 +171,6 @@ def get_show_episodes(idShow: int, season: int = None):
             ),
         }
     )
-
-
-@tvs.route("<int:idShow>/season", methods=["GET"])
-@tvs.route("<int:idShow>/season/<int:season>", methods=["GET"])
-def get_season(idShow: int, season: int = None):
-    idUser = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    s = ""
-    dat = {"idUser": idUser, "idShow": idShow}
-    if season is not None:
-        dat["season"] = season
-        s = "AND season = %(season)s "
-    cursor.execute(
-        "SELECT idShow, title, overview, CONCAT('/api/core/image/',icon) AS icon,"
-        "season, premiered, scraperLink, addDate, updateDate, "
-        "(SELECT COUNT(*) FROM episodes WHERE idShow = s.idShow AND season = s.season) AS episodes, "
-        "(SELECT COUNT(watchCount) FROM status WHERE idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = s.idShow AND season = s.season) AND mediaType = 1  AND watchCount > 0 AND idUser = %(idUser)s) AS watchedEpisodes "
-        "FROM seasons s "
-        "WHERE idShow = %(idShow)s " + s + ""
-        "ORDER BY season;",
-        dat,
-    )
-    if season is None:
-        res = cursor.fetchall()
-    else:
-        res = cursor.fetchone()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": res})
 
 
 

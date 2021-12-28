@@ -305,7 +305,7 @@ CREATE TABLE "public"."episode" (
 
 
 CREATE TABLE "public"."season" (
-    "id_show" BIGSERIAL PRIMARY KEY REFERENCES tv_show("id"),
+    "id_show" BIGSERIAL NOT NULL REFERENCES tv_show("id"),
     "season" BIGINT NOT NULL,
     "title" text NOT NULL,
     "overview" text NOT NULL,
@@ -319,7 +319,8 @@ CREATE TABLE "public"."season" (
     "scraper_link" text NOT NULL,
     "add_date" bigint NOT NULL,
     "update_date" bigint NOT NULL,
-    "update_mode" BIGINT NOT NULL
+    "update_mode" BIGINT NOT NULL,
+    PRIMARY KEY ("id_show", "season")
 ) WITH (oids = false);
 
 -- ========================= MOVIES =========================

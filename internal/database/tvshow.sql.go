@@ -25,12 +25,40 @@ func (q *Queries) DeleteShowEpisode(ctx context.Context, idShow int64) error {
 	return err
 }
 
+const deleteShowEpisodeBySeason = `-- name: DeleteShowEpisodeBySeason :exec
+DELETE FROM episode WHERE id_show = $1 AND season = $2
+`
+
+type DeleteShowEpisodeBySeasonParams struct {
+	IDShow int64 `json:"idShow"`
+	Season int64 `json:"season"`
+}
+
+func (q *Queries) DeleteShowEpisodeBySeason(ctx context.Context, arg DeleteShowEpisodeBySeasonParams) error {
+	_, err := q.db.ExecContext(ctx, deleteShowEpisodeBySeason, arg.IDShow, arg.Season)
+	return err
+}
+
 const deleteShowFile = `-- name: DeleteShowFile :exec
 DELETE FROM video_file WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1)
 `
 
 func (q *Queries) DeleteShowFile(ctx context.Context, idShow int64) error {
 	_, err := q.db.ExecContext(ctx, deleteShowFile, idShow)
+	return err
+}
+
+const deleteShowFileBySeason = `-- name: DeleteShowFileBySeason :exec
+DELETE FROM video_file WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1 AND season = $2)
+`
+
+type DeleteShowFileBySeasonParams struct {
+	IDShow int64 `json:"idShow"`
+	Season int64 `json:"season"`
+}
+
+func (q *Queries) DeleteShowFileBySeason(ctx context.Context, arg DeleteShowFileBySeasonParams) error {
+	_, err := q.db.ExecContext(ctx, deleteShowFileBySeason, arg.IDShow, arg.Season)
 	return err
 }
 
@@ -43,12 +71,40 @@ func (q *Queries) DeleteShowSeason(ctx context.Context, idShow int64) error {
 	return err
 }
 
+const deleteShowSeasonByNum = `-- name: DeleteShowSeasonByNum :exec
+DELETE FROM season WHERE id_show = $1 AND season = $2
+`
+
+type DeleteShowSeasonByNumParams struct {
+	IDShow int64 `json:"idShow"`
+	Season int64 `json:"season"`
+}
+
+func (q *Queries) DeleteShowSeasonByNum(ctx context.Context, arg DeleteShowSeasonByNumParams) error {
+	_, err := q.db.ExecContext(ctx, deleteShowSeasonByNum, arg.IDShow, arg.Season)
+	return err
+}
+
 const deleteShowStatus = `-- name: DeleteShowStatus :exec
 DELETE FROM status WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1)
 `
 
 func (q *Queries) DeleteShowStatus(ctx context.Context, idShow int64) error {
 	_, err := q.db.ExecContext(ctx, deleteShowStatus, idShow)
+	return err
+}
+
+const deleteShowStatusBySeason = `-- name: DeleteShowStatusBySeason :exec
+DELETE FROM status WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1 AND season = $2)
+`
+
+type DeleteShowStatusBySeasonParams struct {
+	IDShow int64 `json:"idShow"`
+	Season int64 `json:"season"`
+}
+
+func (q *Queries) DeleteShowStatusBySeason(ctx context.Context, arg DeleteShowStatusBySeasonParams) error {
+	_, err := q.db.ExecContext(ctx, deleteShowStatusBySeason, arg.IDShow, arg.Season)
 	return err
 }
 
@@ -180,7 +236,7 @@ const getShowSeason = `-- name: GetShowSeason :one
 SELECT s.id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
 s.season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season) AS episode,
-(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode WHERE id_show = s.id AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watchedEpisodes
+(SELECT COUNT(watch_count) FROM status WHERE media_data IN  (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watchedEpisodes
 FROM season s
 WHERE s.id_show = $2 AND s.season = $3
 LIMIT 1
@@ -451,7 +507,7 @@ const listShowSeason = `-- name: ListShowSeason :many
 SELECT id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
 season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season)::BIGINT AS episode,
-(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode WHERE id_show = s.id AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watchedEpisodes
+(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watchedEpisodes
 FROM season s
 WHERE s.id_show = $2
 ORDER BY season
@@ -518,7 +574,7 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
     icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
     fanart = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.fanart END,
-    rating = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.rating::BIGINT END,
+    rating = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.rating END,
     scraper_id = CASE WHEN $8::TEXT != '' THEN $8::TEXT ELSE t.scraper_id END,
     scraper_name = CASE WHEN $9::TEXT != '' THEN $9::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_data END,
@@ -595,5 +651,53 @@ type UpdateShowPathParams struct {
 
 func (q *Queries) UpdateShowPath(ctx context.Context, arg UpdateShowPathParams) error {
 	_, err := q.db.ExecContext(ctx, updateShowPath, arg.ID, arg.RegexpReplace)
+	return err
+}
+
+const updateShowSeason = `-- name: UpdateShowSeason :exec
+UPDATE season t
+SET title = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.title END,
+    overview = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.overview END,
+    icon = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.icon END,
+    fanart = CASE WHEN $7::TEXT != '' THEN $7::TEXT ELSE t.fanart END,
+    rating = CASE WHEN $8::BIGINT > 0 THEN $8::BIGINT ELSE t.rating END,
+    season = CASE WHEN $9::BIGINT > 0 THEN $9::BIGINT ELSE t.season END,
+    scraper_link = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_link END,
+    update_mode = CASE WHEN $11::BIGINT > 0 THEN $11::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $12::BIGINT > 0 THEN $12::BIGINT ELSE t.premiered END,
+    update_date = $3
+WHERE id_show = $1 AND season = $2
+`
+
+type UpdateShowSeasonParams struct {
+	IDShow      int64  `json:"idShow"`
+	Season      int64  `json:"season"`
+	UpdateDate  int64  `json:"updateDate"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Rating      int64  `json:"rating"`
+	Season_2    int64  `json:"season2"`
+	ScraperLink string `json:"scraperLink"`
+	UpdateMode  int64  `json:"updateMode"`
+	Premiered   int64  `json:"premiered"`
+}
+
+func (q *Queries) UpdateShowSeason(ctx context.Context, arg UpdateShowSeasonParams) error {
+	_, err := q.db.ExecContext(ctx, updateShowSeason,
+		arg.IDShow,
+		arg.Season,
+		arg.UpdateDate,
+		arg.Title,
+		arg.Overview,
+		arg.Icon,
+		arg.Fanart,
+		arg.Rating,
+		arg.Season_2,
+		arg.ScraperLink,
+		arg.UpdateMode,
+		arg.Premiered,
+	)
 	return err
 }

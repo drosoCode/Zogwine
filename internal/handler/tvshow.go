@@ -23,7 +23,15 @@ func SetupTVS(r chi.Router, s *status.Status) {
 	tvs.Get("/{id}", GetTVS(s))
 	tvs.Put("/{id}", UpdateTVS(s))
 	tvs.Delete("/{id}", DeleteTVS(s))
+
+	tvs.Get("/{id}/season", ListTVSSeason(s))
+	tvs.Get("/{id}/season/{season}", GetTVSSeason(s))
+	tvs.Put("/{id}/season/{season}", UpdateTVSSeason(s))
+	//tvs.Put("/{id}/season/{season}/status", UpdateTVSSeasonStatus(s))
+	tvs.Delete("/{id}/season/{season}", DeleteTVSSeason(s))
 }
+
+// tv shows management
 
 // GET tvs/{id}
 func GetTVS(s *status.Status) http.HandlerFunc {
@@ -160,6 +168,119 @@ func DeleteTVS(s *status.Status) http.HandlerFunc {
 			return
 		}
 		err = s.DB.DeleteShow(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// seasons managements
+
+// GET tvs/{id}/season/
+func ListTVSSeason(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		shows, err := s.DB.ListShowSeason(r.Context(), database.ListShowSeasonParams{IDUser: userInfo.ID, IDShow: id})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, shows)
+	}
+}
+
+// GET tvs/{id}/season/{season}
+func GetTVSSeason(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		season, err := strconv.ParseInt(chi.URLParam(r, "season"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		shows, err := s.DB.GetShowSeason(r.Context(), database.GetShowSeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, shows)
+	}
+}
+
+// PUT tvs/{id}/season/{season}
+func UpdateTVSSeason(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		season, err := strconv.ParseInt(chi.URLParam(r, "season"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		updateData := database.UpdateShowSeasonParams{}
+		err = json.NewDecoder(r.Body).Decode(&updateData)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		// ensure that the urls to images are base64 encodeds
+		if len(updateData.Fanart) > 4 && updateData.Fanart[0:4] == "http" {
+			updateData.Fanart = base64.RawStdEncoding.EncodeToString([]byte(updateData.Fanart))
+		}
+		if len(updateData.Icon) > 4 && updateData.Icon[0:4] == "http" {
+			updateData.Icon = base64.RawStdEncoding.EncodeToString([]byte(updateData.Icon))
+		}
+
+		// add additionnal info to updateData struct
+		updateData.IDShow = id
+		updateData.Season = season
+		updateData.UpdateDate = time.Now().Unix()
+
+		err = s.DB.UpdateShowSeason(r.Context(), updateData)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// DELETE tvs/{id}/season/{season}
+func DeleteTVSSeason(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		season, err := strconv.ParseInt(chi.URLParam(r, "season"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		err = s.DB.DeleteShowStatusBySeason(r.Context(), database.DeleteShowStatusBySeasonParams{IDShow: id, Season: season})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowFileBySeason(r.Context(), database.DeleteShowFileBySeasonParams{IDShow: id, Season: season})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowEpisodeBySeason(r.Context(), database.DeleteShowEpisodeBySeasonParams{IDShow: id, Season: season})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowSeasonByNum(r.Context(), database.DeleteShowSeasonByNumParams{IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
