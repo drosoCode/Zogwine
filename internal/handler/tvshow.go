@@ -23,6 +23,7 @@ func SetupTVS(r chi.Router, s *status.Status) {
 	tvs.Get("/", ListTVS(s))
 	tvs.Get("/{id}", GetTVS(s))
 	tvs.Put("/{id}", UpdateTVS(s))
+	tvs.Delete("/{id}", DeleteTVS(s))
 }
 
 // GET tvs/{id}
@@ -109,6 +110,22 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 			}
 		}
 
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// DELETE tvs/{id}
+func DeleteTVS(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		err = s.DB.DeleteShow(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
 		srv.JSON(w, r, 200, "ok")
 	}
 }
