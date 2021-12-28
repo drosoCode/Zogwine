@@ -245,11 +245,6 @@ def get_show_episodes(idShow: int, season: int = None):
     )
 
 
-@tvs.route("<int:idShow>", methods=["GET"])
-def get_show(idShow: int):
-    return jsonify({"status": "ok", "data": tvs_getShows(int(idShow))})
-
-
 @tvs.route("<int:idShow>/season", methods=["GET"])
 @tvs.route("<int:idShow>/season/<int:season>", methods=["GET"])
 def get_season(idShow: int, season: int = None):
@@ -277,91 +272,6 @@ def get_season(idShow: int, season: int = None):
     sqlConnection.close()
     return jsonify({"status": "ok", "data": res})
 
-
-@tvs.route("", methods=["GET"])
-def tvs_getShowsFlask():
-    return jsonify({"status": "ok", "data": tvs_getShows()})
-
-
-################################# PUT ####################################################
-
-
-@tvs.route("<int:idShow>", methods=["PUT"])
-def tvs_editTVSData(idShow: int):
-    checkUser("admin")
-    allowedFields = [
-        "title",
-        "overview",
-        "icon",
-        "fanart",
-        "rating",
-        "premiered",
-        "scraperID",
-        "scraperName",
-        "scraperData",
-        "scraperLink",
-        "path",
-        "idLib",
-        "forceUpdate",
-    ]
-    sqlConnection, cursor = getSqlConnection()
-    data = json.loads(request.data)
-    err = False
-    msg = ""
-    setNewScraper = False
-
-    for i, val in data.items():
-        if i in allowedFields:
-            err, msg = tvs_checkPutField(i, val)
-            if err:
-                break
-            else:
-                val = msg
-
-            if i not in ["scraperID", "scraperName", "scraperData"]:
-                cursor.execute(
-                    "UPDATE tv_shows SET " + i + " = %(val)s WHERE idShow = %(ids)s",
-                    {"val": val, "ids": idShow},
-                )
-            else:
-                setNewScraper = True
-        else:
-            err = True
-            msg = "Unknonw field"
-            break
-
-    if not err:
-        if "path" in data:
-            # propagate path changes
-            cursor.execute(
-                "SELECT path FROM tv_shows WHERE idShow = %(idShow)s",
-                {"idShow": idShow},
-            )
-            path = cursor.fetchone()["path"]
-            cursor.execute(
-                "UPDATE video_files SET path = REGEXP_REPLACE(path, %(path)s, %(new_path)s) WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(idShow)s);",
-                {"path": "^" + path, "new_path": val, "idShow": idShow},
-            )
-        if "idLib" in data:
-            # propagate idLib changes
-            cursor.execute(
-                "UPDATE video_files SET idLib = %(idLib)s WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(idShow)s);",
-                {"idLib": val, "idShow": idShow},
-            )
-        sqlConnection.commit()
-    sqlConnection.close()
-
-    if setNewScraper:
-        tvs_data = tvs_getShows(idShow)
-        scraperName = data.get("scraperName") or tvs_data["scraperName"]
-        scraperID = data.get("scraperID") or tvs_data["scraperID"]
-        scraperData = data.get("scraperData") or tvs_data["scraperData"]
-        updateWithSelectionResult(1, idShow, scraperName, scraperID, scraperData)
-
-    if not err:
-        return jsonify({"status": "ok", "data": "ok"})
-    else:
-        return jsonify({"status": "err", "data": msg}), 400
 
 
 @tvs.route("<int:idShow>/status", methods=["PUT"])
@@ -395,74 +305,9 @@ def tvs_toggleWatchedSeason(idShow: int, season: int = None):
     return jsonify({"status": "ok", "data": "ok"})
 
 
-@tvs.route("<int:idShow>/scanTitle", methods=["PUT"])
-def new_search(idShow: int):
-    checkUser("admin")
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "UPDATE tv_shows SET multipleResults = %(newTitle)s, forceUpdate = 1 WHERE idShow = %(idShow)s;",
-        {"newTitle": json.loads(request.data)["title"], "idShow": idShow},
-    )
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
-################################# DELETE ####################################################
-
-
-@tvs.route("<int:idShow>", methods=["DELETE"])
-def delete_show(idShow: int):
-    checkUser("admin")
-
-    sqlConnection, cursor = getSqlConnection()
-    idS = {"id": idShow}
-    cursor.execute(
-        "DELETE FROM status WHERE mediaType = 1 AND idMedia IN (SELECT idEpisode FROM episodes WHERE idShow = %(id)s);",
-        idS,
-    )
-    cursor.execute(
-        "DELETE FROM video_files WHERE idVid IN (SELECT idVid FROM episodes WHERE idShow = %(id)s);",
-        idS,
-    )
-    cursor.execute("DELETE FROM episodes WHERE idShow = %(id)s;", idS)
-    cursor.execute("DELETE FROM seasons WHERE idShow = %(id)s;", idS)
-    cursor.execute("DELETE FROM tv_shows WHERE idShow = %(id)s;", idS)
-    sqlConnection.commit()
-    sqlConnection.close()
-    return jsonify({"status": "ok", "data": "ok"})
-
-
 # endregion
 
 # region HELPERS
-def tvs_getShows(idShow=None):
-    idUser = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    show = ""
-    queryData = {"idUser": int(idUser)}
-    if idShow is not None:
-        show = " WHERE idShow = %(idShow)s"
-        queryData.update({"idShow": idShow})
-
-    query = (
-        "SELECT idShow AS id,"
-        "title, overview, CONCAT('/api/core/image/',icon) AS icon, CONCAT('/api/core/image/',fanart) AS fanart, "
-        "rating, premiered, scraperName, scraperID, scraperData, scraperLink, addDate, updateDate, forceUpdate, idLib, path, "
-        "(SELECT MAX(season) FROM episodes WHERE idShow = t.idShow) AS seasons,"
-        "(SELECT COUNT(idEpisode) FROM episodes WHERE idShow = t.idShow) AS episodes,"
-        "(SELECT COUNT(*) FROM episodes e LEFT JOIN status s ON (s.idMedia = e.idEpisode)"
-        "WHERE e.idEpisode = s.idMedia AND s.mediaType = 1 AND watchCount > 0  AND idUser = %(idUser)s and idShow = t.idShow) AS watchedEpisodes "
-        "FROM tv_shows t "
-        "" + show + " ORDER BY title;"
-    )
-
-    cursor.execute(query, queryData)
-    res = cursor.fetchall()
-    sqlConnection.close()
-    if idShow is not None:
-        return res[0]
-    return res
 
 
 def tvs_getEps(idShow, season=None):

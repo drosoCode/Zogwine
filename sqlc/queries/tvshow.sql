@@ -49,12 +49,20 @@ UPDATE video_file SET id_lib = $1 WHERE media_type = 'tvs_episode' AND media_dat
 -- name: UpdateShowPath :exec
 UPDATE video_file SET path = REGEXP_REPLACE(path, CONCAT('^', (SELECT path FROM tv_show t WHERE t.id = $1)), $2) WHERE media_type = 'tvs_episode' AND media_data IN (SELECT e.id FROM episode e WHERE id_show = $1);
 
+-- name: DeleteShowStatus :exec
+DELETE FROM status WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1);
+-- name: DeleteShowFile :exec
+DELETE FROM video_file WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1);
+-- name: DeleteShowEpisode :exec
+DELETE FROM episode WHERE id_show = $1;
+-- name: DeleteShowSeason :exec
+DELETE FROM season WHERE id_show = $1;
 -- name: DeleteShow :exec
 DELETE FROM tv_show WHERE id = $1;
 
 --  =============================================== SEASONS ===============================================
 
--- name: ListSeason :many
+-- name: ListShowSeason :many
 SELECT id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
 season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season)::BIGINT AS episode,
@@ -63,7 +71,7 @@ FROM season s
 WHERE s.id_show = $2
 ORDER BY season;
 
--- name: GetSeason :one
+-- name: GetShowSeason :one
 SELECT s.id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
 s.season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season) AS episode,

@@ -108,6 +108,29 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 			}
 		}
 
+		// apply modifications to scrapers
+		if updateData.ScraperID != "" || updateData.ScraperName != "" || updateData.ScraperData != "" {
+
+			// some fields may not be present
+			userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+			show, err := s.DB.GetShow(r.Context(), database.GetShowParams{IDUser: userInfo.ID, ID: id})
+			if srv.IfError(w, r, err) {
+				return
+			}
+			if updateData.ScraperID == "" {
+				updateData.ScraperID = show.ScraperID
+			}
+			if updateData.ScraperName == "" {
+				updateData.ScraperName = show.ScraperName
+			}
+			if updateData.ScraperData == "" {
+				updateData.ScraperData = show.ScraperData
+			}
+
+			// TODO: update scraper
+			// updateWithSelectionResult(1, id, updateData.ScraperName, updateData.ScraperID, updateData.ScraperData)
+		}
+
 		srv.JSON(w, r, 200, "ok")
 	}
 }
@@ -120,6 +143,22 @@ func DeleteTVS(s *status.Status) http.HandlerFunc {
 			return
 		}
 
+		err = s.DB.DeleteShowStatus(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowFile(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowEpisode(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowSeason(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
 		err = s.DB.DeleteShow(r.Context(), id)
 		if srv.IfError(w, r, err) {
 			return

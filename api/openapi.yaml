@@ -131,7 +131,7 @@ paths:
                   type: string
                 idLib:
                   type: integer
-                forceUpdate:
+                updateMode:
                   type: integer
       responses:
         200:
@@ -362,7 +362,7 @@ paths:
                   type: string
                 scraperLink:
                   type: string
-                forceUpdate:
+                updateMode:
                   type: integer
       responses:
         200:
@@ -527,7 +527,7 @@ paths:
                   type: string
                 scraperLink:
                   type: string
-                forceUpdate:
+                updateMode:
                   type: integer
       responses:
         200:
@@ -605,121 +605,6 @@ paths:
       security:
       - user: []
       - admin: []
-
-  /tvs/episode/upcoming:
-    get:
-      tags:
-      - tvs
-      summary: Get a list of upcoming episodes
-      operationId: tvs_ep_upcoming
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        title:
-                          type: string
-                        showTitle:
-                          type: string
-                        overview:
-                          type: string
-                        icon:
-                          type: string
-                        season:
-                          type: integer
-                        episode:
-                          type: integer
-                        date:
-                          type: string
-                        idShow:
-                          type: integer
-      security:
-      - user: []
-      - admin: []
-
-  /tvs/scan:
-    get:
-      tags:
-      - tvs
-      summary: Run a scan for new shows and episodes
-      operationId: tvs_scan
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
-
-  /tvs/scan/result:
-    get:
-      tags:
-      - tvs
-      summary: Get multiple results available for shows 
-      operationId: tvs_scan_results
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/tvshow'
-      security:
-      - admin: []
-
-  /tvs/scan/upcoming:
-    get:
-      tags:
-      - tvs
-      summary: Run a scan for upcoming episodes
-      operationId: tvs_scan_upcoming
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
-
 
 
   /movie:
@@ -819,7 +704,7 @@ paths:
                   type: string
                 idCollection:
                   type: integer
-                forceUpdate:
+                updateMode:
                   type: integer
       responses:
         200:
@@ -2350,12 +2235,47 @@ paths:
       security:
       - admin: []
       
+  /scraper/scan/{mediaType}:
+    post:
+      tags:
+      - scraper
+      summary: Start a scraper scan (only supported for person)
+      operationId: scraper_scan
+      parameters:
+      - name: mediaType
+        in: path
+        description: media type
+        required: true
+        schema:
+          type: integer
+      - name: autoadd
+        in: query
+        description: if the system should try to automatically select the appropriate scraper result
+        required: false
+        schema:
+          type: boolean
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+      security:
+      - admin: []
+      
   /scraper/scan/{mediaType}/{idLib}:
     post:
       tags:
       - scraper
       summary: Start a scraper scan for a specific media library
-      operationId: scraper_scan
+      operationId: scraper_scan_idlib
       parameters:
       - name: mediaType
         in: path
@@ -2490,11 +2410,11 @@ components:
           type: number
         premiered:
           type: string
-        seasons:
+        season:
           type: integer
-        episodes:
+        episode:
           type: integer
-        watchedEpisodes:
+        watchedEpisode:
           type: integer
         scraperName:
           type: string
@@ -2508,7 +2428,7 @@ components:
           type: string
         idLib:
           type: integer
-        forceUpdate:
+        updateMode:
           type: integer
         addDate:
           type: integer
@@ -2528,9 +2448,9 @@ components:
           type: string
         season:
           type: integer
-        episodes:
+        episode:
           type: integer
-        watchedEpisodes:
+        watchedEpisode:
           type: integer
         scraperLink:
           type: string
