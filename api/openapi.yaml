@@ -2409,7 +2409,7 @@ components:
         rating:
           type: number
         premiered:
-          type: string
+          type: integer
         season:
           type: integer
         episode:
@@ -2446,9 +2446,13 @@ components:
           type: string
         icon:
           type: string
+        fanart:
+          type: string
         season:
           type: integer
         episode:
+          type: integer
+        premiered:
           type: integer
         watchedEpisode:
           type: integer
@@ -2476,6 +2480,8 @@ components:
           type: integer
         rating:
           type: number
+        premiered:
+          type: integer
         scraperName:
           type: string
         scraperID:

@@ -25,6 +25,15 @@ func (q *Queries) DeleteShowEpisode(ctx context.Context, idShow int64) error {
 	return err
 }
 
+const deleteShowEpisodeByID = `-- name: DeleteShowEpisodeByID :exec
+DELETE FROM episode WHERE id = $1
+`
+
+func (q *Queries) DeleteShowEpisodeByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteShowEpisodeByID, id)
+	return err
+}
+
 const deleteShowEpisodeBySeason = `-- name: DeleteShowEpisodeBySeason :exec
 DELETE FROM episode WHERE id_show = $1 AND season = $2
 `
@@ -45,6 +54,15 @@ DELETE FROM video_file WHERE media_type = 'tvs_episode' AND media_data IN (SELEC
 
 func (q *Queries) DeleteShowFile(ctx context.Context, idShow int64) error {
 	_, err := q.db.ExecContext(ctx, deleteShowFile, idShow)
+	return err
+}
+
+const deleteShowFileByEpisode = `-- name: DeleteShowFileByEpisode :exec
+DELETE FROM video_file WHERE media_type = 'tvs_episode' AND media_data = $1
+`
+
+func (q *Queries) DeleteShowFileByEpisode(ctx context.Context, mediaData int64) error {
+	_, err := q.db.ExecContext(ctx, deleteShowFileByEpisode, mediaData)
 	return err
 }
 
@@ -94,6 +112,15 @@ func (q *Queries) DeleteShowStatus(ctx context.Context, idShow int64) error {
 	return err
 }
 
+const deleteShowStatusByEpisode = `-- name: DeleteShowStatusByEpisode :exec
+DELETE FROM status WHERE media_type = 'tvs_episode' AND media_data = $1
+`
+
+func (q *Queries) DeleteShowStatusByEpisode(ctx context.Context, mediaData int64) error {
+	_, err := q.db.ExecContext(ctx, deleteShowStatusByEpisode, mediaData)
+	return err
+}
+
 const deleteShowStatusBySeason = `-- name: DeleteShowStatusBySeason :exec
 DELETE FROM status WHERE media_type = 'tvs_episode' AND media_data IN (SELECT id FROM episode WHERE id_show = $1 AND season = $2)
 `
@@ -106,62 +133,6 @@ type DeleteShowStatusBySeasonParams struct {
 func (q *Queries) DeleteShowStatusBySeason(ctx context.Context, arg DeleteShowStatusBySeasonParams) error {
 	_, err := q.db.ExecContext(ctx, deleteShowStatusBySeason, arg.IDShow, arg.Season)
 	return err
-}
-
-const getEpisode = `-- name: GetEpisode :one
-
-SELECT e.id, title, overview, id_show, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
-season, episode, rating, scraper_name, scraper_id, add_date, update_date,
-(SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id) AS filler,
-(SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1)::BIGINT AS watch_count
-FROM episode e
-WHERE e.id = $2
-LIMIT 1
-`
-
-type GetEpisodeParams struct {
-	IDUser int64 `json:"idUser"`
-	ID     int64 `json:"id"`
-}
-
-type GetEpisodeRow struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Overview    string `json:"overview"`
-	IDShow      int64  `json:"idShow"`
-	Icon        string `json:"icon"`
-	Season      int64  `json:"season"`
-	Episode     int64  `json:"episode"`
-	Rating      int64  `json:"rating"`
-	ScraperName string `json:"scraperName"`
-	ScraperID   string `json:"scraperID"`
-	AddDate     int64  `json:"addDate"`
-	UpdateDate  int64  `json:"updateDate"`
-	Filler      int64  `json:"filler"`
-	WatchCount  int64  `json:"watchCount"`
-}
-
-//  =============================================== EPISODES ===============================================
-func (q *Queries) GetEpisode(ctx context.Context, arg GetEpisodeParams) (GetEpisodeRow, error) {
-	row := q.db.QueryRowContext(ctx, getEpisode, arg.IDUser, arg.ID)
-	var i GetEpisodeRow
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Overview,
-		&i.IDShow,
-		&i.Icon,
-		&i.Season,
-		&i.Episode,
-		&i.Rating,
-		&i.ScraperName,
-		&i.ScraperID,
-		&i.AddDate,
-		&i.UpdateDate,
-		&i.Filler,
-		&i.WatchCount,
-	)
-	return i, err
 }
 
 const getShow = `-- name: GetShow :one
@@ -232,11 +203,69 @@ func (q *Queries) GetShow(ctx context.Context, arg GetShowParams) (GetShowRow, e
 	return i, err
 }
 
+const getShowEpisode = `-- name: GetShowEpisode :one
+
+SELECT e.id, title, overview, id_show, premiered, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+season, episode, rating, scraper_name, scraper_id, add_date, update_date,
+COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
+COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
+FROM episode e
+WHERE e.id = $2
+LIMIT 1
+`
+
+type GetShowEpisodeParams struct {
+	IDUser int64 `json:"idUser"`
+	ID     int64 `json:"id"`
+}
+
+type GetShowEpisodeRow struct {
+	ID          int64       `json:"id"`
+	Title       string      `json:"title"`
+	Overview    string      `json:"overview"`
+	IDShow      int64       `json:"idShow"`
+	Premiered   int64       `json:"premiered"`
+	Icon        string      `json:"icon"`
+	Season      int64       `json:"season"`
+	Episode     int64       `json:"episode"`
+	Rating      int64       `json:"rating"`
+	ScraperName string      `json:"scraperName"`
+	ScraperID   string      `json:"scraperID"`
+	AddDate     int64       `json:"addDate"`
+	UpdateDate  int64       `json:"updateDate"`
+	Filler      interface{} `json:"filler"`
+	WatchCount  int64       `json:"watchCount"`
+}
+
+//  =============================================== EPISODES ===============================================
+func (q *Queries) GetShowEpisode(ctx context.Context, arg GetShowEpisodeParams) (GetShowEpisodeRow, error) {
+	row := q.db.QueryRowContext(ctx, getShowEpisode, arg.IDUser, arg.ID)
+	var i GetShowEpisodeRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Overview,
+		&i.IDShow,
+		&i.Premiered,
+		&i.Icon,
+		&i.Season,
+		&i.Episode,
+		&i.Rating,
+		&i.ScraperName,
+		&i.ScraperID,
+		&i.AddDate,
+		&i.UpdateDate,
+		&i.Filler,
+		&i.WatchCount,
+	)
+	return i, err
+}
+
 const getShowSeason = `-- name: GetShowSeason :one
 SELECT s.id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
 s.season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season) AS episode,
-(SELECT COUNT(watch_count) FROM status WHERE media_data IN  (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watchedEpisodes
+(SELECT COUNT(watch_count) FROM status WHERE media_data IN  (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
 FROM season s
 WHERE s.id_show = $2 AND s.season = $3
 LIMIT 1
@@ -249,17 +278,17 @@ type GetShowSeasonParams struct {
 }
 
 type GetShowSeasonRow struct {
-	IDShow          int64  `json:"idShow"`
-	Title           string `json:"title"`
-	Overview        string `json:"overview"`
-	Icon            string `json:"icon"`
-	Season          int64  `json:"season"`
-	Premiered       int64  `json:"premiered"`
-	ScraperLink     string `json:"scraperLink"`
-	AddDate         int64  `json:"addDate"`
-	UpdateDate      int64  `json:"updateDate"`
-	Episode         int64  `json:"episode"`
-	Watchedepisodes int64  `json:"watchedepisodes"`
+	IDShow         int64  `json:"idShow"`
+	Title          string `json:"title"`
+	Overview       string `json:"overview"`
+	Icon           string `json:"icon"`
+	Season         int64  `json:"season"`
+	Premiered      int64  `json:"premiered"`
+	ScraperLink    string `json:"scraperLink"`
+	AddDate        int64  `json:"addDate"`
+	UpdateDate     int64  `json:"updateDate"`
+	Episode        int64  `json:"episode"`
+	WatchedEpisode int64  `json:"watchedEpisode"`
 }
 
 func (q *Queries) GetShowSeason(ctx context.Context, arg GetShowSeasonParams) (GetShowSeasonRow, error) {
@@ -276,150 +305,9 @@ func (q *Queries) GetShowSeason(ctx context.Context, arg GetShowSeasonParams) (G
 		&i.AddDate,
 		&i.UpdateDate,
 		&i.Episode,
-		&i.Watchedepisodes,
+		&i.WatchedEpisode,
 	)
 	return i, err
-}
-
-const listEpisodeBySeason = `-- name: ListEpisodeBySeason :many
-SELECT e.id, title, overview, id_show, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
-season, episode, rating, scraper_name, scraper_id, add_date, update_date,
-(SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id) AS filler,
-(SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1)::BIGINT AS watch_count
-FROM episode e
-WHERE id_show = $2 AND season = $3
-ORDER BY season, episode
-`
-
-type ListEpisodeBySeasonParams struct {
-	IDUser int64 `json:"idUser"`
-	IDShow int64 `json:"idShow"`
-	Season int64 `json:"season"`
-}
-
-type ListEpisodeBySeasonRow struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Overview    string `json:"overview"`
-	IDShow      int64  `json:"idShow"`
-	Icon        string `json:"icon"`
-	Season      int64  `json:"season"`
-	Episode     int64  `json:"episode"`
-	Rating      int64  `json:"rating"`
-	ScraperName string `json:"scraperName"`
-	ScraperID   string `json:"scraperID"`
-	AddDate     int64  `json:"addDate"`
-	UpdateDate  int64  `json:"updateDate"`
-	Filler      int64  `json:"filler"`
-	WatchCount  int64  `json:"watchCount"`
-}
-
-func (q *Queries) ListEpisodeBySeason(ctx context.Context, arg ListEpisodeBySeasonParams) ([]ListEpisodeBySeasonRow, error) {
-	rows, err := q.db.QueryContext(ctx, listEpisodeBySeason, arg.IDUser, arg.IDShow, arg.Season)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListEpisodeBySeasonRow
-	for rows.Next() {
-		var i ListEpisodeBySeasonRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Overview,
-			&i.IDShow,
-			&i.Icon,
-			&i.Season,
-			&i.Episode,
-			&i.Rating,
-			&i.ScraperName,
-			&i.ScraperID,
-			&i.AddDate,
-			&i.UpdateDate,
-			&i.Filler,
-			&i.WatchCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listEpisodeByShow = `-- name: ListEpisodeByShow :many
-SELECT e.id, title, overview, id_show, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
-season, episode, rating, scraper_name, scraper_id, add_date, update_date,
-(SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id) AS filler,
-(SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1)::BIGINT AS watch_count
-FROM episode e
-WHERE id_show = $2
-ORDER BY season, episode
-`
-
-type ListEpisodeByShowParams struct {
-	IDUser int64 `json:"idUser"`
-	IDShow int64 `json:"idShow"`
-}
-
-type ListEpisodeByShowRow struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Overview    string `json:"overview"`
-	IDShow      int64  `json:"idShow"`
-	Icon        string `json:"icon"`
-	Season      int64  `json:"season"`
-	Episode     int64  `json:"episode"`
-	Rating      int64  `json:"rating"`
-	ScraperName string `json:"scraperName"`
-	ScraperID   string `json:"scraperID"`
-	AddDate     int64  `json:"addDate"`
-	UpdateDate  int64  `json:"updateDate"`
-	Filler      int64  `json:"filler"`
-	WatchCount  int64  `json:"watchCount"`
-}
-
-func (q *Queries) ListEpisodeByShow(ctx context.Context, arg ListEpisodeByShowParams) ([]ListEpisodeByShowRow, error) {
-	rows, err := q.db.QueryContext(ctx, listEpisodeByShow, arg.IDUser, arg.IDShow)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListEpisodeByShowRow
-	for rows.Next() {
-		var i ListEpisodeByShowRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Overview,
-			&i.IDShow,
-			&i.Icon,
-			&i.Season,
-			&i.Episode,
-			&i.Rating,
-			&i.ScraperName,
-			&i.ScraperID,
-			&i.AddDate,
-			&i.UpdateDate,
-			&i.Filler,
-			&i.WatchCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const listShow = `-- name: ListShow :many
@@ -502,12 +390,157 @@ func (q *Queries) ListShow(ctx context.Context, idUser int64) ([]ListShowRow, er
 	return items, nil
 }
 
+const listShowEpisode = `-- name: ListShowEpisode :many
+SELECT e.id, title, overview, id_show, premiered, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+season, episode, rating, scraper_name, scraper_id, add_date, update_date,
+COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
+COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
+FROM episode e
+WHERE id_show = $2
+ORDER BY season, episode
+`
+
+type ListShowEpisodeParams struct {
+	IDUser int64 `json:"idUser"`
+	IDShow int64 `json:"idShow"`
+}
+
+type ListShowEpisodeRow struct {
+	ID          int64       `json:"id"`
+	Title       string      `json:"title"`
+	Overview    string      `json:"overview"`
+	IDShow      int64       `json:"idShow"`
+	Premiered   int64       `json:"premiered"`
+	Icon        string      `json:"icon"`
+	Season      int64       `json:"season"`
+	Episode     int64       `json:"episode"`
+	Rating      int64       `json:"rating"`
+	ScraperName string      `json:"scraperName"`
+	ScraperID   string      `json:"scraperID"`
+	AddDate     int64       `json:"addDate"`
+	UpdateDate  int64       `json:"updateDate"`
+	Filler      interface{} `json:"filler"`
+	WatchCount  int64       `json:"watchCount"`
+}
+
+func (q *Queries) ListShowEpisode(ctx context.Context, arg ListShowEpisodeParams) ([]ListShowEpisodeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listShowEpisode, arg.IDUser, arg.IDShow)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListShowEpisodeRow
+	for rows.Next() {
+		var i ListShowEpisodeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Overview,
+			&i.IDShow,
+			&i.Premiered,
+			&i.Icon,
+			&i.Season,
+			&i.Episode,
+			&i.Rating,
+			&i.ScraperName,
+			&i.ScraperID,
+			&i.AddDate,
+			&i.UpdateDate,
+			&i.Filler,
+			&i.WatchCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listShowEpisodeBySeason = `-- name: ListShowEpisodeBySeason :many
+SELECT e.id, title, overview, id_show, premiered, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+season, episode, rating, scraper_name, scraper_id, add_date, update_date,
+COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
+COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
+FROM episode e
+WHERE id_show = $2 AND season = $3
+ORDER BY season, episode
+`
+
+type ListShowEpisodeBySeasonParams struct {
+	IDUser int64 `json:"idUser"`
+	IDShow int64 `json:"idShow"`
+	Season int64 `json:"season"`
+}
+
+type ListShowEpisodeBySeasonRow struct {
+	ID          int64       `json:"id"`
+	Title       string      `json:"title"`
+	Overview    string      `json:"overview"`
+	IDShow      int64       `json:"idShow"`
+	Premiered   int64       `json:"premiered"`
+	Icon        string      `json:"icon"`
+	Season      int64       `json:"season"`
+	Episode     int64       `json:"episode"`
+	Rating      int64       `json:"rating"`
+	ScraperName string      `json:"scraperName"`
+	ScraperID   string      `json:"scraperID"`
+	AddDate     int64       `json:"addDate"`
+	UpdateDate  int64       `json:"updateDate"`
+	Filler      interface{} `json:"filler"`
+	WatchCount  int64       `json:"watchCount"`
+}
+
+func (q *Queries) ListShowEpisodeBySeason(ctx context.Context, arg ListShowEpisodeBySeasonParams) ([]ListShowEpisodeBySeasonRow, error) {
+	rows, err := q.db.QueryContext(ctx, listShowEpisodeBySeason, arg.IDUser, arg.IDShow, arg.Season)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListShowEpisodeBySeasonRow
+	for rows.Next() {
+		var i ListShowEpisodeBySeasonRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Overview,
+			&i.IDShow,
+			&i.Premiered,
+			&i.Icon,
+			&i.Season,
+			&i.Episode,
+			&i.Rating,
+			&i.ScraperName,
+			&i.ScraperID,
+			&i.AddDate,
+			&i.UpdateDate,
+			&i.Filler,
+			&i.WatchCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listShowSeason = `-- name: ListShowSeason :many
 
 SELECT id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
 season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season)::BIGINT AS episode,
-(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watchedEpisodes
+(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
 FROM season s
 WHERE s.id_show = $2
 ORDER BY season
@@ -519,17 +552,17 @@ type ListShowSeasonParams struct {
 }
 
 type ListShowSeasonRow struct {
-	IDShow          int64  `json:"idShow"`
-	Title           string `json:"title"`
-	Overview        string `json:"overview"`
-	Icon            string `json:"icon"`
-	Season          int64  `json:"season"`
-	Premiered       int64  `json:"premiered"`
-	ScraperLink     string `json:"scraperLink"`
-	AddDate         int64  `json:"addDate"`
-	UpdateDate      int64  `json:"updateDate"`
-	Episode         int64  `json:"episode"`
-	Watchedepisodes int64  `json:"watchedepisodes"`
+	IDShow         int64  `json:"idShow"`
+	Title          string `json:"title"`
+	Overview       string `json:"overview"`
+	Icon           string `json:"icon"`
+	Season         int64  `json:"season"`
+	Premiered      int64  `json:"premiered"`
+	ScraperLink    string `json:"scraperLink"`
+	AddDate        int64  `json:"addDate"`
+	UpdateDate     int64  `json:"updateDate"`
+	Episode        int64  `json:"episode"`
+	WatchedEpisode int64  `json:"watchedEpisode"`
 }
 
 //  =============================================== SEASONS ===============================================
@@ -553,7 +586,7 @@ func (q *Queries) ListShowSeason(ctx context.Context, arg ListShowSeasonParams) 
 			&i.AddDate,
 			&i.UpdateDate,
 			&i.Episode,
-			&i.Watchedepisodes,
+			&i.WatchedEpisode,
 		); err != nil {
 			return nil, err
 		}
@@ -620,6 +653,61 @@ func (q *Queries) UpdateShow(ctx context.Context, arg UpdateShowParams) error {
 		arg.ScraperLink,
 		arg.Path,
 		arg.IDLib,
+		arg.UpdateMode,
+		arg.Premiered,
+	)
+	return err
+}
+
+const updateShowEpisode = `-- name: UpdateShowEpisode :exec
+UPDATE episode t
+SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
+    overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
+    icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
+    rating = CASE WHEN $6::BIGINT > 0 THEN $6::BIGINT ELSE t.rating END,
+    season = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.season END,
+    episode = CASE WHEN $8::BIGINT > 0 THEN $8::BIGINT ELSE t.episode END,
+    scraper_id = CASE WHEN $9::TEXT != '' THEN $9::TEXT ELSE t.scraper_id END,
+    scraper_name = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_name END,
+    scraper_data = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_data END,
+    scraper_link = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_link END,
+    update_mode = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.premiered END,
+    update_date = $2
+WHERE id = $1
+`
+
+type UpdateShowEpisodeParams struct {
+	ID          int64  `json:"id"`
+	UpdateDate  int64  `json:"updateDate"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Rating      int64  `json:"rating"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	ScraperID   string `json:"scraperID"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	UpdateMode  int64  `json:"updateMode"`
+	Premiered   int64  `json:"premiered"`
+}
+
+func (q *Queries) UpdateShowEpisode(ctx context.Context, arg UpdateShowEpisodeParams) error {
+	_, err := q.db.ExecContext(ctx, updateShowEpisode,
+		arg.ID,
+		arg.UpdateDate,
+		arg.Title,
+		arg.Overview,
+		arg.Icon,
+		arg.Rating,
+		arg.Season,
+		arg.Episode,
+		arg.ScraperID,
+		arg.ScraperName,
+		arg.ScraperData,
+		arg.ScraperLink,
 		arg.UpdateMode,
 		arg.Premiered,
 	)

@@ -27,8 +27,16 @@ func SetupTVS(r chi.Router, s *status.Status) {
 	tvs.Get("/{id}/season", ListTVSSeason(s))
 	tvs.Get("/{id}/season/{season}", GetTVSSeason(s))
 	tvs.Put("/{id}/season/{season}", UpdateTVSSeason(s))
-	//tvs.Put("/{id}/season/{season}/status", UpdateTVSSeasonStatus(s))
 	tvs.Delete("/{id}/season/{season}", DeleteTVSSeason(s))
+
+	tvs.Get("/episode/{id}", GetTVSEpisode(s))
+	tvs.Get("/{id}/season/{season}/episode", ListTVSEpisodeBySeason(s))
+	tvs.Get("/{id}/episode", ListTVSEpisode(s))
+	tvs.Put("/episode/{id}", UpdateTVSEpisode(s))
+	tvs.Delete("/episode/{id}", DeleteTVSEpisode(s))
+
+	//tvs.Put("/{id}/season/{season}/status", UpdateTVSSeasonStatus(s))
+	//tvs.Put("/episode/{id}/status", UpdateTVSEpisodeStatus(s))
 }
 
 // tv shows management
@@ -287,3 +295,183 @@ func DeleteTVSSeason(s *status.Status) http.HandlerFunc {
 		srv.JSON(w, r, 200, "ok")
 	}
 }
+
+// episode management
+
+// GET tvs/episode/{id}/
+func GetTVSEpisode(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		shows, err := s.DB.GetShowEpisode(r.Context(), database.GetShowEpisodeParams{IDUser: userInfo.ID, ID: id})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, shows)
+	}
+}
+
+// GET tvs/{id}/episode
+func ListTVSEpisode(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		shows, err := s.DB.ListShowEpisode(r.Context(), database.ListShowEpisodeParams{IDUser: userInfo.ID, IDShow: id})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, shows)
+	}
+}
+
+// GET tvs/{id}/season/{season}/episode
+func ListTVSEpisodeBySeason(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		season, err := strconv.ParseInt(chi.URLParam(r, "season"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		shows, err := s.DB.ListShowEpisodeBySeason(r.Context(), database.ListShowEpisodeBySeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, shows)
+	}
+}
+
+// PUT tvs/episode/{id}
+func UpdateTVSEpisode(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		updateData := database.UpdateShowEpisodeParams{}
+		err = json.NewDecoder(r.Body).Decode(&updateData)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		// ensure that the urls to images are base64 encodeds
+		if len(updateData.Icon) > 4 && updateData.Icon[0:4] == "http" {
+			updateData.Icon = base64.RawStdEncoding.EncodeToString([]byte(updateData.Icon))
+		}
+
+		// add additionnal info to updateData struct
+		updateData.ID = id
+		updateData.UpdateDate = time.Now().Unix()
+
+		err = s.DB.UpdateShowEpisode(r.Context(), updateData)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// DELETE tvs/episode/{id}
+func DeleteTVSEpisode(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		err = s.DB.DeleteShowStatusByEpisode(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowFileByEpisode(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		err = s.DB.DeleteShowEpisodeByID(r.Context(), id)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// status helpers
+/*
+// PUT tvs/{id}/season/{season}/status
+func UpdateTVSSeasonStatus(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		season, err := strconv.ParseInt(chi.URLParam(r, "season"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		mode := r.URL.Query().Get("mode")
+		if mode == "1" {
+			// set all watched
+		} else if mode == "0" {
+			// set all not watched
+		} else {
+			// toggle
+
+		}
+		/*
+			err = s.DB.UpdateShowSeason(r.Context(), updateData)
+			if srv.IfError(w, r, err) {
+				return
+			}*/
+/*
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// PUT tvs/{id}/season/{season}/status
+func UpdateTVSEpisodeStatus(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
+
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		season, err := strconv.ParseInt(chi.URLParam(r, "season"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+		mode := r.URL.Query().Get("mode")
+		if mode == "1" {
+			// set all watched
+		} else if mode == "0" {
+			// set all not watched
+		} else {
+			// toggle
+
+		}
+		/*
+			err = s.DB.UpdateShowSeason(r.Context(), updateData)
+			if srv.IfError(w, r, err) {
+				return
+			}*/
+/*
+		srv.JSON(w, r, 200, "ok")
+	}
+}
+*/
