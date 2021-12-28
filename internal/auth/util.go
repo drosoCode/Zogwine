@@ -10,6 +10,8 @@ import (
 
 // Get the User ID from a token, returns an error if the association doesn't exists
 func GetUserID(s *status.Status, token string) (int64, error) {
+	// TODO: REMOVE THIS
+	return 1, nil
 	sess := s.GetGlobal()
 	if uid, ok := sess.Token[token]; ok {
 		return uid, nil
