@@ -67,7 +67,7 @@ CREATE TABLE "public"."status" (
     "media_data" BIGINT NOT NULL,
     "watch_count" BIGINT NOT NULL,
     "watch_time" real NOT NULL,
-    "last_date" timestamp NOT NULL
+    "last_date" bigint NOT NULL
 ) WITH (oids = false);
 
 -- ========================= DEVICES / TRACKERS =========================
@@ -79,8 +79,8 @@ CREATE TABLE "public"."credential" (
     "address" text NOT NULL,
     "port" BIGINT NOT NULL,
     "data" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL
 ) WITH (oids = false);
 
 
@@ -120,8 +120,8 @@ CREATE TABLE "public"."person" (
     "id" BIGSERIAL PRIMARY KEY,
     "name" text NOT NULL,
     "gender" BIGINT NOT NULL,
-    "birth" timestamp NOT NULL,
-    "death" timestamp NOT NULL,
+    "birth" bigint NOT NULL,
+    "death" bigint NOT NULL,
     "overview" text NOT NULL,
     "icon" text NOT NULL,
     "knownFor" text NOT NULL,
@@ -129,8 +129,8 @@ CREATE TABLE "public"."person" (
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
@@ -144,8 +144,8 @@ CREATE TABLE "public"."role" (
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
@@ -222,8 +222,8 @@ CREATE TABLE "public"."video_file" (
     "video_codec" text NOT NULL,
     "size" real NOT NULL,
     "tmp" boolean NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL
 ) WITH (oids = false);
 
 -- ========================= UPCOMING =========================
@@ -235,7 +235,7 @@ CREATE TABLE "public"."upcoming" (
     "title" text NOT NULL,
     "overview" text NOT NULL,
     "icon" text NOT NULL,
-    "date" timestamp NOT NULL
+    "date" bigint NOT NULL
 ) WITH (oids = false);
 
 -- ========================= FILLERS =========================
@@ -246,8 +246,8 @@ CREATE TABLE "public"."filler" (
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL,
     "media_type" media_type NOT NULL,
     "media_data" BIGINT NOT NULL
@@ -271,15 +271,15 @@ CREATE TABLE "public"."tv_show" (
     "icon" text NOT NULL,
     "fanart" text NOT NULL,
     "rating" bigint NOT NULL,
-    "premiered" timestamp NOT NULL,
+    "premiered" bigint NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
     "path" text NOT NULL,
     "id_lib" BIGINT NOT NULL REFERENCES library("id"),
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
@@ -289,7 +289,7 @@ CREATE TABLE "public"."episode" (
     "title" text NOT NULL,
     "overview" text NOT NULL,
     "icon" text NOT NULL,
-    "premiered" timestamp NOT NULL,
+    "premiered" bigint NOT NULL,
     "season" BIGINT NOT NULL,
     "episode" BIGINT NOT NULL,
     "rating" bigint NOT NULL,
@@ -298,8 +298,8 @@ CREATE TABLE "public"."episode" (
     "scraper_link" text NOT NULL,
     "scraper_id" text NOT NULL,
     "id_show" BIGINT NOT NULL REFERENCES tv_show("id"),
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
@@ -311,14 +311,14 @@ CREATE TABLE "public"."season" (
     "overview" text NOT NULL,
     "icon" text NOT NULL,
     "fanart" text NOT NULL,
-    "premiered" timestamp NOT NULL,
+    "premiered" bigint NOT NULL,
     "rating" bigint NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
@@ -330,14 +330,14 @@ CREATE TABLE "public"."movie" (
     "overview" text NOT NULL,
     "icon" text NOT NULL,
     "fanart" text NOT NULL,
-    "premiered" timestamp NOT NULL,
+    "premiered" bigint NOT NULL,
     "rating" bigint NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
@@ -346,7 +346,7 @@ CREATE TABLE "public"."movie_collection" (
     "id" BIGSERIAL PRIMARY KEY,
     "title" text NOT NULL,
     "overview" text NOT NULL,
-    "premiered" timestamp NOT NULL,
+    "premiered" bigint NOT NULL,
     "icon" text NOT NULL,
     "fanart" text NOT NULL,
     "rating" bigint NOT NULL,
@@ -354,8 +354,8 @@ CREATE TABLE "public"."movie_collection" (
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
     "scraper_link" text NOT NULL,
-    "add_date" timestamp NOT NULL,
-    "update_date" timestamp NOT NULL,
+    "add_date" bigint NOT NULL,
+    "update_date" bigint NOT NULL,
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 

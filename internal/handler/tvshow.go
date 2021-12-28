@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -86,9 +85,8 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 
 		// add additionnal info to updateData struct
 		updateData.ID = id
-		updateData.UpdateDate = time.Now()
+		updateData.UpdateDate = time.Now().Unix()
 
-		fmt.Printf("%+v\n", updateData)
 		err = s.DB.UpdateShow(r.Context(), updateData)
 		if srv.IfError(w, r, err) {
 			return

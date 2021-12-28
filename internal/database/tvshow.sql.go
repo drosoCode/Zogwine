@@ -5,7 +5,6 @@ package database
 
 import (
 	"context"
-	"time"
 )
 
 const deleteShow = `-- name: DeleteShow :exec
@@ -34,20 +33,20 @@ type GetEpisodeParams struct {
 }
 
 type GetEpisodeRow struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	IDShow      int64     `json:"idShow"`
-	Icon        string    `json:"icon"`
-	Season      int64     `json:"season"`
-	Episode     int64     `json:"episode"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	Filler      int64     `json:"filler"`
-	WatchCount  int64     `json:"watchCount"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	IDShow      int64  `json:"idShow"`
+	Icon        string `json:"icon"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	Filler      int64  `json:"filler"`
+	WatchCount  int64  `json:"watchCount"`
 }
 
 //  =============================================== EPISODES ===============================================
@@ -90,17 +89,17 @@ type GetSeasonParams struct {
 }
 
 type GetSeasonRow struct {
-	IDShow          int64     `json:"idShow"`
-	Title           string    `json:"title"`
-	Overview        string    `json:"overview"`
-	Icon            string    `json:"icon"`
-	Season          int64     `json:"season"`
-	Premiered       time.Time `json:"premiered"`
-	ScraperLink     string    `json:"scraperLink"`
-	AddDate         time.Time `json:"addDate"`
-	UpdateDate      time.Time `json:"updateDate"`
-	Episode         int64     `json:"episode"`
-	Watchedepisodes int64     `json:"watchedepisodes"`
+	IDShow          int64  `json:"idShow"`
+	Title           string `json:"title"`
+	Overview        string `json:"overview"`
+	Icon            string `json:"icon"`
+	Season          int64  `json:"season"`
+	Premiered       int64  `json:"premiered"`
+	ScraperLink     string `json:"scraperLink"`
+	AddDate         int64  `json:"addDate"`
+	UpdateDate      int64  `json:"updateDate"`
+	Episode         int64  `json:"episode"`
+	Watchedepisodes int64  `json:"watchedepisodes"`
 }
 
 func (q *Queries) GetSeason(ctx context.Context, arg GetSeasonParams) (GetSeasonRow, error) {
@@ -142,25 +141,25 @@ type GetShowParams struct {
 }
 
 type GetShowRow struct {
-	ID             int64     `json:"id"`
-	Title          string    `json:"title"`
-	Overview       string    `json:"overview"`
-	Icon           string    `json:"icon"`
-	Fanart         string    `json:"fanart"`
-	Rating         int64     `json:"rating"`
-	Premiered      time.Time `json:"premiered"`
-	ScraperName    string    `json:"scraperName"`
-	ScraperID      string    `json:"scraperID"`
-	ScraperData    string    `json:"scraperData"`
-	ScraperLink    string    `json:"scraperLink"`
-	AddDate        time.Time `json:"addDate"`
-	UpdateDate     time.Time `json:"updateDate"`
-	UpdateMode     int64     `json:"updateMode"`
-	IDLib          int64     `json:"idLib"`
-	Path           string    `json:"path"`
-	Season         int64     `json:"season"`
-	Episode        int64     `json:"episode"`
-	WatchedEpisode int64     `json:"watchedEpisode"`
+	ID             int64  `json:"id"`
+	Title          string `json:"title"`
+	Overview       string `json:"overview"`
+	Icon           string `json:"icon"`
+	Fanart         string `json:"fanart"`
+	Rating         int64  `json:"rating"`
+	Premiered      int64  `json:"premiered"`
+	ScraperName    string `json:"scraperName"`
+	ScraperID      string `json:"scraperID"`
+	ScraperData    string `json:"scraperData"`
+	ScraperLink    string `json:"scraperLink"`
+	AddDate        int64  `json:"addDate"`
+	UpdateDate     int64  `json:"updateDate"`
+	UpdateMode     int64  `json:"updateMode"`
+	IDLib          int64  `json:"idLib"`
+	Path           string `json:"path"`
+	Season         int64  `json:"season"`
+	Episode        int64  `json:"episode"`
+	WatchedEpisode int64  `json:"watchedEpisode"`
 }
 
 func (q *Queries) GetShow(ctx context.Context, arg GetShowParams) (GetShowRow, error) {
@@ -207,20 +206,20 @@ type ListEpisodeBySeasonParams struct {
 }
 
 type ListEpisodeBySeasonRow struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	IDShow      int64     `json:"idShow"`
-	Icon        string    `json:"icon"`
-	Season      int64     `json:"season"`
-	Episode     int64     `json:"episode"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	Filler      int64     `json:"filler"`
-	WatchCount  int64     `json:"watchCount"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	IDShow      int64  `json:"idShow"`
+	Icon        string `json:"icon"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	Filler      int64  `json:"filler"`
+	WatchCount  int64  `json:"watchCount"`
 }
 
 func (q *Queries) ListEpisodeBySeason(ctx context.Context, arg ListEpisodeBySeasonParams) ([]ListEpisodeBySeasonRow, error) {
@@ -277,20 +276,20 @@ type ListEpisodeByShowParams struct {
 }
 
 type ListEpisodeByShowRow struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	IDShow      int64     `json:"idShow"`
-	Icon        string    `json:"icon"`
-	Season      int64     `json:"season"`
-	Episode     int64     `json:"episode"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	Filler      int64     `json:"filler"`
-	WatchCount  int64     `json:"watchCount"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	IDShow      int64  `json:"idShow"`
+	Icon        string `json:"icon"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	Filler      int64  `json:"filler"`
+	WatchCount  int64  `json:"watchCount"`
 }
 
 func (q *Queries) ListEpisodeByShow(ctx context.Context, arg ListEpisodeByShowParams) ([]ListEpisodeByShowRow, error) {
@@ -348,17 +347,17 @@ type ListSeasonParams struct {
 }
 
 type ListSeasonRow struct {
-	IDShow          int64     `json:"idShow"`
-	Title           string    `json:"title"`
-	Overview        string    `json:"overview"`
-	Icon            string    `json:"icon"`
-	Season          int64     `json:"season"`
-	Premiered       time.Time `json:"premiered"`
-	ScraperLink     string    `json:"scraperLink"`
-	AddDate         time.Time `json:"addDate"`
-	UpdateDate      time.Time `json:"updateDate"`
-	Episode         int64     `json:"episode"`
-	Watchedepisodes int64     `json:"watchedepisodes"`
+	IDShow          int64  `json:"idShow"`
+	Title           string `json:"title"`
+	Overview        string `json:"overview"`
+	Icon            string `json:"icon"`
+	Season          int64  `json:"season"`
+	Premiered       int64  `json:"premiered"`
+	ScraperLink     string `json:"scraperLink"`
+	AddDate         int64  `json:"addDate"`
+	UpdateDate      int64  `json:"updateDate"`
+	Episode         int64  `json:"episode"`
+	Watchedepisodes int64  `json:"watchedepisodes"`
 }
 
 //  =============================================== SEASONS ===============================================
@@ -412,25 +411,25 @@ ORDER BY title
 `
 
 type ListShowRow struct {
-	ID             int64     `json:"id"`
-	Title          string    `json:"title"`
-	Overview       string    `json:"overview"`
-	Icon           string    `json:"icon"`
-	Fanart         string    `json:"fanart"`
-	Rating         int64     `json:"rating"`
-	Premiered      time.Time `json:"premiered"`
-	ScraperName    string    `json:"scraperName"`
-	ScraperID      string    `json:"scraperID"`
-	ScraperData    string    `json:"scraperData"`
-	ScraperLink    string    `json:"scraperLink"`
-	AddDate        time.Time `json:"addDate"`
-	UpdateDate     time.Time `json:"updateDate"`
-	UpdateMode     int64     `json:"updateMode"`
-	IDLib          int64     `json:"idLib"`
-	Path           string    `json:"path"`
-	Season         int64     `json:"season"`
-	Episode        int64     `json:"episode"`
-	WatchedEpisode int64     `json:"watchedEpisode"`
+	ID             int64  `json:"id"`
+	Title          string `json:"title"`
+	Overview       string `json:"overview"`
+	Icon           string `json:"icon"`
+	Fanart         string `json:"fanart"`
+	Rating         int64  `json:"rating"`
+	Premiered      int64  `json:"premiered"`
+	ScraperName    string `json:"scraperName"`
+	ScraperID      string `json:"scraperID"`
+	ScraperData    string `json:"scraperData"`
+	ScraperLink    string `json:"scraperLink"`
+	AddDate        int64  `json:"addDate"`
+	UpdateDate     int64  `json:"updateDate"`
+	UpdateMode     int64  `json:"updateMode"`
+	IDLib          int64  `json:"idLib"`
+	Path           string `json:"path"`
+	Season         int64  `json:"season"`
+	Episode        int64  `json:"episode"`
+	WatchedEpisode int64  `json:"watchedEpisode"`
 }
 
 //  =============================================== TV SHOWS ===============================================
@@ -491,27 +490,27 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     path = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.path END,
     id_lib = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.id_lib END,
     update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
-    premiered = CASE WHEN $15::TIMESTAMP > '0001-01-01 00:00:00' THEN $15::TIMESTAMP ELSE t.premiered END,
+    premiered = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1
 `
 
 type UpdateShowParams struct {
-	ID          int64     `json:"id"`
-	UpdateDate  time.Time `json:"updateDate"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	Fanart      string    `json:"fanart"`
-	Rating      int64     `json:"rating"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperName string    `json:"scraperName"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	Path        string    `json:"path"`
-	IDLib       int64     `json:"idLib"`
-	UpdateMode  int64     `json:"updateMode"`
-	Premiered   time.Time `json:"premiered"`
+	ID          int64  `json:"id"`
+	UpdateDate  int64  `json:"updateDate"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Rating      int64  `json:"rating"`
+	ScraperID   string `json:"scraperID"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	Path        string `json:"path"`
+	IDLib       int64  `json:"idLib"`
+	UpdateMode  int64  `json:"updateMode"`
+	Premiered   int64  `json:"premiered"`
 }
 
 func (q *Queries) UpdateShow(ctx context.Context, arg UpdateShowParams) error {

@@ -39,7 +39,7 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     path = CASE WHEN sqlc.arg(path)::TEXT != '' THEN sqlc.arg(path)::TEXT ELSE t.path END,
     id_lib = CASE WHEN sqlc.arg(id_lib)::BIGINT > 0 THEN sqlc.arg(id_lib)::BIGINT ELSE t.id_lib END,
     update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
-    premiered = CASE WHEN sqlc.arg(premiered)::TIMESTAMP > '0001-01-01 00:00:00' THEN sqlc.arg(premiered)::TIMESTAMP ELSE t.premiered END,
+    premiered = CASE WHEN sqlc.arg(premiered)::BIGINT > 0 THEN sqlc.arg(premiered)::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1;
 

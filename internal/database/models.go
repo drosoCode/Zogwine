@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
 )
 
 type MediaType string
@@ -35,14 +34,14 @@ func (e *MediaType) Scan(src interface{}) error {
 }
 
 type Credential struct {
-	ID         int64     `json:"id"`
-	Username   string    `json:"username"`
-	Password   string    `json:"password"`
-	Address    string    `json:"address"`
-	Port       int64     `json:"port"`
-	Data       string    `json:"data"`
-	AddDate    time.Time `json:"addDate"`
-	UpdateDate time.Time `json:"updateDate"`
+	ID         int64  `json:"id"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	Address    string `json:"address"`
+	Port       int64  `json:"port"`
+	Data       string `json:"data"`
+	AddDate    int64  `json:"addDate"`
+	UpdateDate int64  `json:"updateDate"`
 }
 
 type Device struct {
@@ -54,22 +53,22 @@ type Device struct {
 }
 
 type Episode struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	Premiered   time.Time `json:"premiered"`
-	Season      int64     `json:"season"`
-	Episode     int64     `json:"episode"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	ScraperID   string    `json:"scraperID"`
-	IDShow      int64     `json:"idShow"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Premiered   int64  `json:"premiered"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	ScraperID   string `json:"scraperID"`
+	IDShow      int64  `json:"idShow"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type Filler struct {
@@ -78,8 +77,8 @@ type Filler struct {
 	ScraperID   string    `json:"scraperID"`
 	ScraperData string    `json:"scraperData"`
 	ScraperLink string    `json:"scraperLink"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
+	AddDate     int64     `json:"addDate"`
+	UpdateDate  int64     `json:"updateDate"`
 	UpdateMode  int64     `json:"updateMode"`
 	MediaType   MediaType `json:"mediaType"`
 	MediaData   int64     `json:"mediaData"`
@@ -112,55 +111,55 @@ type Library struct {
 }
 
 type Movie struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	Fanart      string    `json:"fanart"`
-	Premiered   time.Time `json:"premiered"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Premiered   int64  `json:"premiered"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type MovieCollection struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	Premiered   time.Time `json:"premiered"`
-	Icon        string    `json:"icon"`
-	Fanart      string    `json:"fanart"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Premiered   int64  `json:"premiered"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type Person struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Gender      int64     `json:"gender"`
-	Birth       time.Time `json:"birth"`
-	Death       time.Time `json:"death"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	KnownFor    string    `json:"knownFor"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Gender      int64  `json:"gender"`
+	Birth       int64  `json:"birth"`
+	Death       int64  `json:"death"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	KnownFor    string `json:"knownFor"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type PersonLink struct {
@@ -171,17 +170,17 @@ type PersonLink struct {
 }
 
 type Role struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type Scraper struct {
@@ -193,21 +192,21 @@ type Scraper struct {
 }
 
 type Season struct {
-	IDShow      int64     `json:"idShow"`
-	Season      int64     `json:"season"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	Fanart      string    `json:"fanart"`
-	Premiered   time.Time `json:"premiered"`
-	Rating      int64     `json:"rating"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	IDShow      int64  `json:"idShow"`
+	Season      int64  `json:"season"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Premiered   int64  `json:"premiered"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type Selection struct {
@@ -223,7 +222,7 @@ type Status struct {
 	MediaData  int64     `json:"mediaData"`
 	WatchCount int64     `json:"watchCount"`
 	WatchTime  float32   `json:"watchTime"`
-	LastDate   time.Time `json:"lastDate"`
+	LastDate   int64     `json:"lastDate"`
 }
 
 type Tag struct {
@@ -259,22 +258,22 @@ type TrackerLink struct {
 }
 
 type TvShow struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Overview    string    `json:"overview"`
-	Icon        string    `json:"icon"`
-	Fanart      string    `json:"fanart"`
-	Rating      int64     `json:"rating"`
-	Premiered   time.Time `json:"premiered"`
-	ScraperName string    `json:"scraperName"`
-	ScraperID   string    `json:"scraperID"`
-	ScraperData string    `json:"scraperData"`
-	ScraperLink string    `json:"scraperLink"`
-	Path        string    `json:"path"`
-	IDLib       int64     `json:"idLib"`
-	AddDate     time.Time `json:"addDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	UpdateMode  int64     `json:"updateMode"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Rating      int64  `json:"rating"`
+	Premiered   int64  `json:"premiered"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	Path        string `json:"path"`
+	IDLib       int64  `json:"idLib"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
 }
 
 type Upcoming struct {
@@ -284,7 +283,7 @@ type Upcoming struct {
 	Title        string    `json:"title"`
 	Overview     string    `json:"overview"`
 	Icon         string    `json:"icon"`
-	Date         time.Time `json:"date"`
+	Date         int64     `json:"date"`
 }
 
 type User struct {
@@ -313,6 +312,6 @@ type VideoFile struct {
 	VideoCodec string          `json:"videoCodec"`
 	Size       float32         `json:"size"`
 	Tmp        bool            `json:"tmp"`
-	AddDate    time.Time       `json:"addDate"`
-	UpdateDate time.Time       `json:"updateDate"`
+	AddDate    int64           `json:"addDate"`
+	UpdateDate int64           `json:"updateDate"`
 }
