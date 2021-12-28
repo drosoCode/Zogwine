@@ -41,7 +41,7 @@ type GetEpisodeRow struct {
 	Icon        string    `json:"icon"`
 	Season      int64     `json:"season"`
 	Episode     int64     `json:"episode"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	AddDate     time.Time `json:"addDate"`
@@ -147,7 +147,7 @@ type GetShowRow struct {
 	Overview       string    `json:"overview"`
 	Icon           string    `json:"icon"`
 	Fanart         string    `json:"fanart"`
-	Rating         float32   `json:"rating"`
+	Rating         int64     `json:"rating"`
 	Premiered      time.Time `json:"premiered"`
 	ScraperName    string    `json:"scraperName"`
 	ScraperID      string    `json:"scraperID"`
@@ -214,7 +214,7 @@ type ListEpisodeBySeasonRow struct {
 	Icon        string    `json:"icon"`
 	Season      int64     `json:"season"`
 	Episode     int64     `json:"episode"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	AddDate     time.Time `json:"addDate"`
@@ -284,7 +284,7 @@ type ListEpisodeByShowRow struct {
 	Icon        string    `json:"icon"`
 	Season      int64     `json:"season"`
 	Episode     int64     `json:"episode"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	AddDate     time.Time `json:"addDate"`
@@ -417,7 +417,7 @@ type ListShowRow struct {
 	Overview       string    `json:"overview"`
 	Icon           string    `json:"icon"`
 	Fanart         string    `json:"fanart"`
-	Rating         float32   `json:"rating"`
+	Rating         int64     `json:"rating"`
 	Premiered      time.Time `json:"premiered"`
 	ScraperName    string    `json:"scraperName"`
 	ScraperID      string    `json:"scraperID"`
@@ -483,16 +483,15 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
     icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
     fanart = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.fanart END,
-    rating = CASE WHEN $7::BIGINT >= 0 THEN $7::TEXT ELSE t.rating END,
+    rating = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.rating::BIGINT END,
     scraper_id = CASE WHEN $8::TEXT != '' THEN $8::TEXT ELSE t.scraper_id END,
     scraper_name = CASE WHEN $9::TEXT != '' THEN $9::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_link END,
     path = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.path END,
-    icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
-    id_lib = CASE WHEN $13::BIGINT >= 0 THEN $13::TEXT ELSE t.id_lib END,
-    update_mode = CASE WHEN $14::BIGINT >= 0 THEN $14::TEXT ELSE t.update_mode END,
-    premiered = CASE WHEN $15::TIMESTAMP > '0001-01-01 00:00:00' THEN $15::TEXT ELSE t.premiered END,
+    id_lib = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.id_lib END,
+    update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $15::TIMESTAMP > '0001-01-01 00:00:00' THEN $15::TIMESTAMP ELSE t.premiered END,
     update_date = $2
 WHERE id = $1
 `
@@ -533,5 +532,33 @@ func (q *Queries) UpdateShow(ctx context.Context, arg UpdateShowParams) error {
 		arg.UpdateMode,
 		arg.Premiered,
 	)
+	return err
+}
+
+const updateShowIDLib = `-- name: UpdateShowIDLib :exec
+UPDATE video_file SET id_lib = $1 WHERE media_type = 'tvs_episode' AND media_data IN (SELECT e.id FROM episode e WHERE id_show = $2)
+`
+
+type UpdateShowIDLibParams struct {
+	IDLib  int64 `json:"idLib"`
+	IDShow int64 `json:"idShow"`
+}
+
+func (q *Queries) UpdateShowIDLib(ctx context.Context, arg UpdateShowIDLibParams) error {
+	_, err := q.db.ExecContext(ctx, updateShowIDLib, arg.IDLib, arg.IDShow)
+	return err
+}
+
+const updateShowPath = `-- name: UpdateShowPath :exec
+UPDATE video_file SET path = REGEXP_REPLACE(path, CONCAT('^', (SELECT path FROM tv_show t WHERE t.id = $1)), $2) WHERE media_type = 'tvs_episode' AND media_data IN (SELECT e.id FROM episode e WHERE id_show = $1)
+`
+
+type UpdateShowPathParams struct {
+	ID            int64  `json:"id"`
+	RegexpReplace string `json:"regexpReplace"`
+}
+
+func (q *Queries) UpdateShowPath(ctx context.Context, arg UpdateShowPathParams) error {
+	_, err := q.db.ExecContext(ctx, updateShowPath, arg.ID, arg.RegexpReplace)
 	return err
 }

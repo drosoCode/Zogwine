@@ -61,13 +61,12 @@ type Episode struct {
 	Premiered   time.Time `json:"premiered"`
 	Season      int64     `json:"season"`
 	Episode     int64     `json:"episode"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperData string    `json:"scraperData"`
 	ScraperLink string    `json:"scraperLink"`
 	ScraperID   string    `json:"scraperID"`
 	IDShow      int64     `json:"idShow"`
-	IDVid       int64     `json:"idVid"`
 	AddDate     time.Time `json:"addDate"`
 	UpdateDate  time.Time `json:"updateDate"`
 	UpdateMode  int64     `json:"updateMode"`
@@ -119,12 +118,11 @@ type Movie struct {
 	Icon        string    `json:"icon"`
 	Fanart      string    `json:"fanart"`
 	Premiered   time.Time `json:"premiered"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	ScraperData string    `json:"scraperData"`
 	ScraperLink string    `json:"scraperLink"`
-	IDVid       int64     `json:"idVid"`
 	AddDate     time.Time `json:"addDate"`
 	UpdateDate  time.Time `json:"updateDate"`
 	UpdateMode  int64     `json:"updateMode"`
@@ -137,7 +135,7 @@ type MovieCollection struct {
 	Premiered   time.Time `json:"premiered"`
 	Icon        string    `json:"icon"`
 	Fanart      string    `json:"fanart"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	ScraperData string    `json:"scraperData"`
@@ -202,7 +200,7 @@ type Season struct {
 	Icon        string    `json:"icon"`
 	Fanart      string    `json:"fanart"`
 	Premiered   time.Time `json:"premiered"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	ScraperData string    `json:"scraperData"`
@@ -266,7 +264,7 @@ type TvShow struct {
 	Overview    string    `json:"overview"`
 	Icon        string    `json:"icon"`
 	Fanart      string    `json:"fanart"`
-	Rating      float32   `json:"rating"`
+	Rating      int64     `json:"rating"`
 	Premiered   time.Time `json:"premiered"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
@@ -300,6 +298,8 @@ type User struct {
 type VideoFile struct {
 	ID         int64           `json:"id"`
 	IDLib      int64           `json:"idLib"`
+	MediaType  MediaType       `json:"mediaType"`
+	MediaData  int64           `json:"mediaData"`
 	Path       string          `json:"path"`
 	Format     string          `json:"format"`
 	Duration   float32         `json:"duration"`
@@ -312,4 +312,7 @@ type VideoFile struct {
 	PixFmt     string          `json:"pixFmt"`
 	VideoCodec string          `json:"videoCodec"`
 	Size       float32         `json:"size"`
+	Tmp        bool            `json:"tmp"`
+	AddDate    time.Time       `json:"addDate"`
+	UpdateDate time.Time       `json:"updateDate"`
 }

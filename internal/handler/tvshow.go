@@ -1,8 +1,12 @@
 package handler
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Zogwine/Zogwine/internal/auth"
 	database "github.com/Zogwine/Zogwine/internal/database"
@@ -18,8 +22,10 @@ func SetupTVS(r chi.Router, s *status.Status) {
 
 	tvs.Get("/", ListTVS(s))
 	tvs.Get("/{id}", GetTVS(s))
+	tvs.Put("/{id}", UpdateTVS(s))
 }
 
+// GET tvs/{id}
 func GetTVS(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
@@ -37,6 +43,7 @@ func GetTVS(s *status.Status) http.HandlerFunc {
 	}
 }
 
+// GET tvs/
 func ListTVS(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
@@ -46,5 +53,62 @@ func ListTVS(s *status.Status) http.HandlerFunc {
 			return
 		}
 		srv.JSON(w, r, 200, shows)
+	}
+}
+
+// PUT tvs/{id}
+func UpdateTVS(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		updateData := database.UpdateShowParams{}
+		err = json.NewDecoder(r.Body).Decode(&updateData)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		// ensure that the urls to images are base64 encodeds
+		if len(updateData.Fanart) > 4 && updateData.Fanart[0:4] == "http" {
+			updateData.Fanart = base64.RawStdEncoding.EncodeToString([]byte(updateData.Fanart))
+		}
+		if len(updateData.Icon) > 4 && updateData.Icon[0:4] == "http" {
+			updateData.Icon = base64.RawStdEncoding.EncodeToString([]byte(updateData.Icon))
+		}
+
+		// ensure that the library id is valid
+		if updateData.IDLib != 0 {
+			// TODO
+		}
+
+		// add additionnal info to updateData struct
+		updateData.ID = id
+		updateData.UpdateDate = time.Now()
+
+		fmt.Printf("%+v\n", updateData)
+		err = s.DB.UpdateShow(r.Context(), updateData)
+		if srv.IfError(w, r, err) {
+			return
+		}
+
+		// apply path changes if needed
+		if updateData.Path != "" {
+			err = s.DB.UpdateShowPath(r.Context(), database.UpdateShowPathParams{ID: id, RegexpReplace: updateData.Path})
+			if srv.IfError(w, r, err) {
+				return
+			}
+		}
+
+		// apply id lib changes if needed
+		if updateData.IDLib != 0 {
+			err = s.DB.UpdateShowIDLib(r.Context(), database.UpdateShowIDLibParams{IDLib: updateData.IDLib, IDShow: id})
+			if srv.IfError(w, r, err) {
+				return
+			}
+		}
+
+		srv.JSON(w, r, 200, "ok")
 	}
 }

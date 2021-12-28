@@ -31,18 +31,23 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     overview = CASE WHEN sqlc.arg(overview)::TEXT != '' THEN sqlc.arg(overview)::TEXT ELSE t.overview END,
     icon = CASE WHEN sqlc.arg(icon)::TEXT != '' THEN sqlc.arg(icon)::TEXT ELSE t.icon END,
     fanart = CASE WHEN sqlc.arg(fanart)::TEXT != '' THEN sqlc.arg(fanart)::TEXT ELSE t.fanart END,
-    rating = CASE WHEN sqlc.arg(rating)::BIGINT >= 0 THEN sqlc.arg(rating)::TEXT ELSE t.rating END,
+    rating = CASE WHEN sqlc.arg(rating)::BIGINT > 0 THEN sqlc.arg(rating)::BIGINT ELSE t.rating::BIGINT END,
     scraper_id = CASE WHEN sqlc.arg(scraper_id)::TEXT != '' THEN sqlc.arg(scraper_id)::TEXT ELSE t.scraper_id END,
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN sqlc.arg(scraper_data)::TEXT != '' THEN sqlc.arg(scraper_data)::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
     path = CASE WHEN sqlc.arg(path)::TEXT != '' THEN sqlc.arg(path)::TEXT ELSE t.path END,
-    icon = CASE WHEN sqlc.arg(icon)::TEXT != '' THEN sqlc.arg(icon)::TEXT ELSE t.icon END,
-    id_lib = CASE WHEN sqlc.arg(id_lib)::BIGINT >= 0 THEN sqlc.arg(id_lib)::TEXT ELSE t.id_lib END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT >= 0 THEN sqlc.arg(update_mode)::TEXT ELSE t.update_mode END,
-    premiered = CASE WHEN sqlc.arg(premiered)::TIMESTAMP > '0001-01-01 00:00:00' THEN sqlc.arg(premiered)::TEXT ELSE t.premiered END,
+    id_lib = CASE WHEN sqlc.arg(id_lib)::BIGINT > 0 THEN sqlc.arg(id_lib)::BIGINT ELSE t.id_lib END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN sqlc.arg(premiered)::TIMESTAMP > '0001-01-01 00:00:00' THEN sqlc.arg(premiered)::TIMESTAMP ELSE t.premiered END,
     update_date = $2
 WHERE id = $1;
+
+-- name: UpdateShowIDLib :exec
+UPDATE video_file SET id_lib = $1 WHERE media_type = 'tvs_episode' AND media_data IN (SELECT e.id FROM episode e WHERE id_show = $2);
+
+-- name: UpdateShowPath :exec
+UPDATE video_file SET path = REGEXP_REPLACE(path, CONCAT('^', (SELECT path FROM tv_show t WHERE t.id = $1)), $2) WHERE media_type = 'tvs_episode' AND media_data IN (SELECT e.id FROM episode e WHERE id_show = $1);
 
 -- name: DeleteShow :exec
 DELETE FROM tv_show WHERE id = $1;
