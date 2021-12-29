@@ -216,7 +216,6 @@ type Selection struct {
 }
 
 type Status struct {
-	ID         int64     `json:"id"`
 	IDUser     int64     `json:"idUser"`
 	MediaType  MediaType `json:"mediaType"`
 	MediaData  int64     `json:"mediaData"`

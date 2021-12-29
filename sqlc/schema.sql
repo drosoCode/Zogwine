@@ -61,13 +61,13 @@ CREATE TABLE "public"."group_link" (
 -- ========================= STATUS =========================
 
 CREATE TABLE "public"."status" (
-    "id" BIGSERIAL PRIMARY KEY,
     "id_user" BIGINT NOT NULL REFERENCES "user"("id"),
     "media_type" media_type NOT NULL,
     "media_data" BIGINT NOT NULL,
     "watch_count" BIGINT NOT NULL,
     "watch_time" real NOT NULL,
-    "last_date" bigint NOT NULL
+    "last_date" bigint NOT NULL,
+    PRIMARY KEY ("id_user", "media_type", "media_data")
 ) WITH (oids = false);
 
 -- ========================= DEVICES / TRACKERS =========================
