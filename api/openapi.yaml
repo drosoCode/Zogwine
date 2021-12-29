@@ -435,6 +435,12 @@ paths:
         required: true
         schema:
           type: integer
+      - name: mode
+        in: query
+        description: mode (0 = not watched, 1 = watched, 2/default = toggle)
+        required: false
+        schema:
+          type: string
       responses:
         200:
           description: successful operation
@@ -588,6 +594,12 @@ paths:
         required: true
         schema:
           type: integer
+      - name: mode
+        in: query
+        description: mode (0 = not watched, 1 = watched, 2/default = toggle)
+        required: false
+        schema:
+          type: string
       responses:
         200:
           description: successful operation
