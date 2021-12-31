@@ -33,6 +33,13 @@ func (e *MediaType) Scan(src interface{}) error {
 	return nil
 }
 
+type Cache struct {
+	ID        int64  `json:"id"`
+	Link      string `json:"link"`
+	Extension string `json:"extension"`
+	Cached    bool   `json:"cached"`
+}
+
 type Credential struct {
 	ID         int64  `json:"id"`
 	Username   string `json:"username"`

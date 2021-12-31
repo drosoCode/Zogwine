@@ -56,7 +56,7 @@ func main() {
 	r.Mount("/api", api)
 	handler.SetupTVS(api, &status)
 	handler.SetupUser(api, &status)
-	handler.SetupCore(api, &status)
+	//handler.SetupCore(api, &status)
 
 	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
@@ -65,6 +65,9 @@ func main() {
 	// static files
 	workDir, _ := os.Getwd()
 	handler.ServeStatic(r, "/", http.Dir(filepath.Join(workDir, "static")))
+
+	// cache
+	handler.ServeStatic(r, "/cache", http.Dir(status.Config.Server.CachePath))
 
 	// setup server
 	h2s := &http2.Server{}

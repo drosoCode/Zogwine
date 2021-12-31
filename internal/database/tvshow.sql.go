@@ -137,8 +137,8 @@ func (q *Queries) DeleteShowStatusBySeason(ctx context.Context, arg DeleteShowSt
 
 const getShow = `-- name: GetShow :one
 SELECT id, title, overview, 
-CONCAT('/api/core/image/',icon)::TEXT AS icon, 
-CONCAT('/api/core/image/',fanart)::TEXT AS fanart, 
+FROMCACHE(icon) AS icon, 
+FROMCACHE(fanart) AS fanart, 
 rating, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
 (SELECT COUNT(*) FROM season WHERE id_show = t.id)::BIGINT AS season,
 (SELECT COUNT(*) FROM episode WHERE id_show = t.id)::BIGINT AS episode,
@@ -205,7 +205,7 @@ func (q *Queries) GetShow(ctx context.Context, arg GetShowParams) (GetShowRow, e
 
 const getShowEpisode = `-- name: GetShowEpisode :one
 
-SELECT e.id, title, overview, id_show, premiered, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+SELECT e.id, title, overview, id_show, premiered, FROMCACHE(icon) AS icon, 
 season, episode, rating, scraper_name, scraper_id, add_date, update_date,
 COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
 COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
@@ -262,7 +262,7 @@ func (q *Queries) GetShowEpisode(ctx context.Context, arg GetShowEpisodeParams) 
 }
 
 const getShowSeason = `-- name: GetShowSeason :one
-SELECT s.id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+SELECT s.id_show, title, overview, FROMCACHE(icon) AS icon, 
 s.season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season) AS episode,
 (SELECT COUNT(watch_count) FROM status WHERE media_data IN  (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
@@ -313,8 +313,8 @@ func (q *Queries) GetShowSeason(ctx context.Context, arg GetShowSeasonParams) (G
 const listShow = `-- name: ListShow :many
 
 SELECT id, title, overview, 
-CONCAT('/api/core/image/',icon)::TEXT AS icon, 
-CONCAT('/api/core/image/',fanart)::TEXT AS fanart, 
+FROMCACHE(icon) AS icon, 
+FROMCACHE(fanart) AS fanart, 
 rating, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
 (SELECT COUNT(*) FROM season WHERE id_show = t.id)::BIGINT AS season,
 (SELECT COUNT(*) FROM episode WHERE id_show = t.id)::BIGINT AS episode,
@@ -391,7 +391,7 @@ func (q *Queries) ListShow(ctx context.Context, idUser int64) ([]ListShowRow, er
 }
 
 const listShowEpisode = `-- name: ListShowEpisode :many
-SELECT e.id, title, overview, id_show, premiered, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+SELECT e.id, title, overview, id_show, premiered, FROMCACHE(icon) AS icon, 
 season, episode, rating, scraper_name, scraper_id, add_date, update_date,
 COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
 COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
@@ -463,7 +463,7 @@ func (q *Queries) ListShowEpisode(ctx context.Context, arg ListShowEpisodeParams
 }
 
 const listShowEpisodeBySeason = `-- name: ListShowEpisodeBySeason :many
-SELECT e.id, title, overview, id_show, premiered, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+SELECT e.id, title, overview, id_show, premiered, FROMCACHE(icon) AS icon, 
 season, episode, rating, scraper_name, scraper_id, add_date, update_date,
 COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
 COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
@@ -537,7 +537,7 @@ func (q *Queries) ListShowEpisodeBySeason(ctx context.Context, arg ListShowEpiso
 
 const listShowSeason = `-- name: ListShowSeason :many
 
-SELECT id_show, title, overview, CONCAT('/api/core/image/',icon)::TEXT AS icon, 
+SELECT id_show, title, overview, FROMCACHE(icon) AS icon, 
 season, premiered, scraper_link, add_date, update_date,
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season)::BIGINT AS episode,
 (SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode

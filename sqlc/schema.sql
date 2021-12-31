@@ -2,6 +2,7 @@
 -- GRANT ALL PRIVILEGES ON DATABASE "zogwine_dev" to zwtest;
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO zwtest;
 
+DROP TABLE IF EXISTS "cache";
 DROP TABLE IF EXISTS "movie_collection";
 DROP TABLE IF EXISTS "movie";
 DROP TABLE IF EXISTS "season";
@@ -360,3 +361,40 @@ CREATE TABLE "public"."movie_collection" (
     "update_mode" BIGINT NOT NULL
 ) WITH (oids = false);
 
+
+-- ========================= CACHE ==========================
+
+CREATE TABLE "public"."cache" (
+    "id" BIGSERIAL PRIMARY KEY,
+    "link" TEXT NOT NULL UNIQUE,
+    "extension" TEXT NOT NULL, 
+    "cached" BOOLEAN NOT NULL
+) WITH (oids = false);
+
+
+-- ================ CACHE FUNCTION ================
+CREATE OR REPLACE FUNCTION FROMCACHE(search_url TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+   id_cache integer;
+   is_cached boolean;
+   ext text;
+BEGIN
+   SELECT id, extension, cached INTO id_cache, ext, is_cached FROM cache WHERE link = search_url;
+    IF FOUND AND is_cached IS true THEN
+        RETURN CONCAT('/cache/', id_cache, '.', ext);
+    ELSE
+        IF SUBSTRING(search_url, 0, 5) = 'http' THEN
+            IF NOT FOUND THEN
+                INSERT INTO cache (link, extension, cached) VALUES (search_url, '', false);
+            END IF;
+            RETURN search_url;
+        ELSE
+            RETURN '';
+        END IF;
+    END IF;
+END;
+$$;

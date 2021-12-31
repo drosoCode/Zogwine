@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -85,14 +84,6 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 		err = json.NewDecoder(r.Body).Decode(&updateData)
 		if srv.IfError(w, r, err) {
 			return
-		}
-
-		// ensure that the urls to images are base64 encodeds
-		if len(updateData.Fanart) > 4 && updateData.Fanart[0:4] == "http" {
-			updateData.Fanart = base64.RawStdEncoding.EncodeToString([]byte(updateData.Fanart))
-		}
-		if len(updateData.Icon) > 4 && updateData.Icon[0:4] == "http" {
-			updateData.Icon = base64.RawStdEncoding.EncodeToString([]byte(updateData.Icon))
 		}
 
 		// ensure that the library id is valid
@@ -243,14 +234,6 @@ func UpdateTVSSeason(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		// ensure that the urls to images are base64 encodeds
-		if len(updateData.Fanart) > 4 && updateData.Fanart[0:4] == "http" {
-			updateData.Fanart = base64.RawStdEncoding.EncodeToString([]byte(updateData.Fanart))
-		}
-		if len(updateData.Icon) > 4 && updateData.Icon[0:4] == "http" {
-			updateData.Icon = base64.RawStdEncoding.EncodeToString([]byte(updateData.Icon))
-		}
-
 		// add additionnal info to updateData struct
 		updateData.IDShow = id
 		updateData.Season = season
@@ -366,11 +349,6 @@ func UpdateTVSEpisode(s *status.Status) http.HandlerFunc {
 		err = json.NewDecoder(r.Body).Decode(&updateData)
 		if srv.IfError(w, r, err) {
 			return
-		}
-
-		// ensure that the urls to images are base64 encodeds
-		if len(updateData.Icon) > 4 && updateData.Icon[0:4] == "http" {
-			updateData.Icon = base64.RawStdEncoding.EncodeToString([]byte(updateData.Icon))
 		}
 
 		// add additionnal info to updateData struct
