@@ -273,6 +273,8 @@ CREATE TABLE "public"."tv_show" (
     "fanart" text NOT NULL,
     "rating" bigint NOT NULL,
     "premiered" bigint NOT NULL,
+    "trailer" text NOT NULL,
+    "website" text NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
@@ -334,6 +336,8 @@ CREATE TABLE "public"."movie" (
     "fanart" text NOT NULL,
     "premiered" bigint NOT NULL,
     "rating" bigint NOT NULL,
+    "trailer" text NOT NULL,
+    "website" text NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,
@@ -371,8 +375,6 @@ CREATE TABLE "public"."cache" (
     "cached" BOOLEAN NOT NULL
 ) WITH (oids = false);
 
-
--- ================ CACHE FUNCTION ================
 CREATE OR REPLACE FUNCTION FROMCACHE(search_url TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -383,6 +385,9 @@ DECLARE
    is_cached boolean;
    ext text;
 BEGIN
+   IF search_url = '' THEN
+       RETURN '';
+   END IF;
    SELECT id, extension, cached INTO id_cache, ext, is_cached FROM cache WHERE link = search_url;
     IF FOUND AND is_cached IS true THEN
         RETURN CONCAT('/cache/', id_cache, '.', ext);

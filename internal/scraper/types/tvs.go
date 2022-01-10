@@ -19,6 +19,8 @@ type TVSData struct {
 	Overview  string
 	Icon      string
 	Fanart    string
+	Website   string
+	Trailer   string
 	Premiered time.Time
 	Rating    int
 	ScraperInfo
@@ -29,6 +31,7 @@ type TVSSeasonData struct {
 	Overview  string
 	Icon      string
 	Fanart    string
+	Trailer   string
 	Premiered time.Time
 	Rating    int
 	ScraperInfo

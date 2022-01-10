@@ -18,6 +18,8 @@ type MovieData struct {
 	Overview   string
 	Icon       string
 	Fanart     string
+	Website    string
+	Trailer    string
 	Premiered  time.Time
 	Rating     int
 	Collection int
