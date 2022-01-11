@@ -119,6 +119,10 @@ paths:
                   type: integer
                 premiered:
                   type: integer
+                website:
+                  type: string
+                trailer:
+                  type: string
                 scraperID:
                   type: string
                 scraperName:
@@ -706,6 +710,10 @@ paths:
                   type: integer
                 premiered:
                   type: integer
+                website:
+                  type: string
+                trailer:
+                  type: string
                 scraperID:
                   type: string
                 scraperName:
@@ -764,41 +772,16 @@ paths:
       security:
         - admin: []
 
-  /movie/collection:
-    get:
+  /movie/{idMovie}/status:
+    put:
       tags:
       - movie
-      summary: Get collection list
-      operationId: mov_collection_list
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/movie_collection'
-      security:
-      - user: []
-      - admin: []
-                      
-  /movie/collection/{idCollection}:
-    get:
-      tags:
-      - movie
-      summary: Get collection data
-      operationId: mov_collection
+      summary: Toggle the watched status for a movie
+      operationId: movie_status
       parameters:
-      - name: idCollection
+      - name: idMovie
         in: path
-        description: collection id
+        description: movie id
         required: true
         schema:
           type: integer
@@ -814,12 +797,12 @@ paths:
                     type: string
                     default: ok
                   data:
-                    type: object
-                    $ref: '#/components/schemas/movie_collection'
+                    type: string
+                    default: ok
       security:
       - user: []
       - admin: []
-                    
+
   /movie/fromCollection/{idCollection}:
     get:
       tags:
@@ -852,16 +835,129 @@ paths:
       - user: []
       - admin: []
 
-  /movie/{idMovie}/status:
+  /movie/collection:
+    get:
+      tags:
+      - movie
+      summary: Get collection list
+      operationId: mov_collection_list
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/movie_collection'
+      security:
+      - user: []
+      - admin: []
+      
+  /movie/collection/{idCollection}:
+    get:
+      tags:
+      - movie
+      summary: Get collection data
+      operationId: mov_collection
+      parameters:
+      - name: idCollection
+        in: path
+        description: collection id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/movie_collection'
+      security:
+      - user: []
+      - admin: []
+                    
     put:
       tags:
       - movie
-      summary: Toggle the watched status for a movie
-      operationId: movie_status
+      summary: Edit a collection
+      operationId: mov_collection_put
       parameters:
-      - name: idMovie
+      - name: idCollection
         in: path
-        description: movie id
+        description: collection ID
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                overview:
+                  type: string
+                icon:
+                  type: string
+                fanart:
+                  type: string
+                rating:
+                  type: integer
+                premiered:
+                  type: integer
+                scraperID:
+                  type: string
+                scraperName:
+                  type: string
+                scraperData:
+                  type: string
+                scraperLink:
+                  type: string
+                updateMode:
+                  type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: string
+                    default: ok
+      security:
+      - admin: []
+    
+    delete:
+      tags:
+      - movie
+      summary: Delete a collection
+      operationId: movie_delete_collection
+      parameters:
+      - name: idCollection
+        in: path
+        description: collection ID
         required: true
         schema:
           type: integer
@@ -880,57 +976,7 @@ paths:
                     type: string
                     default: ok
       security:
-      - user: []
-      - admin: []
-                  
-  /movie/scan:
-    get:
-      tags:
-      - movie
-      summary: Run a scan for new movies
-      operationId: movie_scan
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: string
-                    default: ok
-      security:
-      - admin: []
-                    
-  /movie/scan/result:
-    get:
-      tags:
-      - movie
-      summary: Get multiple results available for movies 
-      operationId: movie_scan_results
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/movie'
-      security:
-      - admin: []
-
-
+        - admin: []
 
   /user/login:
     post:
@@ -2426,6 +2472,10 @@ components:
           type: integer
         episode:
           type: integer
+        website:
+          type: string
+        trailer:
+          type: string
         watchedEpisode:
           type: integer
         scraperName:
@@ -2526,6 +2576,10 @@ components:
           type: number
         premiered:
           type: integer
+        website:
+          type: string
+        trailer:
+          type: string
         scraperName:
           type: string
         scraperID:
@@ -2554,9 +2608,11 @@ components:
           type: string
         fanart:
           type: string
+        premiered:
+          type: integer
         movieCount:
           type: integer
-        watchedMovies:
+        watchCount:
           type: integer
         scraperLink:
           type: string
