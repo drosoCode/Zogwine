@@ -11,68 +11,6 @@ from .dbHelper import getSqlConnection, r_runningThreads, configData
 core = Blueprint("core", __name__)
 
 
-@core.route("core/statistic", methods=["GET"])
-def getStatistics():
-    uid = getUID()
-    sqlConnection, cursor = getSqlConnection()
-    cursor.execute(
-        "SELECT COUNT(idStatus) AS watchedEpCount, SUM(watchCount) AS watchedEpSum FROM status WHERE watchCount > 0 AND mediaType = 1 AND idUser = %(idUser)s;",
-        {"idUser": uid},
-    )
-    dat1 = cursor.fetchone()
-    cursor.execute(
-        "SELECT COUNT(DISTINCT idShow) AS tvsCount, COUNT(idEpisode) AS epCount FROM episodes;"
-    )
-    dat2 = cursor.fetchone()
-    cursor.execute(
-        "SELECT COUNT(idStatus) AS watchedMovies FROM status WHERE watchCount > 0 AND mediaType = 3 AND idUser = %(idUser)s;",
-        {"idUser": uid},
-    )
-    watchedMov = cursor.fetchone()["watchedMovies"]
-    cursor.execute("SELECT COUNT(*) AS movCount FROM movies;")
-    movCount = cursor.fetchone()["movCount"]
-    if "watchedEpSum" not in dat1 or dat1["watchedEpSum"] == None:
-        dat1["watchedEpSum"] = 0
-
-    cursor.execute(
-        "SELECT SUM(duration*watchCount) AS epTime "
-        "FROM video_files v, episodes e, status s "
-        "WHERE s.mediaType = 1 "
-        "AND v.idVid = e.idVid "
-        "AND e.idEpisode = s.idMedia "
-        "AND watchCount > 0 "
-        "AND s.idUser = %(user)s",
-        {"user": uid},
-    )
-    lostTime = cursor.fetchone()["epTime"] or 0
-    cursor.execute(
-        "SELECT SUM(duration*watchCount) AS movTime "
-        "FROM video_files v, movies m, status s "
-        "WHERE s.mediaType = 3 "
-        "AND v.idVid = m.idVid "
-        "AND m.idMovie = s.idMedia "
-        "AND watchCount > 0 "
-        "AND s.idUser = %(user)s",
-        {"user": uid},
-    )
-    lostTime += cursor.fetchone()["movTime"] or 0
-
-    sqlConnection.close()
-    return jsonify(
-        {
-            "status": "ok",
-            "data": {
-                "watchedEpisodeCount": int(dat1["watchedEpCount"]),
-                "watchedEpisodeSum": int(dat1["watchedEpSum"]),
-                "tvsCount": int(dat2["tvsCount"]),
-                "episodeCount": int(dat2["epCount"]),
-                "movieCount": int(movCount),
-                "watchedMovieCount": int(watchedMov),
-                "lostTime": round(lostTime / 3600),
-            },
-        }
-    )
-
 
 @core.route("core/scan/status")
 def getThreadsStatus():

@@ -54,8 +54,9 @@ func main() {
 	// setup api routes
 	api := chi.NewRouter()
 	r.Mount("/api", api)
-	handler.SetupTVS(api, &status)
+	handler.SetupCore(api, &status)
 	handler.SetupUser(api, &status)
+	handler.SetupTVS(api, &status)
 	handler.SetupMovie(api, &status)
 
 	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {

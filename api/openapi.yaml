@@ -1611,20 +1611,28 @@ paths:
                   data:
                     type: object
                     properties:
+                      episodeCount:
+                        type: integer
+                      watchedEpisode:
+                        type: integer
                       watchedEpisodeCount:
                         type: integer
-                      watchedEpisodeSum:
+                      episodeTime:
                         type: integer
                       tvsCount:
                         type: integer
-                      episodeCount:
+                      watchedTvs:
                         type: integer
                       movieCount:
                         type: integer
-                      watchedMovieCount:
+                      watchedMovie:
                         type: integer
-                      lostTime:
-                        type: number
+                      watchedMovieeCount:
+                        type: integer
+                      movieTime:
+                        type: integer
+                      totalTime:
+                        type: integer
       security:
       - user: []
       - admin: []
