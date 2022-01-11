@@ -4,7 +4,8 @@
 SELECT id, title, overview, 
 FROMCACHE(icon) AS icon, 
 FROMCACHE(fanart) AS fanart, 
-rating, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
+FROMCACHE(trailer) AS trailer, 
+rating, website, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
 (SELECT COUNT(*) FROM season WHERE id_show = t.id)::BIGINT AS season,
 (SELECT COUNT(*) FROM episode WHERE id_show = t.id)::BIGINT AS episode,
 (SELECT COUNT(*) FROM episode e LEFT JOIN status s ON (s.media_data = e.id)
@@ -16,7 +17,8 @@ ORDER BY title;
 SELECT id, title, overview, 
 FROMCACHE(icon) AS icon, 
 FROMCACHE(fanart) AS fanart, 
-rating, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
+FROMCACHE(trailer) AS trailer, 
+rating, website, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
 (SELECT COUNT(*) FROM season WHERE id_show = t.id)::BIGINT AS season,
 (SELECT COUNT(*) FROM episode WHERE id_show = t.id)::BIGINT AS episode,
 (SELECT COUNT(*) FROM episode e LEFT JOIN status s ON (s.media_data = e.id)
@@ -31,6 +33,8 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     overview = CASE WHEN sqlc.arg(overview)::TEXT != '' THEN sqlc.arg(overview)::TEXT ELSE t.overview END,
     icon = CASE WHEN sqlc.arg(icon)::TEXT != '' THEN sqlc.arg(icon)::TEXT ELSE t.icon END,
     fanart = CASE WHEN sqlc.arg(fanart)::TEXT != '' THEN sqlc.arg(fanart)::TEXT ELSE t.fanart END,
+    website = CASE WHEN sqlc.arg(website)::TEXT != '' THEN sqlc.arg(website)::TEXT ELSE t.website END,
+    trailer = CASE WHEN sqlc.arg(trailer)::TEXT != '' THEN sqlc.arg(trailer)::TEXT ELSE t.trailer END,
     rating = CASE WHEN sqlc.arg(rating)::BIGINT > 0 THEN sqlc.arg(rating)::BIGINT ELSE t.rating END,
     scraper_id = CASE WHEN sqlc.arg(scraper_id)::TEXT != '' THEN sqlc.arg(scraper_id)::TEXT ELSE t.scraper_id END,
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,

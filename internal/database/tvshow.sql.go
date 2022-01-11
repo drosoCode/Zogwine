@@ -139,7 +139,8 @@ const getShow = `-- name: GetShow :one
 SELECT id, title, overview, 
 FROMCACHE(icon) AS icon, 
 FROMCACHE(fanart) AS fanart, 
-rating, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
+FROMCACHE(trailer) AS trailer, 
+rating, website, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
 (SELECT COUNT(*) FROM season WHERE id_show = t.id)::BIGINT AS season,
 (SELECT COUNT(*) FROM episode WHERE id_show = t.id)::BIGINT AS episode,
 (SELECT COUNT(*) FROM episode e LEFT JOIN status s ON (s.media_data = e.id)
@@ -160,7 +161,9 @@ type GetShowRow struct {
 	Overview       string `json:"overview"`
 	Icon           string `json:"icon"`
 	Fanart         string `json:"fanart"`
+	Trailer        string `json:"trailer"`
 	Rating         int64  `json:"rating"`
+	Website        string `json:"website"`
 	Premiered      int64  `json:"premiered"`
 	ScraperName    string `json:"scraperName"`
 	ScraperID      string `json:"scraperID"`
@@ -185,7 +188,9 @@ func (q *Queries) GetShow(ctx context.Context, arg GetShowParams) (GetShowRow, e
 		&i.Overview,
 		&i.Icon,
 		&i.Fanart,
+		&i.Trailer,
 		&i.Rating,
+		&i.Website,
 		&i.Premiered,
 		&i.ScraperName,
 		&i.ScraperID,
@@ -315,7 +320,8 @@ const listShow = `-- name: ListShow :many
 SELECT id, title, overview, 
 FROMCACHE(icon) AS icon, 
 FROMCACHE(fanart) AS fanart, 
-rating, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
+FROMCACHE(trailer) AS trailer, 
+rating, website, premiered, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_lib, path,
 (SELECT COUNT(*) FROM season WHERE id_show = t.id)::BIGINT AS season,
 (SELECT COUNT(*) FROM episode WHERE id_show = t.id)::BIGINT AS episode,
 (SELECT COUNT(*) FROM episode e LEFT JOIN status s ON (s.media_data = e.id)
@@ -330,7 +336,9 @@ type ListShowRow struct {
 	Overview       string `json:"overview"`
 	Icon           string `json:"icon"`
 	Fanart         string `json:"fanart"`
+	Trailer        string `json:"trailer"`
 	Rating         int64  `json:"rating"`
+	Website        string `json:"website"`
 	Premiered      int64  `json:"premiered"`
 	ScraperName    string `json:"scraperName"`
 	ScraperID      string `json:"scraperID"`
@@ -362,7 +370,9 @@ func (q *Queries) ListShow(ctx context.Context, idUser int64) ([]ListShowRow, er
 			&i.Overview,
 			&i.Icon,
 			&i.Fanart,
+			&i.Trailer,
 			&i.Rating,
+			&i.Website,
 			&i.Premiered,
 			&i.ScraperName,
 			&i.ScraperID,
@@ -607,15 +617,17 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
     icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
     fanart = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.fanart END,
-    rating = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.rating END,
-    scraper_id = CASE WHEN $8::TEXT != '' THEN $8::TEXT ELSE t.scraper_id END,
-    scraper_name = CASE WHEN $9::TEXT != '' THEN $9::TEXT ELSE t.scraper_name END,
-    scraper_data = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_data END,
-    scraper_link = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_link END,
-    path = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.path END,
-    id_lib = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.id_lib END,
-    update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
-    premiered = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.premiered END,
+    website = CASE WHEN $7::TEXT != '' THEN $7::TEXT ELSE t.website END,
+    trailer = CASE WHEN $8::TEXT != '' THEN $8::TEXT ELSE t.trailer END,
+    rating = CASE WHEN $9::BIGINT > 0 THEN $9::BIGINT ELSE t.rating END,
+    scraper_id = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_id END,
+    scraper_name = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_name END,
+    scraper_data = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_data END,
+    scraper_link = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_link END,
+    path = CASE WHEN $14::TEXT != '' THEN $14::TEXT ELSE t.path END,
+    id_lib = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.id_lib END,
+    update_mode = CASE WHEN $16::BIGINT > 0 THEN $16::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $17::BIGINT > 0 THEN $17::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1
 `
@@ -627,6 +639,8 @@ type UpdateShowParams struct {
 	Overview    string `json:"overview"`
 	Icon        string `json:"icon"`
 	Fanart      string `json:"fanart"`
+	Website     string `json:"website"`
+	Trailer     string `json:"trailer"`
 	Rating      int64  `json:"rating"`
 	ScraperID   string `json:"scraperID"`
 	ScraperName string `json:"scraperName"`
@@ -646,6 +660,8 @@ func (q *Queries) UpdateShow(ctx context.Context, arg UpdateShowParams) error {
 		arg.Overview,
 		arg.Icon,
 		arg.Fanart,
+		arg.Website,
+		arg.Trailer,
 		arg.Rating,
 		arg.ScraperID,
 		arg.ScraperName,

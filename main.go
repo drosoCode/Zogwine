@@ -56,7 +56,7 @@ func main() {
 	r.Mount("/api", api)
 	handler.SetupTVS(api, &status)
 	handler.SetupUser(api, &status)
-	//handler.SetupCore(api, &status)
+	handler.SetupMovie(api, &status)
 
 	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))

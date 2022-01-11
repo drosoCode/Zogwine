@@ -338,6 +338,7 @@ CREATE TABLE "public"."movie" (
     "rating" bigint NOT NULL,
     "trailer" text NOT NULL,
     "website" text NOT NULL,
+    "id_collection" bigint NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,

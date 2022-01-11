@@ -118,20 +118,23 @@ type Library struct {
 }
 
 type Movie struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Overview    string `json:"overview"`
-	Icon        string `json:"icon"`
-	Fanart      string `json:"fanart"`
-	Premiered   int64  `json:"premiered"`
-	Rating      int64  `json:"rating"`
-	ScraperName string `json:"scraperName"`
-	ScraperID   string `json:"scraperID"`
-	ScraperData string `json:"scraperData"`
-	ScraperLink string `json:"scraperLink"`
-	AddDate     int64  `json:"addDate"`
-	UpdateDate  int64  `json:"updateDate"`
-	UpdateMode  int64  `json:"updateMode"`
+	ID           int64  `json:"id"`
+	Title        string `json:"title"`
+	Overview     string `json:"overview"`
+	Icon         string `json:"icon"`
+	Fanart       string `json:"fanart"`
+	Premiered    int64  `json:"premiered"`
+	Rating       int64  `json:"rating"`
+	Trailer      string `json:"trailer"`
+	Website      string `json:"website"`
+	IDCollection int64  `json:"idCollection"`
+	ScraperName  string `json:"scraperName"`
+	ScraperID    string `json:"scraperID"`
+	ScraperData  string `json:"scraperData"`
+	ScraperLink  string `json:"scraperLink"`
+	AddDate      int64  `json:"addDate"`
+	UpdateDate   int64  `json:"updateDate"`
+	UpdateMode   int64  `json:"updateMode"`
 }
 
 type MovieCollection struct {
@@ -271,6 +274,8 @@ type TvShow struct {
 	Fanart      string `json:"fanart"`
 	Rating      int64  `json:"rating"`
 	Premiered   int64  `json:"premiered"`
+	Trailer     string `json:"trailer"`
+	Website     string `json:"website"`
 	ScraperName string `json:"scraperName"`
 	ScraperID   string `json:"scraperID"`
 	ScraperData string `json:"scraperData"`
