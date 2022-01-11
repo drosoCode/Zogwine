@@ -7,6 +7,29 @@ import (
 	"context"
 )
 
+const getUser = `-- name: GetUser :one
+SELECT id, name, username, enabled FROM "user" WHERE id = $1
+`
+
+type GetUserRow struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Enabled  bool   `json:"enabled"`
+}
+
+func (q *Queries) GetUser(ctx context.Context, id int64) (GetUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getUser, id)
+	var i GetUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Username,
+		&i.Enabled,
+	)
+	return i, err
+}
+
 const getUserLoginFromUsername = `-- name: GetUserLoginFromUsername :one
 SELECT id, password FROM "user" WHERE username = $1 AND enabled = true LIMIT 1
 `

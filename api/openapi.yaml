@@ -1055,40 +1055,25 @@ paths:
                   data:
                     type: object
                     properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
                       name:
                         type: string
-                      admin:
-                        type: integer
-                      cast:
-                        type: integer
-                      allowMovie:
-                        type: integer
-                      allowTvs:
-                        type: integer
+                      enabled:
+                        type: boolean
+                      systemGroup:
+                        type: array
+                        items:
+                          type: string
+                      userGroup:
+                        type: array
+                        items:
+                          type: string
       security:
       - user: []
       - admin: []
-
-  /user/nginx:
-    get:
-      tags:
-      - user
-      summary: check access right to an url
-      description: INTERNAL USE ONLY, restricted to 127.0.0.1
-      operationId: user_nginx
-      parameters:
-        - in: header
-          name: X-Original-URI
-          description: the accessed url
-          schema:
-            type: string
-          required: true
-      responses:
-        200:
-          description: access granted to the url
-        401:
-          description: access refused to the url
-
 
 
   /device:
