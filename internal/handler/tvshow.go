@@ -51,7 +51,8 @@ func GetTVS(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.GetShow(r.Context(), database.GetShowParams{IDUser: userInfo.ID, ID: id})
+		ctx := context.Background()
+		shows, err := s.DB.GetShow(ctx, database.GetShowParams{IDUser: userInfo.ID, ID: id})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -64,7 +65,8 @@ func ListTVS(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
 
-		shows, err := s.DB.ListShow(r.Context(), userInfo.ID)
+		ctx := context.Background()
+		shows, err := s.DB.ListShow(ctx, userInfo.ID)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -95,14 +97,16 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 		updateData.ID = id
 		updateData.UpdateDate = time.Now().Unix()
 
-		err = s.DB.UpdateShow(r.Context(), updateData)
+		ctx := context.Background()
+
+		err = s.DB.UpdateShow(ctx, updateData)
 		if srv.IfError(w, r, err) {
 			return
 		}
 
 		// apply path changes if needed
 		if updateData.Path != "" {
-			err = s.DB.UpdateShowPath(r.Context(), database.UpdateShowPathParams{ID: id, RegexpReplace: updateData.Path})
+			err = s.DB.UpdateShowPath(ctx, database.UpdateShowPathParams{ID: id, RegexpReplace: updateData.Path})
 			if srv.IfError(w, r, err) {
 				return
 			}
@@ -110,7 +114,7 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 
 		// apply id lib changes if needed
 		if updateData.IDLib != 0 {
-			err = s.DB.UpdateShowIDLib(r.Context(), database.UpdateShowIDLibParams{IDLib: updateData.IDLib, IDShow: id})
+			err = s.DB.UpdateShowIDLib(ctx, database.UpdateShowIDLibParams{IDLib: updateData.IDLib, IDShow: id})
 			if srv.IfError(w, r, err) {
 				return
 			}
@@ -121,7 +125,7 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 
 			// some fields may not be present
 			userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
-			show, err := s.DB.GetShow(r.Context(), database.GetShowParams{IDUser: userInfo.ID, ID: id})
+			show, err := s.DB.GetShow(ctx, database.GetShowParams{IDUser: userInfo.ID, ID: id})
 			if srv.IfError(w, r, err) {
 				return
 			}
@@ -151,23 +155,24 @@ func DeleteTVS(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		err = s.DB.DeleteShowStatus(r.Context(), id)
+		ctx := context.Background()
+		err = s.DB.DeleteShowStatus(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowFile(r.Context(), id)
+		err = s.DB.DeleteShowFile(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowEpisode(r.Context(), id)
+		err = s.DB.DeleteShowEpisode(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowSeason(r.Context(), id)
+		err = s.DB.DeleteShowSeason(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShow(r.Context(), id)
+		err = s.DB.DeleteShow(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -186,7 +191,8 @@ func ListTVSSeason(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.ListShowSeason(r.Context(), database.ListShowSeasonParams{IDUser: userInfo.ID, IDShow: id})
+		ctx := context.Background()
+		shows, err := s.DB.ListShowSeason(ctx, database.ListShowSeasonParams{IDUser: userInfo.ID, IDShow: id})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -208,7 +214,8 @@ func GetTVSSeason(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.GetShowSeason(r.Context(), database.GetShowSeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
+		ctx := context.Background()
+		shows, err := s.DB.GetShowSeason(ctx, database.GetShowSeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -239,7 +246,8 @@ func UpdateTVSSeason(s *status.Status) http.HandlerFunc {
 		updateData.Season = season
 		updateData.UpdateDate = time.Now().Unix()
 
-		err = s.DB.UpdateShowSeason(r.Context(), updateData)
+		ctx := context.Background()
+		err = s.DB.UpdateShowSeason(ctx, updateData)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -260,19 +268,20 @@ func DeleteTVSSeason(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		err = s.DB.DeleteShowStatusBySeason(r.Context(), database.DeleteShowStatusBySeasonParams{IDShow: id, Season: season})
+		ctx := context.Background()
+		err = s.DB.DeleteShowStatusBySeason(ctx, database.DeleteShowStatusBySeasonParams{IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowFileBySeason(r.Context(), database.DeleteShowFileBySeasonParams{IDShow: id, Season: season})
+		err = s.DB.DeleteShowFileBySeason(ctx, database.DeleteShowFileBySeasonParams{IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowEpisodeBySeason(r.Context(), database.DeleteShowEpisodeBySeasonParams{IDShow: id, Season: season})
+		err = s.DB.DeleteShowEpisodeBySeason(ctx, database.DeleteShowEpisodeBySeasonParams{IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowSeasonByNum(r.Context(), database.DeleteShowSeasonByNumParams{IDShow: id, Season: season})
+		err = s.DB.DeleteShowSeasonByNum(ctx, database.DeleteShowSeasonByNumParams{IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -291,7 +300,8 @@ func GetTVSEpisode(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.GetShowEpisode(r.Context(), database.GetShowEpisodeParams{IDUser: userInfo.ID, ID: id})
+		ctx := context.Background()
+		shows, err := s.DB.GetShowEpisode(ctx, database.GetShowEpisodeParams{IDUser: userInfo.ID, ID: id})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -308,7 +318,8 @@ func ListTVSEpisode(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.ListShowEpisode(r.Context(), database.ListShowEpisodeParams{IDUser: userInfo.ID, IDShow: id})
+		ctx := context.Background()
+		shows, err := s.DB.ListShowEpisode(ctx, database.ListShowEpisodeParams{IDUser: userInfo.ID, IDShow: id})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -329,7 +340,8 @@ func ListTVSEpisodeBySeason(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.ListShowEpisodeBySeason(r.Context(), database.ListShowEpisodeBySeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
+		ctx := context.Background()
+		shows, err := s.DB.ListShowEpisodeBySeason(ctx, database.ListShowEpisodeBySeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -355,7 +367,8 @@ func UpdateTVSEpisode(s *status.Status) http.HandlerFunc {
 		updateData.ID = id
 		updateData.UpdateDate = time.Now().Unix()
 
-		err = s.DB.UpdateShowEpisode(r.Context(), updateData)
+		ctx := context.Background()
+		err = s.DB.UpdateShowEpisode(ctx, updateData)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -372,15 +385,16 @@ func DeleteTVSEpisode(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		err = s.DB.DeleteShowStatusByEpisode(r.Context(), id)
+		ctx := context.Background()
+		err = s.DB.DeleteShowStatusByEpisode(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowFileByEpisode(r.Context(), id)
+		err = s.DB.DeleteShowFileByEpisode(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteShowEpisodeByID(r.Context(), id)
+		err = s.DB.DeleteShowEpisodeByID(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -405,7 +419,8 @@ func UpdateTVSSeasonStatus(s *status.Status) http.HandlerFunc {
 		}
 		mode := r.URL.Query().Get("mode")
 
-		eps, err := s.DB.ListShowEpisodeBySeason(r.Context(), database.ListShowEpisodeBySeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
+		ctx := context.Background()
+		eps, err := s.DB.ListShowEpisodeBySeason(ctx, database.ListShowEpisodeBySeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
 		if srv.IfError(w, r, err) {
 			return
 		}

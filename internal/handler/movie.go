@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -57,7 +58,8 @@ func GetMovie(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.GetMovie(r.Context(), database.GetMovieParams{IDUser: userInfo.ID, ID: id})
+		ctx := context.Background()
+		shows, err := s.DB.GetMovie(ctx, database.GetMovieParams{IDUser: userInfo.ID, ID: id})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -70,7 +72,8 @@ func ListCollection(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userInfo := r.Context().Value(s.CtxUserKey).(auth.UserInfo)
 
-		shows, err := s.DB.ListCollection(r.Context(), userInfo.ID)
+		ctx := context.Background()
+		shows, err := s.DB.ListCollection(ctx, userInfo.ID)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -88,7 +91,8 @@ func GetCollection(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.GetCollection(r.Context(), database.GetCollectionParams{IDUser: userInfo.ID, ID: id})
+		ctx := context.Background()
+		shows, err := s.DB.GetCollection(ctx, database.GetCollectionParams{IDUser: userInfo.ID, ID: id})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -106,7 +110,8 @@ func ListMovieFromCollection(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		shows, err := s.DB.ListMovieFromCollection(r.Context(), database.ListMovieFromCollectionParams{IDCollection: id, IDUser: userInfo.ID})
+		ctx := context.Background()
+		shows, err := s.DB.ListMovieFromCollection(ctx, database.ListMovieFromCollectionParams{IDCollection: id, IDUser: userInfo.ID})
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -132,7 +137,8 @@ func UpdateMovie(s *status.Status) http.HandlerFunc {
 		updateData.ID = id
 		updateData.UpdateDate = time.Now().Unix()
 
-		err = s.DB.UpdateMovie(r.Context(), updateData)
+		ctx := context.Background()
+		err = s.DB.UpdateMovie(ctx, updateData)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -149,15 +155,16 @@ func DeleteMovie(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		err = s.DB.DeleteMovieStatus(r.Context(), id)
+		ctx := context.Background()
+		err = s.DB.DeleteMovieStatus(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteMovieFile(r.Context(), id)
+		err = s.DB.DeleteMovieFile(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteMovie(r.Context(), id)
+		err = s.DB.DeleteMovie(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -183,7 +190,8 @@ func UpdateCollection(s *status.Status) http.HandlerFunc {
 		updateData.ID = id
 		updateData.UpdateDate = time.Now().Unix()
 
-		err = s.DB.UpdateMovieCollection(r.Context(), updateData)
+		ctx := context.Background()
+		err = s.DB.UpdateMovieCollection(ctx, updateData)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -200,19 +208,20 @@ func DeleteCollection(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		err = s.DB.DeleteMovieStatusFromCollection(r.Context(), id)
+		ctx := context.Background()
+		err = s.DB.DeleteMovieStatusFromCollection(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteMovieFileFromCollection(r.Context(), id)
+		err = s.DB.DeleteMovieFileFromCollection(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteMovieFromCollection(r.Context(), id)
+		err = s.DB.DeleteMovieFromCollection(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
-		err = s.DB.DeleteMovieCollection(r.Context(), id)
+		err = s.DB.DeleteMovieCollection(ctx, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -230,6 +239,7 @@ func UpdateMovieStatus(s *status.Status) http.HandlerFunc {
 			return
 		}
 
+		ctx := context.Background()
 		var watchCount int64
 		mode := r.URL.Query().Get("mode")
 		if mode == "1" {
@@ -237,7 +247,7 @@ func UpdateMovieStatus(s *status.Status) http.HandlerFunc {
 		} else if mode == "0" {
 			watchCount = 0
 		} else {
-			data, err := s.DB.GetMediaStatus(r.Context(), database.GetMediaStatusParams{IDUser: userInfo.ID, MediaType: database.MediaTypeMovie, MediaData: id})
+			data, err := s.DB.GetMediaStatus(ctx, database.GetMediaStatusParams{IDUser: userInfo.ID, MediaType: database.MediaTypeMovie, MediaData: id})
 			if err != nil || data.WatchCount == 0 {
 				watchCount = 1
 			} else {
@@ -245,7 +255,7 @@ func UpdateMovieStatus(s *status.Status) http.HandlerFunc {
 			}
 		}
 
-		err = s.DB.UpdateMediaStatus(r.Context(), database.UpdateMediaStatusParams{IDUser: userInfo.ID, MediaType: database.MediaTypeMovie, MediaData: id, WatchCount: watchCount, WatchTime: 0, LastDate: time.Now().Unix()})
+		err = s.DB.UpdateMediaStatus(ctx, database.UpdateMediaStatusParams{IDUser: userInfo.ID, MediaType: database.MediaTypeMovie, MediaData: id, WatchCount: watchCount, WatchTime: 0, LastDate: time.Now().Unix()})
 		if srv.IfError(w, r, err) {
 			return
 		}
