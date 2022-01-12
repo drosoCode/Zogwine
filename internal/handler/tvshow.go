@@ -81,6 +81,7 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 		if srv.IfError(w, r, err) {
 			return
 		}
+		ctx := context.Background()
 
 		updateData := database.UpdateShowParams{}
 		err = json.NewDecoder(r.Body).Decode(&updateData)
@@ -90,14 +91,18 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 
 		// ensure that the library id is valid
 		if updateData.IDLib != 0 {
-			// TODO
-		}
+			lib, err := s.DB.GetLibrary(ctx, updateData.IDLib)
+			if srv.IfError(w, r, err) {
+				return
+			}
+			if lib.MediaType != database.MediaTypeTvs {
+				srv.Error(w,r,400, "invalid library type")
+				return
+			}
 
 		// add additionnal info to updateData struct
 		updateData.ID = id
 		updateData.UpdateDate = time.Now().Unix()
-
-		ctx := context.Background()
 
 		err = s.DB.UpdateShow(ctx, updateData)
 		if srv.IfError(w, r, err) {

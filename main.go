@@ -56,6 +56,7 @@ func main() {
 	r.Mount("/api", api)
 	handler.SetupCore(api, &status)
 	handler.SetupUser(api, &status)
+	handler.SetupLibrary(api, &status)
 	handler.SetupTVS(api, &status)
 	handler.SetupMovie(api, &status)
 

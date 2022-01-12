@@ -3,6 +3,7 @@ module github.com/Zogwine/Zogwine
 go 1.18
 
 require (
+	github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
 	github.com/go-chi/render v1.0.1
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8 // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.6 // indirect
 )

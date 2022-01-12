@@ -12,3 +12,5 @@ func Connect(host string, port int, user string, password string, database strin
 	}
 	return New(db), nil
 }
+
+var MediaTypeInt = []string{"unknonwn", "tvs_episode", "tvs", "movie", "url", "tvs_season", "movie_collection", "person"}

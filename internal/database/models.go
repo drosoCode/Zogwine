@@ -21,6 +21,8 @@ const (
 	MediaTypePerson          MediaType = "person"
 )
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type=MediaType -output=mediatype_str.go
+
 func (e *MediaType) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
