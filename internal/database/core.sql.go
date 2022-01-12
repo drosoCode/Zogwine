@@ -130,3 +130,49 @@ func (q *Queries) GetTVShowStat(ctx context.Context, idUser int64) (GetTVShowSta
 	err := row.Scan(&i.WatchedTvs, &i.TvsCount)
 	return i, err
 }
+
+const listNotCached = `-- name: ListNotCached :many
+SELECT id, link, extension, cached FROM cache WHERE cached = false
+`
+
+func (q *Queries) ListNotCached(ctx context.Context) ([]Cache, error) {
+	rows, err := q.db.QueryContext(ctx, listNotCached)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Cache
+	for rows.Next() {
+		var i Cache
+		if err := rows.Scan(
+			&i.ID,
+			&i.Link,
+			&i.Extension,
+			&i.Cached,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateCache = `-- name: UpdateCache :exec
+UPDATE cache SET extension = $1, cached = true WHERE id = $2
+`
+
+type UpdateCacheParams struct {
+	Extension string `json:"extension"`
+	ID        int64  `json:"id"`
+}
+
+func (q *Queries) UpdateCache(ctx context.Context, arg UpdateCacheParams) error {
+	_, err := q.db.ExecContext(ctx, updateCache, arg.Extension, arg.ID)
+	return err
+}

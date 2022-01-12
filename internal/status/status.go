@@ -16,10 +16,20 @@ type UserStatus struct {
 	SystemGroup []string
 }
 
+type TaskStatus int
+
+const (
+	Stopped TaskStatus = 0 // stopped
+	Running TaskStatus = 1 // running
+	Error   TaskStatus = 2 // exited with an error
+)
+
 // Struct to store global information
 type GlobalStatus struct {
 	// stores the associations between tokens and user id
 	Token map[string]int64
+	// List of running tasks
+	Task map[string]TaskStatus
 }
 
 type Status struct {

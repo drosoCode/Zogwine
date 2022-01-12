@@ -68,3 +68,9 @@ FROM status
 WHERE watch_count > 0
     AND media_type = 'movie'
     AND id_user = $1;
+
+-- name: ListNotCached :many
+SELECT * FROM cache WHERE cached = false;
+
+-- name: UpdateCache :exec
+UPDATE cache SET extension = $1, cached = true WHERE id = $2;

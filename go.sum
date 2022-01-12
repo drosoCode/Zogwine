@@ -1,3 +1,5 @@
+github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8 h1:jSnpkKA8r7Ow7YuLiHsXc0fPQzdHktFGnLUmGAl+owM=
+github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8/go.mod h1:hpSBK67Uduw/SGy6bObP8YrAZjcw0WR+gV/KTl9o2Lc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-chi/chi/v5 v5.0.7 h1:rDTPXLDHGATaeHvVlLcR4Qe0zftYethFucbjVQ1PxU8=
