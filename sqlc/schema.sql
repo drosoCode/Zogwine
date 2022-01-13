@@ -181,7 +181,7 @@ CREATE TABLE "public"."tag_link" (
 CREATE TABLE "public"."scraper" (
     "provider" text PRIMARY KEY,
     "priority" BIGINT NOT NULL,
-    "media_types" text NOT NULL,
+    "media_type" media_type ARRAY NOT NULL,
     "settings" json NOT NULL,
     "enabled" boolean NOT NULL
 ) WITH (oids = false);

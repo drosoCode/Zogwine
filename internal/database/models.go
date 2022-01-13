@@ -21,8 +21,6 @@ const (
 	MediaTypePerson          MediaType = "person"
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=MediaType -output=mediatype_str.go
-
 func (e *MediaType) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
@@ -196,11 +194,11 @@ type Role struct {
 }
 
 type Scraper struct {
-	Provider   string          `json:"provider"`
-	Priority   int64           `json:"priority"`
-	MediaTypes string          `json:"mediaTypes"`
-	Settings   json.RawMessage `json:"settings"`
-	Enabled    bool            `json:"enabled"`
+	Provider  string          `json:"provider"`
+	Priority  int64           `json:"priority"`
+	MediaType []MediaType     `json:"mediaType"`
+	Settings  json.RawMessage `json:"settings"`
+	Enabled   bool            `json:"enabled"`
 }
 
 type Season struct {

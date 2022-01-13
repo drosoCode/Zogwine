@@ -96,9 +96,10 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 				return
 			}
 			if lib.MediaType != database.MediaTypeTvs {
-				srv.Error(w,r,400, "invalid library type")
+				srv.Error(w, r, 400, "invalid library type")
 				return
 			}
+		}
 
 		// add additionnal info to updateData struct
 		updateData.ID = id
