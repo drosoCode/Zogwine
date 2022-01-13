@@ -68,6 +68,9 @@ func main() {
 	workDir, _ := os.Getwd()
 	handler.ServeStatic(r, "/", http.Dir(filepath.Join(workDir, "static")))
 
+	// api doc
+	handler.ServeStatic(r, "/swagger", http.Dir(filepath.Join(workDir, "api")))
+
 	// cache
 	handler.ServeStatic(r, "/cache", http.Dir(status.Config.Server.CachePath))
 
