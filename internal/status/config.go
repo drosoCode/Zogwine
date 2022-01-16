@@ -28,8 +28,16 @@ type Configuration struct {
 	} `yaml:"encoding,flow"`
 	Files struct {
 		// list of the supported extensions for video files
-		VideoFiles []string `yaml:"video_files,flow"`
+		Video []string `yaml:"video,flow"`
+		// list of the supported extensions for subtitle files
+		Subtitle []string `yaml:"subtitle,flow"`
 	} `yaml:"files,flow"`
+	Analyzer struct {
+		// video settings for the analysis step
+		Video struct {
+			Skip3D bool `yaml:"skip_3d"` // if the 3D detection must be skipped
+		} `yaml:"video,flow"`
+	} `yaml:"analyzer,flow"`
 	Authentication struct {
 		// mode of authentication: 0 (internal) or 1 (header)
 		Mode string `yaml:"mode"`

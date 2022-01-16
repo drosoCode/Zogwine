@@ -19,7 +19,7 @@ type GetMediaStatusParams struct {
 
 type GetMediaStatusRow struct {
 	WatchCount int64   `json:"watchCount"`
-	WatchTime  float32 `json:"watchTime"`
+	WatchTime  float64 `json:"watchTime"`
 	LastDate   int64   `json:"lastDate"`
 }
 
@@ -43,7 +43,7 @@ type UpdateMediaStatusParams struct {
 	MediaType  MediaType `json:"mediaType"`
 	MediaData  int64     `json:"mediaData"`
 	WatchCount int64     `json:"watchCount"`
-	WatchTime  float32   `json:"watchTime"`
+	WatchTime  float64   `json:"watchTime"`
 	LastDate   int64     `json:"lastDate"`
 }
 

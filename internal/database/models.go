@@ -230,7 +230,7 @@ type Status struct {
 	MediaType  MediaType `json:"mediaType"`
 	MediaData  int64     `json:"mediaData"`
 	WatchCount int64     `json:"watchCount"`
-	WatchTime  float32   `json:"watchTime"`
+	WatchTime  float64   `json:"watchTime"`
 	LastDate   int64     `json:"lastDate"`
 }
 
@@ -312,16 +312,12 @@ type VideoFile struct {
 	MediaData  int64           `json:"mediaData"`
 	Path       string          `json:"path"`
 	Format     string          `json:"format"`
-	Duration   float32         `json:"duration"`
+	Duration   float64         `json:"duration"`
 	Extension  string          `json:"extension"`
+	Video      json.RawMessage `json:"video"`
 	Audio      json.RawMessage `json:"audio"`
 	Subtitle   json.RawMessage `json:"subtitle"`
-	Stereo3d   int64           `json:"stereo3d"`
-	Ratio      string          `json:"ratio"`
-	Dimension  string          `json:"dimension"`
-	PixFmt     string          `json:"pixFmt"`
-	VideoCodec string          `json:"videoCodec"`
-	Size       float32         `json:"size"`
+	Size       float64         `json:"size"`
 	Tmp        bool            `json:"tmp"`
 	AddDate    int64           `json:"addDate"`
 	UpdateDate int64           `json:"updateDate"`

@@ -9,7 +9,7 @@ from .urlResolver import getInfos
 from .utils import getUID
 from .exceptions import InvalidLibraryException
 
-
+"""
 def _getSubtitleFilesList(filePath: bytes) -> list:
     filePath = filePath.decode("utf-8")
     subFiles = []
@@ -29,7 +29,6 @@ def _getSubtitleFilesList(filePath: bytes) -> list:
                 }
             )
     return subFiles
-
 
 def getSubPathFromName(filePath: bytes, subFile: bytes) -> bytes:
     filePath = filePath.decode("utf-8")
@@ -146,7 +145,7 @@ def addFile(file: str, idLib: int) -> int:
     dat = cursor.fetchone()
     sqlConnection.close()
     return int(dat["idVid"])
-
+"""
 
 def updateFile(idVid: int, file: str = None, idLib: int = None):
     sqlConnection, cursor = getSqlConnection()
@@ -303,13 +302,13 @@ def getMediaFromUrl(url: str) -> dict:
             sqlConnection.close()
             return {"mediaType": 1, "mediaData": str(dat)}
 
-
+"""
 def getLibPath(idLib: int) -> str:
-    """
+    
     returns the absolute path to the root folder of a library
     Args:
         idLib: the library id
-    """
+    
     sqlConnection, cursor = getSqlConnection()
     cursor.execute(
         "SELECT path FROM libraries WHERE id = %(id)s;",
@@ -324,3 +323,4 @@ def getLibPath(idLib: int) -> str:
         )
     else:
         raise InvalidLibraryException(f"library not found for id {idLib}")
+"""

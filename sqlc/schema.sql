@@ -66,7 +66,7 @@ CREATE TABLE "public"."status" (
     "media_type" media_type NOT NULL,
     "media_data" BIGINT NOT NULL,
     "watch_count" BIGINT NOT NULL,
-    "watch_time" real NOT NULL,
+    "watch_time" double precision NOT NULL,
     "last_date" bigint NOT NULL,
     PRIMARY KEY ("id_user", "media_type", "media_data")
 ) WITH (oids = false);
@@ -212,16 +212,12 @@ CREATE TABLE "public"."video_file" (
     "media_data" BIGINT NOT NULL,
     "path" text NOT NULL,
     "format" text NOT NULL,
-    "duration" real NOT NULL,
+    "duration" double precision NOT NULL,
     "extension" text NOT NULL,
+    "video" json NOT NULL,
     "audio" json NOT NULL,
     "subtitle" json NOT NULL,
-    "stereo3d" BIGINT NOT NULL,
-    "ratio" text NOT NULL,
-    "dimension" text NOT NULL,
-    "pix_fmt" text NOT NULL,
-    "video_codec" text NOT NULL,
-    "size" real NOT NULL,
+    "size" double precision NOT NULL,
     "tmp" boolean NOT NULL,
     "add_date" bigint NOT NULL,
     "update_date" bigint NOT NULL
