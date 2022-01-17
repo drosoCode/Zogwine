@@ -53,10 +53,11 @@ type Configuration struct {
 		} `yaml:"header,flow,omitempty"`
 	}
 	Server struct {
-		BaseURL   string `yaml:"base_url"`   // url used to access the Zogwine instance
-		CachePath string `yaml:"cache_path"` // path to the cache folder
-		LogPath   string `yaml:"log_path"`   // path to the logs folder
-		LogLevel  string `yaml:"log_level"`  // the log level
+		BaseURL     string `yaml:"base_url"`     // url used to access the Zogwine instance
+		CachePath   string `yaml:"cache_path"`   // path to the cache folder
+		LogPath     string `yaml:"log_path"`     // path to the logs folder
+		LogLevel    string `yaml:"log_level"`    // the log level
+		PersistData string `yaml:"persist_data"` // the file used to persist temp data
 	} `yaml:"server,flow"`
 }
 

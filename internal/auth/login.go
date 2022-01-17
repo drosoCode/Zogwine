@@ -28,9 +28,6 @@ type authPacket struct {
 
 // Function to authenticate the user, either through internal user/password auth or through header auth
 func Authenticate(r *http.Request, s *status.Status) (int64, error) {
-	// TODO: REMOVE THIS
-	return 1, nil
-
 	// internal auth mode, uses the database and the credentials in the post body
 	if s.Config.Authentication.Mode == "internal" {
 		auth := authPacket{}

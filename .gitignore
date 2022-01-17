@@ -9,3 +9,4 @@ docker-compose.yml
 static/*
 *.pyc
 config.yml
+status.json
