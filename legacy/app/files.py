@@ -145,7 +145,6 @@ def addFile(file: str, idLib: int) -> int:
     dat = cursor.fetchone()
     sqlConnection.close()
     return int(dat["idVid"])
-"""
 
 def updateFile(idVid: int, file: str = None, idLib: int = None):
     sqlConnection, cursor = getSqlConnection()
@@ -302,7 +301,6 @@ def getMediaFromUrl(url: str) -> dict:
             sqlConnection.close()
             return {"mediaType": 1, "mediaData": str(dat)}
 
-"""
 def getLibPath(idLib: int) -> str:
     
     returns the absolute path to the root folder of a library

@@ -63,6 +63,17 @@ type VideoStream struct {
 	Framerate float64 `json:"framerate"`
 }
 
+type VideoFileInfo struct {
+	FileInfo
+	Tmp        bool
+	AddDate    int64
+	UpdateDate int64
+	Path       string
+	IDLib      int64
+	MediaType  database.MediaType
+	MediaData  int64
+}
+
 // list potential subtitle files in the same folder and with the same starting name of a video file
 func getSubtitleFilesList(videoFilePath string, supportedFiles []string) ([]SubtitleStream, error) {
 	subtitles := make([]SubtitleStream, 0)
@@ -84,7 +95,9 @@ func getSubtitleFilesList(videoFilePath string, supportedFiles []string) ([]Subt
 			name := file.Name()
 			ext := filepath.Ext(name)[1:]
 			if util.Contains(supportedFiles, ext) && len(name) > fileNameLen && name[0:fileNameLen] == fileName {
-				subtitles = append(subtitles, SubtitleStream{File: name, Title: "subfile", Language: name[fileNameLen:], Codec: ext, Index: i, Embedded: false})
+				lang := name[fileNameLen:]
+				lang = strings.ReplaceAll(lang[:len(lang)-len(ext)], ".", "")
+				subtitles = append(subtitles, SubtitleStream{File: name, Title: "subfile", Language: lang, Codec: ext, Index: i, Embedded: false})
 				i++
 			}
 		}
@@ -188,25 +201,33 @@ func getFileInfos(videoFilePath string, supportedVideo []string, supportedSubtit
 
 	videoStreams := make([]VideoStream, 0)
 	for _, stream := range data.StreamType(ffprobe.StreamVideo) {
-		framerate, _ := strconv.ParseFloat(stream.AvgFrameRate, 64)
-		stereo3d := "NONE"
-		if !skip3d {
-			stereo3d = detect3DMode(videoFilePath, stream.Index, data.Format.DurationSeconds)
+		if stream.Tags.MIMEType == "" || stream.Tags.MIMEType[0:5] == "video" {
+			fr := strings.Split(stream.AvgFrameRate, "/")
+			framerate := 0.0
+			if len(fr) >= 2 {
+				fr1, _ := strconv.ParseFloat(fr[0], 64)
+				fr2, _ := strconv.ParseFloat(fr[1], 64)
+				framerate = fr1 / fr2
+			}
+			stereo3d := "NONE"
+			if !skip3d {
+				stereo3d = detect3DMode(videoFilePath, stream.Index, data.Format.DurationSeconds)
+			}
+			videoStreams = append(videoStreams, VideoStream{
+				Ratio:     stream.DisplayAspectRatio,
+				Dimension: strconv.Itoa(stream.Width) + "x" + strconv.Itoa(stream.Height),
+				PixFmt:    stream.PixFmt,
+				Codec:     stream.CodecName,
+				Stereo3d:  stereo3d,
+				Framerate: framerate,
+				Index:     int64(stream.Index),
+			})
 		}
-		videoStreams = append(videoStreams, VideoStream{
-			Ratio:     stream.DisplayAspectRatio,
-			Dimension: string(stream.Width) + "x" + string(stream.Height),
-			PixFmt:    stream.PixFmt,
-			Codec:     stream.CodecName,
-			Stereo3d:  stereo3d,
-			Framerate: framerate,
-			Index:     int64(stream.Index),
-		})
 	}
 	videoStreamsJson, _ := json.Marshal(videoStreams)
 
 	audioStreams := make([]AudioStream, 0)
-	for _, stream := range data.StreamType(ffprobe.StreamVideo) {
+	for _, stream := range data.StreamType(ffprobe.StreamAudio) {
 		audioStreams = append(audioStreams, AudioStream{
 			Codec:    stream.CodecName,
 			Index:    int64(stream.Index),
@@ -218,7 +239,7 @@ func getFileInfos(videoFilePath string, supportedVideo []string, supportedSubtit
 	audioStreamsJson, _ := json.Marshal(audioStreams)
 
 	subtitleStreams, _ := getSubtitleFilesList(videoFilePath, supportedSubtitles)
-	for _, stream := range data.StreamType(ffprobe.StreamVideo) {
+	for _, stream := range data.StreamType(ffprobe.StreamSubtitle) {
 		subtitleStreams = append(subtitleStreams, SubtitleStream{
 			Codec:    stream.CodecName,
 			Index:    int64(stream.Index),
@@ -283,4 +304,88 @@ func AddFile(s *status.Status, idlib int64, videoFilePath string, mediaType data
 	}
 
 	return id, nil
+}
+
+func UpdateFile(s *status.Status, idlib int64, videoFilePath string) error {
+	ctx := context.Background()
+	lib, err := s.DB.GetLibrary(ctx, idlib)
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(lib.Path, videoFilePath)
+
+	info, err := getFileInfos(path, s.Config.Files.Video, s.Config.Files.Subtitle, s.Config.Analyzer.Video.Skip3D)
+	if err != nil {
+		return err
+	}
+
+	data, err := s.DB.GetVideoFileFromPath(ctx, database.GetVideoFileFromPathParams{IDLib: idlib, Path: videoFilePath})
+	if err != nil {
+		return err
+	}
+
+	s.DB.UpdateVideoFile(ctx, database.UpdateVideoFileParams{
+		Format:     info.Format,
+		Duration:   info.Duration,
+		Extension:  info.Extension,
+		Video:      info.Video,
+		Audio:      info.Audio,
+		Subtitle:   info.Subtitle,
+		Size:       info.Size,
+		UpdateDate: time.Now().Unix(),
+		ID:         data.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseSQLResponse(data database.VideoFile) VideoFileInfo {
+	v := VideoFileInfo{
+		IDLib:      data.IDLib,
+		MediaType:  data.MediaType,
+		MediaData:  data.MediaData,
+		Path:       data.Path,
+		Tmp:        data.Tmp,
+		AddDate:    data.AddDate,
+		UpdateDate: data.UpdateDate,
+	}
+	v.Format = data.Format
+	v.Duration = data.Duration
+	v.Extension = data.Extension
+	v.Size = data.Size
+	json.Unmarshal(data.Video, &v.Video)
+	json.Unmarshal(data.Audio, &v.Audio)
+	json.Unmarshal(data.Subtitle, &v.Subtitle)
+	return v
+}
+
+func GetFileInfo(s *status.Status, idvid int64) (VideoFileInfo, error) {
+	data, err := s.DB.GetVideoFile(context.Background(), idvid)
+	if err != nil {
+		return VideoFileInfo{}, err
+	}
+	return parseSQLResponse(data), nil
+}
+
+func GetFileInfoFromPath(s *status.Status, idlib int64, path string) (VideoFileInfo, error) {
+	data, err := s.DB.GetVideoFileFromPath(context.Background(), database.GetVideoFileFromPathParams{IDLib: idlib, Path: path})
+	if err != nil {
+		return VideoFileInfo{}, err
+	}
+	return parseSQLResponse(data), nil
+}
+
+func ListFileInfoFromMedia(s *status.Status, mediaType database.MediaType, mediaData int64) ([]VideoFileInfo, error) {
+	data, err := s.DB.ListVideoFileFromMedia(context.Background(), database.ListVideoFileFromMediaParams{MediaType: mediaType, MediaData: mediaData})
+	ret := make([]VideoFileInfo, 0)
+	if err != nil {
+		return ret, err
+	}
+	for _, item := range data {
+		ret = append(ret, parseSQLResponse(item))
+	}
+	return ret, nil
 }

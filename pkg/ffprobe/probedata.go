@@ -126,6 +126,7 @@ type StreamTags struct {
 	Title        string `json:"title,omitempty"`
 	Encoder      string `json:"encoder,omitempty"`
 	Location     string `json:"location,omitempty"`
+	MIMEType     string `json:"mimetype,omitempty"`
 }
 
 // StartTime returns the start time of the media file as a time.Duration

@@ -78,6 +78,71 @@ func (q *Queries) GetVideoFile(ctx context.Context, id int64) (VideoFile, error)
 	return i, err
 }
 
+const getVideoFileFromMedia = `-- name: GetVideoFileFromMedia :one
+SELECT id, id_lib, media_type, media_data, path, format, duration, extension, video, audio, subtitle, size, tmp, add_date, update_date FROM video_file WHERE media_type = $1 AND media_data = $2 ORDER BY id OFFSET $3 LIMIT 1
+`
+
+type GetVideoFileFromMediaParams struct {
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+	Offset    int32     `json:"offset"`
+}
+
+func (q *Queries) GetVideoFileFromMedia(ctx context.Context, arg GetVideoFileFromMediaParams) (VideoFile, error) {
+	row := q.db.QueryRowContext(ctx, getVideoFileFromMedia, arg.MediaType, arg.MediaData, arg.Offset)
+	var i VideoFile
+	err := row.Scan(
+		&i.ID,
+		&i.IDLib,
+		&i.MediaType,
+		&i.MediaData,
+		&i.Path,
+		&i.Format,
+		&i.Duration,
+		&i.Extension,
+		&i.Video,
+		&i.Audio,
+		&i.Subtitle,
+		&i.Size,
+		&i.Tmp,
+		&i.AddDate,
+		&i.UpdateDate,
+	)
+	return i, err
+}
+
+const getVideoFileFromPath = `-- name: GetVideoFileFromPath :one
+SELECT id, id_lib, media_type, media_data, path, format, duration, extension, video, audio, subtitle, size, tmp, add_date, update_date FROM video_file WHERE id_lib = $1 AND path = $2 LIMIT 1
+`
+
+type GetVideoFileFromPathParams struct {
+	IDLib int64  `json:"idLib"`
+	Path  string `json:"path"`
+}
+
+func (q *Queries) GetVideoFileFromPath(ctx context.Context, arg GetVideoFileFromPathParams) (VideoFile, error) {
+	row := q.db.QueryRowContext(ctx, getVideoFileFromPath, arg.IDLib, arg.Path)
+	var i VideoFile
+	err := row.Scan(
+		&i.ID,
+		&i.IDLib,
+		&i.MediaType,
+		&i.MediaData,
+		&i.Path,
+		&i.Format,
+		&i.Duration,
+		&i.Extension,
+		&i.Video,
+		&i.Audio,
+		&i.Subtitle,
+		&i.Size,
+		&i.Tmp,
+		&i.AddDate,
+		&i.UpdateDate,
+	)
+	return i, err
+}
+
 const listVideoFileFromMedia = `-- name: ListVideoFileFromMedia :many
 SELECT id, id_lib, media_type, media_data, path, format, duration, extension, video, audio, subtitle, size, tmp, add_date, update_date FROM video_file WHERE media_type = $1 AND media_data = $2
 `

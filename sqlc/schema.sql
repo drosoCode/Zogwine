@@ -1,6 +1,7 @@
 -- Adminer 4.7.8 PostgreSQL dump
 -- GRANT ALL PRIVILEGES ON DATABASE "zogwine_dev" to zwtest;
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO zwtest;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public to zwtest;
 
 DROP TABLE IF EXISTS "cache";
 DROP TABLE IF EXISTS "movie_collection";

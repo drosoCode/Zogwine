@@ -61,7 +61,7 @@ func New(configPath string) (Status, error) {
 		return Status{}, err
 	}
 
-	glb := GlobalStatus{token: map[string]int64{}}
+	glb := GlobalStatus{token: map[string]int64{}, task: map[string]TaskStatus{}, transcodeTask: map[string]TranscodeTaskStatus{}}
 	return Status{Config: cfg, CtxUserKey: CtxKey("userinfo"), global: glb, user: map[int64]UserStatus{}}, nil
 }
 
