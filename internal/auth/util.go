@@ -12,8 +12,7 @@ import (
 func GetUserID(s *status.Status, token string) (int64, error) {
 	// TODO: REMOVE THIS
 	return 1, nil
-	sess := s.GetGlobal()
-	if uid, ok := sess.Token[token]; ok {
+	if uid, ok := s.ListToken()[token]; ok {
 		return uid, nil
 	}
 	return -1, errors.New("this token is not associated with a user")
@@ -21,14 +20,10 @@ func GetUserID(s *status.Status, token string) (int64, error) {
 
 // Checks if a users has a specific group
 func CheckGroup(s *status.Status, uid int64, group string, system bool) bool {
-	sess, err := s.GetUser(uid)
-	if err != nil {
-		return false
-	}
 	if system {
-		return util.Contains(sess.SystemGroup, group)
+		return util.Contains(s.ListUserSystemGroup(uid), group)
 	}
-	return util.Contains(sess.UserGroup, group)
+	return util.Contains(s.ListUserGroup(uid), group)
 }
 
 // Function to retreive the user's token in a request, returns an error if not found

@@ -32,7 +32,7 @@ func Authenticate(r *http.Request, s *status.Status) (int64, error) {
 	return 1, nil
 
 	// internal auth mode, uses the database and the credentials in the post body
-	if s.GetConfig().Authentication.Mode == "internal" {
+	if s.Config.Authentication.Mode == "internal" {
 		auth := authPacket{}
 		err := json.NewDecoder(r.Body).Decode(&auth)
 
@@ -52,9 +52,9 @@ func Authenticate(r *http.Request, s *status.Status) (int64, error) {
 		return -1, errors.New("unauthorized")
 
 		// header auth mode, uses the provided headers to map a username in the header to a user stored in database
-	} else if s.GetConfig().Authentication.Mode == "header" {
+	} else if s.Config.Authentication.Mode == "header" {
 		source := net.ParseIP(r.RemoteAddr)
-		proxies := s.GetConfig().Authentication.Header.TrustedProxies
+		proxies := s.Config.Authentication.Header.TrustedProxies
 		authorizedSource := false
 		for _, p := range proxies {
 			_, ipnet, err := net.ParseCIDR(p)
@@ -68,7 +68,7 @@ func Authenticate(r *http.Request, s *status.Status) (int64, error) {
 			return -1, errors.New("source is not authorized to send authentication headers")
 		}
 
-		username := r.Header.Get(s.GetConfig().Authentication.Header.UserHeader)
+		username := r.Header.Get(s.Config.Authentication.Header.UserHeader)
 		ctx := context.Background()
 		userData, err := s.DB.GetUserLoginFromUsername(ctx, username)
 		if err != nil {
@@ -83,8 +83,7 @@ func Authenticate(r *http.Request, s *status.Status) (int64, error) {
 
 // Function to grant access to a user, associates a User ID to a token and returns this token
 func Login(s *status.Status, uid int64) string {
-	sess := s.GetGlobal()
 	token := generateToken()
-	sess.Token[token] = uid
+	s.SetToken(token, uid)
 	return token
 }

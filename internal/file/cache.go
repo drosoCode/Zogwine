@@ -16,6 +16,8 @@ import (
 func ScanCache(s *status.Status) error {
 	s.Log.Info("starting cache scan")
 
+	s.SetTask("cache", status.TaskRunning)
+
 	data, err := s.DB.ListNotCached(context.Background())
 
 	sem := make(chan struct{}, 10)
@@ -37,6 +39,8 @@ func ScanCache(s *status.Status) error {
 	}
 	wg.Wait()
 	close(sem)
+
+	s.SetTask("cache", status.TaskStopped)
 
 	s.Log.Info("finished cache scan")
 	return nil

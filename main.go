@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// setup database
-	querier, err := database.Connect(status.GetConfig().Database.Host, status.GetConfig().Database.Port, status.GetConfig().Database.Username, status.GetConfig().Database.Password, status.GetConfig().Database.Database)
+	querier, err := database.Connect(status.Config.Database.Host, status.Config.Database.Port, status.Config.Database.Username, status.Config.Database.Password, status.Config.Database.Database)
 	if err != nil {
 		log.Fatal(err)
 	}
