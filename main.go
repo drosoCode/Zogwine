@@ -59,6 +59,9 @@ func main() {
 	handler.SetupLibrary(api, &status)
 	handler.SetupTVS(api, &status)
 	handler.SetupMovie(api, &status)
+	handler.SetupTag(api, &status)
+	handler.SetupPerson(api, &status)
+	handler.SetupRole(api, &status)
 
 	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))

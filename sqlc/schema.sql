@@ -156,7 +156,7 @@ CREATE TABLE "public"."person_link" (
     "id_person" BIGINT NOT NULL REFERENCES person("id"),
     "media_type" media_type NOT NULL,
     "media_data" BIGINT NOT NULL,
-    "id_role" BIGINT REFERENCES role("id"),
+    "id_role" BIGINT NOT NULL,
     PRIMARY KEY ("id_person", "media_type", "media_data")
 ) WITH (oids = false);
 

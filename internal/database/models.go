@@ -3,7 +3,6 @@
 package database
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 )
@@ -173,10 +172,10 @@ type Person struct {
 }
 
 type PersonLink struct {
-	IDPerson  int64         `json:"idPerson"`
-	MediaType MediaType     `json:"mediaType"`
-	MediaData int64         `json:"mediaData"`
-	IDRole    sql.NullInt64 `json:"idRole"`
+	IDPerson  int64     `json:"idPerson"`
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+	IDRole    int64     `json:"idRole"`
 }
 
 type Role struct {

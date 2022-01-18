@@ -39,7 +39,7 @@ def getServerLogs(amount: int):
         l = 20
     return jsonify({"status": "ok", "data": getLogs(l)})
 
-
+"""
 @core.route("core/image/<id>", methods=["GET"])
 def getImage(id: str):
     if "http" in id:
@@ -89,7 +89,7 @@ def refreshCache():
             addCache(d["icon"])
     r_runningThreads.set("cache", 0)
     sqlConnection.close()
-
+"""
 
 @core.route("core/scan/person", methods=["GET"])
 def runPeopleScanThreaded():
@@ -98,7 +98,7 @@ def runPeopleScanThreaded():
     return jsonify({"status": "ok", "data": "ok"})
 
 
-
+"""
 @core.route("person/<int:mediaType>/<mediaData>", methods=["GET"])
 def getPeopleFromMedia(mediaType: int, mediaData: str):
     sqlConnection, cursor = getSqlConnection()
@@ -216,7 +216,7 @@ def getTagFromID(id: str):
     res = cursor.fetchone()
     sqlConnection.close()
     return jsonify({"status": "ok", "data": res})
-
+"""
 
 @core.route("search", methods=["POST"])
 def search_main():
