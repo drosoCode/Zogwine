@@ -37,9 +37,9 @@ type GlobalStatus struct {
 	// stores the associations between tokens and user id
 	Token map[string]int64 `json:"token"`
 	// List of running tasks
-	Task map[string]TaskStatus
+	task map[string]TaskStatus
 	// List of running transcoding tasks
-	TranscodeTask map[string]TranscodeTaskStatus `json:"transcodeTask"`
+	transcodeTask map[string]TranscodeTaskStatus
 }
 
 type Status struct {
@@ -68,7 +68,10 @@ func New(configPath string) (Status, error) {
 		return Status{}, err
 	}
 
-	glb := GlobalStatus{Token: map[string]int64{}, Task: map[string]TaskStatus{}, TranscodeTask: map[string]TranscodeTaskStatus{}}
+	status := map[string]TaskStatus{
+		"cache": TaskStopped,
+	}
+	glb := GlobalStatus{Token: map[string]int64{}, task: status, transcodeTask: map[string]TranscodeTaskStatus{}}
 	usr := map[int64]UserStatus{}
 
 	if cfg.Server.PersistData != "" {
@@ -77,7 +80,7 @@ func New(configPath string) (Status, error) {
 			var back JsonStatus
 			err = json.Unmarshal(jdata, &back)
 			if err == nil {
-				glb = back.Global
+				glb.Token = back.Global.Token
 				// usr = back.User
 			}
 		}
@@ -154,33 +157,33 @@ func (s *Status) ListToken() map[string]int64 {
 }
 
 func (s *Status) SetTask(name string, task TaskStatus) error {
-	s.global.Task[name] = task
+	s.global.task[name] = task
 	return nil
 }
 
 func (s *Status) RemoveTask(name string) error {
-	delete(s.global.Task, name)
+	delete(s.global.task, name)
 	return nil
 }
 
 func (s *Status) ListTask() map[string]TaskStatus {
-	return s.global.Task
+	return s.global.task
 }
 
 func (s *Status) SetTranscodeTask(name string, task TranscodeTaskStatus) error {
-	s.global.TranscodeTask[name] = task
+	s.global.transcodeTask[name] = task
 	s.persistData()
 	return nil
 }
 
 func (s *Status) RemoveTranscodeTask(name string) error {
-	delete(s.global.TranscodeTask, name)
+	delete(s.global.transcodeTask, name)
 	s.persistData()
 	return nil
 }
 
 func (s *Status) ListTranscodeTask() map[string]TranscodeTaskStatus {
-	return s.global.TranscodeTask
+	return s.global.transcodeTask
 }
 
 func (s *Status) ListUserGroup(uid int64) []string {

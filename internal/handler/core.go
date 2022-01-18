@@ -21,6 +21,7 @@ func SetupCore(r chi.Router, s *status.Status) {
 	core.Mount("/", coreAdmin)
 	coreAdmin.Use(auth.CheckUserMiddleware(s, "admin"))
 	coreAdmin.Get("/scan/cache", GetCacheScan(s))
+	coreAdmin.Get("/scan/status", GetTaskStatus(s))
 }
 
 type stats struct {
@@ -81,5 +82,12 @@ func GetCacheScan(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		go file.ScanCache(s)
 		srv.JSON(w, r, 200, "ok")
+	}
+}
+
+// GET core/scan/status
+func GetTaskStatus(s *status.Status) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		srv.JSON(w, r, 200, s.ListTask())
 	}
 }
