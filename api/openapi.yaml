@@ -20,6 +20,8 @@ tags:
   description: Tag Operations
 - name: person
   description: Person Operations
+- name: role
+  description: Role Operations
 - name: search
   description: Search Operations
 - name: tracker
@@ -1961,7 +1963,9 @@ paths:
                     type: string
                     default: ok
                   data:
-                    $ref: '#/components/schemas/person'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/person'
       security:
       - user: []
       - admin: []
@@ -1996,25 +2000,166 @@ paths:
       - user: []
       - admin: []
       
-  /core/image/{id}:
+  /person/role/{id}:
     get:
       tags:
-      - core
-      summary: Get image url from identifier
-      operationId: core_image
+      - person
+      summary: Get person associated with a specific role
+      operationId: core_person_role
       parameters:
       - name: id
         in: path
-        description: image id (base64)
+        description: name
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/person'
+      security:
+      - user: []
+      - admin: []
+      
+      
+  /role/letter/{letter}:
+    get:
+      tags:
+      - role
+      summary: Get roles with a name starting with a specific letter
+      operationId: role_letter
+      parameters:
+      - name: letter
+        in: path
+        description: letter
         required: true
         schema:
           type: string
       responses:
-        302:
-          description: redirect to the image location
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/role'
       security:
       - user: []
       - admin: []
+      
+  /role/name/{name}:
+    get:
+      tags:
+      - role
+      summary: Get roles with a specific name
+      operationId: role_name
+      parameters:
+      - name: name
+        in: path
+        description: name
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/role'
+      security:
+      - user: []
+      - admin: []
+      
+  /role/{id}:
+    get:
+      tags:
+      - role
+      summary: Get a role with a specific id
+      operationId: role_id
+      parameters:
+      - name: id
+        in: path
+        description: role id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/role'
+      security:
+      - user: []
+      - admin: []
+      
+  /role/person/{id}:
+    get:
+      tags:
+      - role
+      summary: Get roles associated with a specific person
+      operationId: role_person
+      parameters:
+      - name: id
+        in: path
+        description: person id
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/role'
+      security:
+      - user: []
+      - admin: []
+      
+      
       
   /core/scan/status:
     get:
@@ -2517,6 +2662,8 @@ components:
           type: integer
         updateDate:
           type: integer
+        updateMode:
+          type: integer
 
     tvshow_episode:
       type: object
@@ -2550,6 +2697,8 @@ components:
         addDate:
           type: integer
         updateDate:
+          type: integer
+        updateMode:
           type: integer
 
     movie:
@@ -2587,6 +2736,8 @@ components:
           type: integer
         updateDate:
           type: integer
+        updateMode:
+          type: integer
 
     movie_collection:
       type: object
@@ -2612,6 +2763,8 @@ components:
         addDate:
           type: integer
         updateDate:
+          type: integer
+        updateMode:
           type: integer
         
     device:
@@ -2647,21 +2800,62 @@ components:
       properties:
         id:
           type: integer
-        role:
-          type: string
-          description: "may not be available, depending on the request"
         name:
           type: string
         gender:
           type: integer
-        birthdate:
+        birth:
+          type: integer
+        death:
+          type: integer
+        overview:
           type: string
-        deathdate:
+        icon:
           type: string
-        description:
+        knownFor:
           type: string
-        known_for:
+        scraperID: 
           type: string
+        scraperName: 
+          type: string
+        scraperData: 
+          type: string
+        scraperLink: 
+          type: string
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
+        updateMode:
+          type: integer
+          
+    role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        overview:
+          type: string
+        icon:
+          type: string
+        knownFor:
+          type: string
+        scraperID: 
+          type: string
+        scraperName: 
+          type: string
+        scraperData: 
+          type: string
+        scraperLink: 
+          type: string
+        addDate:
+          type: integer
+        updateDate:
+          type: integer
+        updateMode:
+          type: integer
           
     media_search_data:
       type: object
