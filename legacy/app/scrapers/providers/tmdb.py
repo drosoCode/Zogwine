@@ -26,7 +26,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             return None
         else:
             return self._baseImgUrl + img
-    
+
     # region TVS
 
     def getTVS(self):
@@ -54,7 +54,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             scraperLink="https://www.themoviedb.org/tv/" + str(self._scraperID),
             scraperID=resp.get("id"),
         )
-    
+
     def getTVSSeason(self, season):
         resp = json.loads(
             requests.get(
@@ -190,6 +190,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
 
         return tags
 
+    """
     def getTVSEpisode(self, season, episode):
         if self._scraperData == None:
             resp = json.loads(
@@ -271,7 +272,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
                     scraperLink=None,
                 )
 
-    """
+    
     def searchTVS(self, name):
         next = 1
         data = []
@@ -515,7 +516,11 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
     def getPersonDetails(self):
         data = json.loads(
             requests.get(
-                self._endpoint + "person/" + str(self._scraperID) + "?api_key=" + self._apikey
+                self._endpoint
+                + "person/"
+                + str(self._scraperID)
+                + "?api_key="
+                + self._apikey
             ).text
         )
         ic = None
@@ -529,7 +534,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             scraperID=data.get("id"),
             scraperName=self.scraperName,
             scraperData=None,
-            scraperLink="https://www.themoviedb.org/person/" + str(data["id"])
+            scraperLink="https://www.themoviedb.org/person/" + str(data["id"]),
         )
 
     def searchPerson(self, name):
@@ -559,4 +564,5 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             )
 
         return results
+
     # endregion

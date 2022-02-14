@@ -5,7 +5,7 @@ type TVShowProvider interface {
 	SearchTVS(name string) ([]SearchData, error)
 	GetTVS() (TVSData, error)
 	GetTVSSeason(season int) (TVSSeasonData, error)
-	//GetTVSEpisode(season int, episode int) (TVSEpisodeData, error)
+	GetTVSEpisode(season int, episode int) (TVSEpisodeData, error)
 	//ListTVSTag() ([]TagData, error)
 	//ListTVSPerson() ([]PersonData, error)
 	//GetTVSUpcomingEpisode() (UpcomingData, error)

@@ -1,4 +1,4 @@
-package scraper
+package tmdb
 
 import (
 	"encoding/json"
@@ -123,7 +123,8 @@ func (t *TMDB) MediaLink(tp int, id1 string, id2 string, id3 string) string {
 }
 
 // configure the provider's settings
-func (t *TMDB) Setup(config map[string]string) error {
+func (t *TMDB) Setup(config map[string]string, logger *log.Logger) error {
+	t.Logger = logger
 	if val, ok := config["api_key"]; ok {
 		t.APIKey = val
 	} else {
@@ -136,22 +137,6 @@ func (t *TMDB) Setup(config map[string]string) error {
 }
 
 // trailer
-
-type TMDBVideo struct {
-	ID      int `json:"id"`
-	Results []struct {
-		ISO6391     string `json:"iso_639_1"`
-		ISO31661    string `json:"iso_3166_1"`
-		Name        string `json:"name"`
-		Key         string `json:"string"`
-		Site        string `json:"site"`
-		Size        int    `json:"size"`
-		Type        string `json:"type"`
-		Official    bool   `json:"official"`
-		PublishedAt string `json:"published_at"`
-		ID          string `json:"id"`
-	} `json:"results"`
-}
 
 func (t *TMDB) getTrailerFromVideo(data TMDBVideo) string {
 	layout := "2006-01-02T15:04:05.000Z"
@@ -202,45 +187,6 @@ func (t *TMDB) getTrailerFromVideo(data TMDBVideo) string {
 }
 
 // tvs search
-
-type TMDBTVSearch struct {
-	Page         int `json:"page"`
-	TotalPages   int `json:"total_pages"`
-	TotalResults int `json:"total_results"`
-	Results      []struct {
-		PosterPath       string   `json:"poster_path"`
-		Popularity       float64  `json:"popularity"`
-		ID               int      `json:"id"`
-		BackdropPath     string   `json:"backdrop_path"`
-		Voteaverage      float64  `json:"vote_average"`
-		Overview         string   `json:"overview"`
-		FirstAirDate     string   `json:"first_air_date"`
-		OriginCountry    []string `json:"origin_country"`
-		GenreIDS         []int    `json:"genre_ids"`
-		OriginalLanguage string   `json:"original_language"`
-		VoteCount        int      `json:"vote_count"`
-		Name             string   `json:"name"`
-		OriginalName     string   `json:"original_name"`
-	} `json:"results"`
-}
-
-type TMDBEpisodeGroup struct {
-	Results []struct {
-		Description  string `json:"description"`
-		EpisodeCount int    `json:"episode_count"`
-		GroupCount   int    `json:"group_count"`
-		ID           string `json:"id"`
-		Name         string `json:"name"`
-		Network      struct {
-			ID            int    `json:"id"`
-			LogoPath      string `json:"logo_path"`
-			Name          string `json:"name"`
-			OriginCountry string `json:"origin_country"`
-		} `json:"network"`
-		Type int `json:"type"`
-	}
-	ID int `json:"id"`
-}
 
 func (t *TMDB) SearchTVS(name string) ([]common.SearchData, error) {
 	// retreive data with pagination
@@ -304,85 +250,6 @@ func (t *TMDB) SearchTVS(name string) ([]common.SearchData, error) {
 }
 
 // tvs get show
-
-type TMDBTVShow struct {
-	BackdropPath string `json:"backdrop_path"`
-	CreatedBy    []struct {
-		ID          int    `json:"id"`
-		CreditID    string `json:"credit_id"`
-		Name        string `json:"name"`
-		Gender      int    `json:"gender"`
-		ProfilePath string `json:"profile_path"`
-	} `json:"created_by"`
-	EpisodeRunTime []int  `json:"episode_run_time"`
-	FirstAirDate   string `json:"first_air_date"`
-	Genres         []struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	} `json:"genres"`
-	Homepage         string   `json:"homepage"`
-	ID               int      `json:"id"`
-	InProduction     bool     `json:"in_production"`
-	Languages        []string `json:"languages"`
-	LastAirDate      string   `json:"last_air_date"`
-	LastEpisodeToAir struct {
-		AirDate        string  `json:"air_date"`
-		EpisodeNumber  int     `json:"episode_number"`
-		ID             int     `json:"id"`
-		Name           string  `json:"name"`
-		Overview       string  `json:"overview"`
-		ProductionCode string  `json:"production_code"`
-		SeasonNumber   int     `json:"season_number"`
-		StillPath      string  `json:"still_path"`
-		VoteAverage    float64 `json:"vote_average"`
-		VoteCount      int     `json:"vote_count"`
-	} `json:"last_episode_to_air"`
-	Name     string `json:"name"`
-	Networks []struct {
-		Name          string `json:"name"`
-		ID            int    `json:"id"`
-		LogoPath      string `json:"logo_path"`
-		OriginCountry string `json:"origin_country"`
-	} `json:"networks"`
-	NumberOfEpisodes    int      `json:"number_of_episodes"`
-	NumberOfSeasons     int      `json:"number_of_seasons"`
-	OriginCountry       []string `json:"origin_country"`
-	OriginLanguage      string   `json:"origin_language"`
-	OriginalName        string   `json:"original_name"`
-	Overview            string   `json:"overview"`
-	Popularity          float64  `json:"popularity"`
-	PosterPath          string   `json:"poster_path"`
-	ProductionCompanies []struct {
-		Name          string `json:"name"`
-		ID            int    `json:"id"`
-		LogoPath      string `json:"logo_path"`
-		OriginCountry string `json:"origin_country"`
-	} `json:"production_companies"`
-	ProductionCountries []struct {
-		ISO31661 string `json:"iso_3166_1"`
-		Name     string `json:"name"`
-	} `json:"production_countries"`
-	Seasons []struct {
-		ID           int    `json:"id"`
-		Name         string `json:"name"`
-		AirDate      string `json:"air_date"`
-		EpisodeCount int    `json:"episode_count"`
-		Overview     string `json:"overview"`
-		PosterPath   string `json:"poster_path"`
-		SeasonNumber int    `json:"season_number"`
-	} `json:"seasons"`
-	SpokenLanguages []struct {
-		ISO6391     string `json:"iso_639_1"`
-		Name        string `json:"name"`
-		EnglishName string `json:"english_name"`
-	} `json:"spoken_languages"`
-	Status      string  `json:"status"`
-	TagLine     string  `json:"tagline"`
-	Type        string  `json:"type"`
-	VoteAverage float64 `json:"vote_average"`
-	VoteCount   int     `json:"vote_count"`
-}
-
 func (t *TMDB) GetTVS() (common.TVSData, error) {
 	// get tvs details
 	raw, err := t.request("tv/"+t.ScraperID, 1)
@@ -425,55 +292,6 @@ func (t *TMDB) GetTVS() (common.TVSData, error) {
 	}, nil
 }
 
-// get tvs season
-
-type TMDBSeason struct {
-	ID_          string `json:"_id"`
-	ID           int    `json:"id"`
-	AirDate      string `json:"air_date"`
-	Name         string `json:"name"`
-	Overview     string `json:"overview"`
-	PosterPath   string `json:"poster_path"`
-	SeasonNumber int    `json:"season_number"`
-	Episodes     []struct {
-		AirDate       string `json:"air_date"`
-		EpisodeNumber int    `json:"episode_number"`
-		Crew          []struct {
-			Department         string  `json:"department"`
-			Job                string  `json:"job"`
-			CreditID           string  `json:"credit_id"`
-			Adult              bool    `json:"adult"`
-			Gender             int     `json:"gender"`
-			ID                 int     `json:"id"`
-			KnownForDepartment string  `json:"known_for_department"`
-			Name               string  `json:"name"`
-			OriginalName       string  `json:"original_name"`
-			Popularity         float64 `json:"popularity"`
-			ProfilePath        string  `json:"profile_path"`
-		} `json:"crew"`
-		GuestStars []struct {
-			Department         string  `json:"department"`
-			Job                string  `json:"job"`
-			CreditID           string  `json:"credit_id"`
-			Adult              bool    `json:"adult"`
-			Gender             int     `json:"gender"`
-			ID                 int     `json:"id"`
-			KnownForDepartment string  `json:"known_for_department"`
-			Name               string  `json:"name"`
-			OriginalName       string  `json:"original_name"`
-			Popularity         float64 `json:"popularity"`
-			ProfilePath        string  `json:"profile_path"`
-		} `json:"guest_stars"`
-		ID             int     `json:"id"`
-		Name           string  `json:"name"`
-		Overview       string  `json:"overview"`
-		ProductionCode string  `json:"production_code"`
-		SeasonNumber   int     `json:"season_number"`
-		VoteAverage    float64 `json:"vote_average"`
-		VoteCount      int     `json:"vote_count"`
-	} `json:"episodes"`
-}
-
 func (t *TMDB) GetTVSSeason(season int) (common.TVSSeasonData, error) {
 	raw, err := t.request("tv/"+t.ScraperID+"/season/"+strconv.Itoa(season), 1)
 	if err != nil {
@@ -511,3 +329,57 @@ func (t *TMDB) GetTVSSeason(season int) (common.TVSSeasonData, error) {
 }
 
 // get tvs episode
+func (t *TMDB) GetTVSEpisode(season int, episode int) (common.TVSEpisodeData, error) {
+	var decode TMDBEpisode
+
+	if t.ScraperData == "" {
+		raw, err := t.request("tv/"+t.ScraperID+"/season/"+strconv.Itoa(season)+"/episode/"+strconv.Itoa(episode), 1)
+		if err != nil {
+			return common.TVSEpisodeData{}, err
+		}
+		decode = TMDBEpisode{}
+		err = json.Unmarshal(raw, &decode)
+		if err != nil {
+			return common.TVSEpisodeData{}, err
+		}
+	} else {
+		raw, err := t.request("tv/episode_group/"+t.ScraperData, 1)
+		if err != nil {
+			return common.TVSEpisodeData{}, err
+		}
+		dec := TMDBEpisodeGroupData{}
+		err = json.Unmarshal(raw, &dec)
+		if err != nil {
+			return common.TVSEpisodeData{}, err
+		}
+
+		if len(dec.Groups) == 0 {
+			return common.TVSEpisodeData{}, errors.New("no data")
+		}
+		for _, i := range dec.Groups[0].Episodes {
+			if i.SeasonNumber == season && i.EpisodeNumber == episode {
+				decode = i
+			}
+		}
+	}
+
+	if decode.Name == "" {
+		return common.TVSEpisodeData{}, errors.New("no data")
+	}
+
+	prem, _ := time.Parse("2006-01-02", decode.AirDate)
+
+	return common.TVSEpisodeData{
+		Title:     decode.Name,
+		Overview:  decode.Overview,
+		Icon:      t.ImageURL(decode.StillPath),
+		Premiered: prem.Unix(),
+		Rating:    int64(decode.VoteAverage),
+		ScraperInfo: common.ScraperInfo{
+			ScraperName: t.ScraperName,
+			ScraperID:   t.ScraperID,
+			ScraperData: t.ScraperData,
+			ScraperLink: t.MediaLink(2, t.ScraperID, strconv.Itoa(season), strconv.Itoa(episode)),
+		},
+	}, nil
+}
