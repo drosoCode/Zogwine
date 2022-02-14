@@ -1,17 +1,14 @@
-package types
-
-import "time"
+package common
 
 type PersonProvider interface {
 	Provider
-	NewPersonProvider() PersonProvider
 	SearchPerson(name string) ([]SearchData, error)
 	GetPersonDetails() (PersonDetailsData, error)
 }
 
 type PersonDetailsData struct {
-	Birthdate   time.Time
-	Deathdate   time.Time
+	Birthdate   int64
+	Deathdate   int64
 	Gender      int
 	Description string
 	Icon        string

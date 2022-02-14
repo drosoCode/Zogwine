@@ -2,7 +2,6 @@ package util
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -42,15 +41,14 @@ func LoadPlugin(pluginType string, path string, i *interp.Interpreter) (interfac
 		return nil, errors.New("invalid file extension")
 	}
 
-	fmt.Println(path)
 	file, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.New("unable to read file")
+		return nil, errors.New("unable to read file: " + err.Error())
 	}
 
 	_, err = i.Eval(string(file))
 	if err != nil {
-		return nil, errors.New("unable to eval file")
+		return nil, errors.New("unable to eval file: " + err.Error())
 	}
 
 	packageName := filepath.Base(filepath.Dir(path))
@@ -59,7 +57,7 @@ func LoadPlugin(pluginType string, path string, i *interp.Interpreter) (interfac
 
 	v, err := i.Eval(constructor)
 	if err != nil {
-		return nil, errors.New("unable to instanciate plugin with " + constructor)
+		return nil, errors.New("unable to instanciate plugin with " + constructor + ": " + err.Error())
 	}
 
 	return v.Interface(), nil

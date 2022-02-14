@@ -1,10 +1,8 @@
-package types
-
-import "time"
+package common
 
 type Provider interface {
-	Setup(config map[string]interface{}) error
-	Configure(ScraperID string, ScraperData string) error
+	Setup(config map[string]string) error
+	Configure(ScraperID string, ScraperData string)
 }
 
 type ScraperInfo struct {
@@ -30,7 +28,7 @@ type SearchData struct {
 	Title     string
 	Overview  string
 	Icon      string
-	Premiered time.Time
+	Premiered int64
 	ScraperInfo
 }
 

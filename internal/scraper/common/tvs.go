@@ -1,17 +1,14 @@
-package types
-
-import "time"
+package common
 
 type TVShowProvider interface {
 	Provider
-	NewTVShowProvider() TVShowProvider
 	SearchTVS(name string) ([]SearchData, error)
-	GetTVSEpisode(season int, episode int) (TVSEpisodeData, error)
-	ListTVSTag() ([]TagData, error)
-	ListTVSPerson() ([]PersonData, error)
-	GetTVSSeason(season int) (TVSSeasonData, error)
 	GetTVS() (TVSData, error)
-	GetTVSUpcomingEpisode() (UpcomingData, error)
+	GetTVSSeason(season int) (TVSSeasonData, error)
+	//GetTVSEpisode(season int, episode int) (TVSEpisodeData, error)
+	//ListTVSTag() ([]TagData, error)
+	//ListTVSPerson() ([]PersonData, error)
+	//GetTVSUpcomingEpisode() (UpcomingData, error)
 }
 
 type TVSData struct {
@@ -21,8 +18,8 @@ type TVSData struct {
 	Fanart    string
 	Website   string
 	Trailer   string
-	Premiered time.Time
-	Rating    int
+	Premiered int64
+	Rating    int64
 	ScraperInfo
 }
 
@@ -32,8 +29,8 @@ type TVSSeasonData struct {
 	Icon      string
 	Fanart    string
 	Trailer   string
-	Premiered time.Time
-	Rating    int
+	Premiered int64
+	Rating    int64
 	ScraperInfo
 }
 
@@ -41,9 +38,9 @@ type TVSEpisodeData struct {
 	Title     string
 	Overview  string
 	Icon      string
-	Premiered time.Time
-	Rating    int
-	Season    int
-	Episode   int
+	Premiered int64
+	Rating    int64
+	Season    int64
+	Episode   int64
 	ScraperInfo
 }

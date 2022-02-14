@@ -1,10 +1,7 @@
-package types
-
-import "time"
+package common
 
 type MovieProvider interface {
 	Provider
-	NewMovieProvider() MovieProvider
 	SearchMovie(name string) ([]SearchData, error)
 	ListMovieTag() ([]TagData, error)
 	ListMoviePerson() ([]PersonData, error)
@@ -20,7 +17,7 @@ type MovieData struct {
 	Fanart     string
 	Website    string
 	Trailer    string
-	Premiered  time.Time
+	Premiered  int64
 	Rating     int
 	Collection int
 	ScraperInfo
@@ -31,7 +28,7 @@ type MovieCollectionData struct {
 	Overview  string
 	Icon      string
 	Fanart    string
-	Premiered time.Time
+	Premiered int64
 	Rating    int
 	ScraperInfo
 }

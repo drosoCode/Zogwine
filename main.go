@@ -16,6 +16,7 @@ import (
 
 	database "github.com/Zogwine/Zogwine/internal/database"
 	"github.com/Zogwine/Zogwine/internal/handler"
+	scraper "github.com/Zogwine/Zogwine/internal/scraper"
 	"github.com/Zogwine/Zogwine/internal/status"
 )
 
@@ -36,7 +37,7 @@ func main() {
 	// setup logger
 	log.SetReportCaller(true)
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.TraceLevel)
 	status.SetLogger(log.New())
 
 	// setup chi
@@ -84,6 +85,8 @@ func main() {
 		Addr:    "127.0.0.1:3001",
 		Handler: h2c.NewHandler(r, h2s),
 	}
+
+	scraper.Test()
 
 	// start !
 	log.Fatal(server.ListenAndServe())
