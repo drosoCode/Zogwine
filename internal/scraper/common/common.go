@@ -1,7 +1,9 @@
 package common
 
+import log "github.com/sirupsen/logrus"
+
 type Provider interface {
-	Setup(config map[string]string) error
+	Setup(config map[string]string, logger *log.Logger) error
 	Configure(ScraperID string, ScraperData string)
 }
 
