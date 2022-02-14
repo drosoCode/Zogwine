@@ -3,7 +3,8 @@ package scraper
 import (
 	"errors"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Zogwine/Zogwine/internal/scraper/common"
 	"github.com/Zogwine/Zogwine/internal/util"
@@ -25,30 +26,30 @@ func LoadTVSPlugins() ([]common.TVShowProvider, error) {
 }
 
 func LoadTVSPlugin(name string) (common.TVShowProvider, error) {
-	pl, err := util.LoadPlugin("TVShowProvider", "plugins/scraper/"+name+".go", nil)
+	pl, err := util.LoadPlugin("TVShowProvider", "./plugins/scraper/"+name)
 	if err != nil {
 		return nil, err
 	}
 	p, ok := pl.(func() common.TVShowProvider)
 	if !ok {
-		return nil, errors.New("error")
+		return nil, errors.New("error type assertion failed")
 	}
 	return p(), nil
 }
 
-func Test() {
+func Test(logger *log.Logger) {
 	pl, err := LoadTVSPlugin("tmdb")
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
 	conf := map[string]string{
 		"api_key": "",
 	}
 
-	pl.Setup(conf)
-
+	pl.Setup(conf, logger)
 	pl.Configure("31910", "")
+
 	fmt.Println(pl.GetTVS())
 }

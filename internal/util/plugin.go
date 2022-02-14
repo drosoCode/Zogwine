@@ -1,6 +1,7 @@
 package util
 
 import (
+	"archive/zip"
 	"errors"
 	"os"
 	"path/filepath"
@@ -11,15 +12,10 @@ import (
 )
 
 func LoadPlugins(pluginType string, folder string) ([]interface{}, error) {
-
-	i := interp.New(interp.Options{})
-	i.Use(stdlib.Symbols)
-	i.Use(symbol.Symbols)
-
 	var plugins []interface{}
 
 	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
-		pl, err := LoadPlugin(pluginType, path, i)
+		pl, err := LoadPlugin(pluginType, path)
 		if err == nil {
 			plugins = append(plugins, pl)
 		}
@@ -29,36 +25,36 @@ func LoadPlugins(pluginType string, folder string) ([]interface{}, error) {
 	return plugins, err
 }
 
-func LoadPlugin(pluginType string, path string, i *interp.Interpreter) (interface{}, error) {
+func LoadPlugin(pluginType string, path string) (interface{}, error) {
+	var i *interp.Interpreter
 
-	if i == nil {
+	if _, err := os.Stat(path + ".zpk"); err == nil {
+		zf, err := zip.OpenReader(path + ".zpk")
+		if err != nil {
+			return nil, err
+		}
+		i = interp.New(interp.Options{
+			SourcecodeFilesystem: zf,
+		})
+		path = "./"
+	} else if _, err := os.Stat(path); err == nil {
 		i = interp.New(interp.Options{})
-		i.Use(stdlib.Symbols)
-		i.Use(symbol.Symbols)
+	} else {
+		return nil, errors.New("no plugin found with path: " + path)
 	}
+	i.Use(stdlib.Symbols)
+	i.Use(symbol.Symbols)
 
-	if filepath.Ext(path) != ".go" {
-		return nil, errors.New("invalid file extension")
-	}
-
-	file, err := os.ReadFile(path)
-	if err != nil {
-		return nil, errors.New("unable to read file: " + err.Error())
-	}
-
-	_, err = i.Eval(string(file))
+	_, err := i.EvalPath(path)
 	if err != nil {
 		return nil, errors.New("unable to eval file: " + err.Error())
 	}
 
-	packageName := filepath.Base(filepath.Dir(path))
-
-	constructor := packageName + ".New" + pluginType
-
-	v, err := i.Eval(constructor)
-	if err != nil {
-		return nil, errors.New("unable to instanciate plugin with " + constructor + ": " + err.Error())
+	plugin, ok := i.Symbols(path)[path]["NewTVShowProvider"]
+	if !ok {
+		return nil, errors.New("invalid plugin")
 	}
 
-	return v.Interface(), nil
+	return plugin.Interface(), nil
+
 }

@@ -86,7 +86,7 @@ func main() {
 		Handler: h2c.NewHandler(r, h2s),
 	}
 
-	scraper.Test()
+	scraper.Test(status.Log)
 
 	// start !
 	log.Fatal(server.ListenAndServe())
