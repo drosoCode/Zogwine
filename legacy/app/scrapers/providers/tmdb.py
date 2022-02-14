@@ -12,6 +12,7 @@ from datetime import datetime
 
 
 class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
+    """
     def __init__(self, apikey):
         super().__init__()
         self._endpoint = "https://api.themoviedb.org/3/"
@@ -25,7 +26,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             return None
         else:
             return self._baseImgUrl + img
-
+    
     # region TVS
 
     def getTVS(self):
@@ -53,7 +54,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             scraperLink="https://www.themoviedb.org/tv/" + str(self._scraperID),
             scraperID=resp.get("id"),
         )
-
+    
     def getTVSSeason(self, season):
         resp = json.loads(
             requests.get(
@@ -84,6 +85,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             icon=self.__getImg(resp.get("poster_path")),
             rating=-1,
         )
+    """
 
     def getTVSPeople(self):
         resp = json.loads(
@@ -269,6 +271,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
                     scraperLink=None,
                 )
 
+    """
     def searchTVS(self, name):
         next = 1
         data = []
@@ -325,6 +328,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
                 )
             )
         return results
+    """
 
     # endregion
 
