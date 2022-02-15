@@ -1,7 +1,6 @@
 package tmdb
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zogwine/Zogwine/internal/scraper/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,9 +25,18 @@ func New() TMDB {
 	return TMDB{ScraperName: "tmdb", Language: "en-US", Logger: nil, ScraperID: "", ScraperData: ""}
 }
 
-func NewTVShowProvider() common.TVShowProvider {
-	p := New()
-	return &p
+// configure the provider's settings
+func (t *TMDB) Setup(config map[string]string, logger *log.Logger) error {
+	t.Logger = logger
+	if val, ok := config["api_key"]; ok {
+		t.APIKey = val
+	} else {
+		return errors.New("empty api key")
+	}
+	if val, ok := config["language"]; ok {
+		t.Language = val
+	}
+	return nil
 }
 
 func (p *TMDB) Configure(ScraperID string, ScraperData string) {
@@ -122,20 +129,6 @@ func (t *TMDB) MediaLink(tp int, id1 string, id2 string, id3 string) string {
 	return ""
 }
 
-// configure the provider's settings
-func (t *TMDB) Setup(config map[string]string, logger *log.Logger) error {
-	t.Logger = logger
-	if val, ok := config["api_key"]; ok {
-		t.APIKey = val
-	} else {
-		return errors.New("empty api key")
-	}
-	if val, ok := config["language"]; ok {
-		t.Language = val
-	}
-	return nil
-}
-
 // trailer
 
 func (t *TMDB) getTrailerFromVideo(data TMDBVideo) string {
@@ -186,200 +179,18 @@ func (t *TMDB) getTrailerFromVideo(data TMDBVideo) string {
 	return ""
 }
 
-// tvs search
-
-func (t *TMDB) SearchTVS(name string) ([]common.SearchData, error) {
-	// retreive data with pagination
-	data := TMDBTVSearch{}
-	page := 1
-	for {
-		raw, err := t.request("search/tv?query="+name, page)
-		if err != nil {
-			return nil, err
-		}
-		decode := TMDBTVSearch{}
-		err = json.Unmarshal(raw, &decode)
-		if err != nil {
-			return nil, err
-		}
-		data.Results = append(data.Results, decode.Results...)
-		if decode.Page < decode.TotalPages {
-			page++
-		} else {
-			break
-		}
-	}
-
-	// process data
-	ret := make([]common.SearchData, 0)
-	for _, item := range data.Results {
-		prem, _ := time.Parse("2006-01-02", item.FirstAirDate)
-		sd := common.SearchData{
-			Title:     item.Name,
-			Overview:  item.Overview,
-			Icon:      t.ImageURL(item.PosterPath),
-			Premiered: prem.Unix(),
-			ScraperInfo: common.ScraperInfo{
-				ScraperName: t.ScraperName,
-				ScraperID:   strconv.Itoa(item.ID),
-				ScraperData: "",
-				ScraperLink: t.MediaLink(0, strconv.Itoa(item.ID), "", ""),
-			},
-		}
-		ret = append(ret, sd)
-
-		// add episode groups for each result
-		raw, err := t.request("tv/"+strconv.Itoa(item.ID)+"/episode_groups", 1)
-		if err == nil {
-			decode := TMDBEpisodeGroup{}
-			err = json.Unmarshal(raw, &decode)
-			if err == nil {
-				for _, d := range decode.Results {
-					// make a copy of the original result and edit the fields relative to the episode group
-					eg := sd
-					eg.Title = d.Name
-					eg.Overview = d.Description
-					eg.ScraperData = d.ID
-					ret = append(ret, eg)
-				}
-			}
-		}
-	}
-
-	return ret, nil
-}
-
-// tvs get show
-func (t *TMDB) GetTVS() (common.TVSData, error) {
-	// get tvs details
-	raw, err := t.request("tv/"+t.ScraperID, 1)
-	if err != nil {
-		return common.TVSData{}, err
-	}
-	decode := TMDBTVShow{}
-	err = json.Unmarshal(raw, &decode)
-	if err != nil {
-		return common.TVSData{}, err
-	}
-
-	// get associated videos (to extract trailer)
-	raw, err = t.request("tv/"+t.ScraperID, 1)
-	if err != nil {
-		return common.TVSData{}, err
-	}
-	vid := TMDBVideo{}
-	err = json.Unmarshal(raw, &vid)
-	if err != nil {
-		return common.TVSData{}, err
-	}
-
-	prem, _ := time.Parse("2006-01-02", decode.FirstAirDate)
-	return common.TVSData{
-		Title:     decode.Name,
-		Overview:  decode.Overview,
-		Icon:      t.ImageURL(decode.PosterPath),
-		Fanart:    t.ImageURL(decode.BackdropPath),
-		Website:   decode.Homepage,
-		Trailer:   t.getTrailerFromVideo(vid),
-		Premiered: prem.Unix(),
-		Rating:    int64(decode.VoteAverage),
-		ScraperInfo: common.ScraperInfo{
-			ScraperID:   t.ScraperID,
-			ScraperName: t.ScraperName,
-			ScraperData: t.ScraperData,
-			ScraperLink: t.MediaLink(0, t.ScraperID, "", ""),
-		},
-	}, nil
-}
-
-func (t *TMDB) GetTVSSeason(season int) (common.TVSSeasonData, error) {
-	raw, err := t.request("tv/"+t.ScraperID+"/season/"+strconv.Itoa(season), 1)
-	if err != nil {
-		return common.TVSSeasonData{}, err
-	}
-	decode := TMDBSeason{}
-	err = json.Unmarshal(raw, &decode)
-	if err != nil {
-		return common.TVSSeasonData{}, err
-	}
-
-	prem, _ := time.Parse("2006-01-02", decode.Episodes[0].AirDate)
-
-	vote := 0.0
-	for _, i := range decode.Episodes {
-		vote += i.VoteAverage
-	}
-	vote /= float64(len(decode.Episodes))
-
-	return common.TVSSeasonData{
-		Title:     decode.Name,
-		Overview:  decode.Overview,
-		Icon:      t.ImageURL(decode.PosterPath),
-		Fanart:    "",
-		Trailer:   "",
-		Premiered: prem.Unix(),
-		Rating:    int64(vote),
-		ScraperInfo: common.ScraperInfo{
-			ScraperName: t.ScraperName,
-			ScraperID:   t.ScraperID,
-			ScraperData: t.ScraperData,
-			ScraperLink: t.MediaLink(1, t.ScraperID, strconv.Itoa(season), ""),
-		},
-	}, nil
-}
-
-// get tvs episode
-func (t *TMDB) GetTVSEpisode(season int, episode int) (common.TVSEpisodeData, error) {
-	var decode TMDBEpisode
-
-	if t.ScraperData == "" {
-		raw, err := t.request("tv/"+t.ScraperID+"/season/"+strconv.Itoa(season)+"/episode/"+strconv.Itoa(episode), 1)
-		if err != nil {
-			return common.TVSEpisodeData{}, err
-		}
-		decode = TMDBEpisode{}
-		err = json.Unmarshal(raw, &decode)
-		if err != nil {
-			return common.TVSEpisodeData{}, err
-		}
-	} else {
-		raw, err := t.request("tv/episode_group/"+t.ScraperData, 1)
-		if err != nil {
-			return common.TVSEpisodeData{}, err
-		}
-		dec := TMDBEpisodeGroupData{}
-		err = json.Unmarshal(raw, &dec)
-		if err != nil {
-			return common.TVSEpisodeData{}, err
-		}
-
-		if len(dec.Groups) == 0 {
-			return common.TVSEpisodeData{}, errors.New("no data")
-		}
-		for _, i := range dec.Groups[0].Episodes {
-			if i.SeasonNumber == season && i.EpisodeNumber == episode {
-				decode = i
-			}
-		}
-	}
-
-	if decode.Name == "" {
-		return common.TVSEpisodeData{}, errors.New("no data")
-	}
-
-	prem, _ := time.Parse("2006-01-02", decode.AirDate)
-
-	return common.TVSEpisodeData{
-		Title:     decode.Name,
-		Overview:  decode.Overview,
-		Icon:      t.ImageURL(decode.StillPath),
-		Premiered: prem.Unix(),
-		Rating:    int64(decode.VoteAverage),
-		ScraperInfo: common.ScraperInfo{
-			ScraperName: t.ScraperName,
-			ScraperID:   t.ScraperID,
-			ScraperData: t.ScraperData,
-			ScraperLink: t.MediaLink(2, t.ScraperID, strconv.Itoa(season), strconv.Itoa(episode)),
-		},
-	}, nil
+type TMDBVideo struct {
+	ID      int `json:"id"`
+	Results []struct {
+		ISO6391     string `json:"iso_639_1"`
+		ISO31661    string `json:"iso_3166_1"`
+		Name        string `json:"name"`
+		Key         string `json:"string"`
+		Site        string `json:"site"`
+		Size        int    `json:"size"`
+		Type        string `json:"type"`
+		Official    bool   `json:"official"`
+		PublishedAt string `json:"published_at"`
+		ID          string `json:"id"`
+	} `json:"results"`
 }

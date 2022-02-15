@@ -1,21 +1,5 @@
 package tmdb
 
-type TMDBVideo struct {
-	ID      int `json:"id"`
-	Results []struct {
-		ISO6391     string `json:"iso_639_1"`
-		ISO31661    string `json:"iso_3166_1"`
-		Name        string `json:"name"`
-		Key         string `json:"string"`
-		Site        string `json:"site"`
-		Size        int    `json:"size"`
-		Type        string `json:"type"`
-		Official    bool   `json:"official"`
-		PublishedAt string `json:"published_at"`
-		ID          string `json:"id"`
-	} `json:"results"`
-}
-
 type TMDBTVSearch struct {
 	Page         int `json:"page"`
 	TotalPages   int `json:"total_pages"`
@@ -87,7 +71,17 @@ type TMDBTVShow struct {
 		VoteAverage    float64 `json:"vote_average"`
 		VoteCount      int     `json:"vote_count"`
 	} `json:"last_episode_to_air"`
-	Name     string `json:"name"`
+	Name             string `json:"name"`
+	NextEpisodeToAir struct {
+		AirDate        string `json:"air_date"`
+		EpisodeNumber  int    `json:"episode_number"`
+		ID             int    `json:"id"`
+		Name           string `json:"name"`
+		Overview       string `json:"overview"`
+		ProductionCode string `json:"production_code"`
+		SeasonNumber   int    `json:"season_number"`
+		StillPath      string `json:"still_path"`
+	} `json:"next_episode_to_air"`
 	Networks []struct {
 		Name          string `json:"name"`
 		ID            int    `json:"id"`
@@ -231,4 +225,32 @@ type TMDBEpisodeGroupData struct {
 		Locked   bool          `json:"locked"`
 		Episodes []TMDBEpisode `json:"episodes"`
 	} `json:"groups"`
+}
+
+type TMDBTVSCredits struct {
+	Cast []struct {
+		Adult              bool    `json:"adult"`
+		Gender             int     `json:"gender"`
+		ID                 int     `json:"id"`
+		KnownForDepartment string  `json:"known_for_department"`
+		Name               string  `json:"name"`
+		OriginalName       string  `json:"original_name"`
+		Popularity         float64 `json:"popularity"`
+		Character          string  `json:"character"`
+		CreditID           string  `json:"credit_id"`
+		Order              int     `json:"order"`
+	} `json:"cast"`
+	Crew []struct {
+		Adult              bool    `json:"adult"`
+		Gender             int     `json:"gender"`
+		ID                 int     `json:"id"`
+		KnownForDepartment string  `json:"known_for_department"`
+		Name               string  `json:"name"`
+		OriginalName       string  `json:"original_name"`
+		Popularity         float64 `json:"popularity"`
+		ProfilePath        string  `json:"profile_path"`
+		CreditID           string  `json:"credit_id"`
+		Department         string  `json:"department"`
+		Job                string  `json:"job"`
+	} `json:"crew"`
 }

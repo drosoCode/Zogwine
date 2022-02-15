@@ -38,6 +38,8 @@ type UpcomingData struct {
 	Title     string
 	Overview  string
 	Icon      string
-	Premiered string
+	Premiered int64
+	ID1       int64 // season for tvs
+	ID2       int64 // episode for tvs
 	ScraperInfo
 }

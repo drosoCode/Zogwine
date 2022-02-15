@@ -6,9 +6,9 @@ type TVShowProvider interface {
 	GetTVS() (TVSData, error)
 	GetTVSSeason(season int) (TVSSeasonData, error)
 	GetTVSEpisode(season int, episode int) (TVSEpisodeData, error)
-	//ListTVSTag() ([]TagData, error)
-	//ListTVSPerson() ([]PersonData, error)
-	//GetTVSUpcomingEpisode() (UpcomingData, error)
+	ListTVSTag() ([]TagData, error)
+	ListTVSPerson() ([]PersonData, error)
+	GetTVSUpcomingEpisode() (UpcomingData, error)
 }
 
 type TVSData struct {

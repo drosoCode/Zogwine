@@ -85,7 +85,6 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
             icon=self.__getImg(resp.get("poster_path")),
             rating=-1,
         )
-    """
 
     def getTVSPeople(self):
         resp = json.loads(
@@ -190,7 +189,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
 
         return tags
 
-    """
+
     def getTVSEpisode(self, season, episode):
         if self._scraperData == None:
             resp = json.loads(
@@ -272,7 +271,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
                     scraperLink=None,
                 )
 
-    
+
     def searchTVS(self, name):
         next = 1
         data = []
