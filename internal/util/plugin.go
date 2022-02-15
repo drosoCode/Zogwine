@@ -19,6 +19,9 @@ func LoadPlugins(pluginType string, folder string) ([]interface{}, error) {
 		if err == nil {
 			plugins = append(plugins, pl)
 		}
+		if info.IsDir() {
+			return filepath.SkipDir
+		}
 		return nil
 	})
 
@@ -50,11 +53,10 @@ func LoadPlugin(pluginType string, path string) (interface{}, error) {
 		return nil, errors.New("unable to eval file: " + err.Error())
 	}
 
-	plugin, ok := i.Symbols(path)[path]["NewTVShowProvider"]
+	plugin, ok := i.Symbols(path)[path]["New"+pluginType]
 	if !ok {
 		return nil, errors.New("invalid plugin")
 	}
 
 	return plugin.Interface(), nil
-
 }
