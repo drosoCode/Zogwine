@@ -44,17 +44,6 @@ func (p *TMDB) Configure(ScraperID string, ScraperData string) {
 	p.ScraperData = ScraperData
 }
 
-/*
-func NewMovieProvider(logger *log.Logger) common.MovieProvider {
-	p := New(logger)
-	return &p
-}
-
-func NewPersonProvider(logger *log.Logger) common.PersonProvider {
-	p := New(logger)
-	return &p
-}*/
-
 // helper to make a request to the api
 func (t *TMDB) request(link string, page int) ([]byte, error) {
 	errFields := log.Fields{

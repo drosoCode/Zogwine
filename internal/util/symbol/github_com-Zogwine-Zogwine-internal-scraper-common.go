@@ -24,7 +24,7 @@ func init() {
 		"MovieData":           reflect.ValueOf((*common.MovieData)(nil)),
 		"MovieProvider":       reflect.ValueOf((*common.MovieProvider)(nil)),
 		"PersonData":          reflect.ValueOf((*common.PersonData)(nil)),
-		"PersonDetailsData":   reflect.ValueOf((*common.PersonDetailsData)(nil)),
+		"PersonDetails":       reflect.ValueOf((*common.PersonDetails)(nil)),
 		"PersonProvider":      reflect.ValueOf((*common.PersonProvider)(nil)),
 		"Provider":            reflect.ValueOf((*common.Provider)(nil)),
 		"ScraperInfo":         reflect.ValueOf((*common.ScraperInfo)(nil)),
@@ -111,18 +111,18 @@ func (W _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider) Setup
 
 // _github_com_Zogwine_Zogwine_internal_scraper_common_PersonProvider is an interface wrapper for PersonProvider type
 type _github_com_Zogwine_Zogwine_internal_scraper_common_PersonProvider struct {
-	IValue            interface{}
-	WConfigure        func(ScraperID string, ScraperData string)
-	WGetPersonDetails func() (common.PersonDetailsData, error)
-	WSearchPerson     func(name string) ([]common.SearchData, error)
-	WSetup            func(config map[string]string, logger *logrus.Logger) error
+	IValue        interface{}
+	WConfigure    func(ScraperID string, ScraperData string)
+	WGetPerson    func() (common.PersonDetails, error)
+	WSearchPerson func(name string) ([]common.SearchData, error)
+	WSetup        func(config map[string]string, logger *logrus.Logger) error
 }
 
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_PersonProvider) Configure(ScraperID string, ScraperData string) {
 	W.WConfigure(ScraperID, ScraperData)
 }
-func (W _github_com_Zogwine_Zogwine_internal_scraper_common_PersonProvider) GetPersonDetails() (common.PersonDetailsData, error) {
-	return W.WGetPersonDetails()
+func (W _github_com_Zogwine_Zogwine_internal_scraper_common_PersonProvider) GetPerson() (common.PersonDetails, error) {
+	return W.WGetPerson()
 }
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_PersonProvider) SearchPerson(name string) ([]common.SearchData, error) {
 	return W.WSearchPerson(name)
