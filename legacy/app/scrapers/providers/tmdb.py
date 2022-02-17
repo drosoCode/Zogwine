@@ -334,6 +334,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
 
     # region Movie
 
+    """
     def getMovie(self):
         resp = json.loads(
             requests.get(
@@ -508,6 +509,7 @@ class tmdb(BaseProvider, TVSProvider, MovieProvider, PersonProvider):
                 )
 
         return tags
+    """
 
     # endregion
 

@@ -9,7 +9,7 @@ type TMDBTVSearch struct {
 		Popularity       float64  `json:"popularity"`
 		ID               int      `json:"id"`
 		BackdropPath     string   `json:"backdrop_path"`
-		Voteaverage      float64  `json:"vote_average"`
+		VoteAverage      float64  `json:"vote_average"`
 		Overview         string   `json:"overview"`
 		FirstAirDate     string   `json:"first_air_date"`
 		OriginCountry    []string `json:"origin_country"`

@@ -93,7 +93,7 @@ func (t *TMDB) GetTVS() (common.TVSData, error) {
 	}
 
 	// get associated videos (to extract trailer)
-	raw, err = t.request("tv/"+t.ScraperID, 1)
+	raw, err = t.request("tv/"+t.ScraperID+"/videos", 1)
 	if err != nil {
 		return common.TVSData{}, err
 	}
@@ -292,7 +292,7 @@ func (t *TMDB) ListTVSPerson() ([]common.PersonData, error) {
 	return pers, nil
 }
 
-func (t *TMDB) GetTVSUpcomingEpisode() (common.UpcomingData, error) {
+func (t *TMDB) GetTVSUpcoming() (common.UpcomingData, error) {
 
 	raw, err := t.request("tv/"+t.ScraperID, 1)
 	if err != nil {

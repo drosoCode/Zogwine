@@ -2,7 +2,7 @@ package common
 
 type MovieProvider interface {
 	Provider
-	SearchMovie(name string) ([]SearchData, error)
+	SearchMovie(name string, year int) ([]SearchData, error)
 	ListMovieTag() ([]TagData, error)
 	ListMoviePerson() ([]PersonData, error)
 	GetMovie() (MovieData, error)
@@ -18,8 +18,8 @@ type MovieData struct {
 	Website    string
 	Trailer    string
 	Premiered  int64
-	Rating     int
-	Collection int
+	Rating     int64
+	Collection int64
 	ScraperInfo
 }
 
@@ -29,6 +29,6 @@ type MovieCollectionData struct {
 	Icon      string
 	Fanart    string
 	Premiered int64
-	Rating    int
+	Rating    int64
 	ScraperInfo
 }

@@ -124,6 +124,8 @@ func (t *TMDB) MediaLink(tp int, id1 string, id2 string, id3 string) string {
 	} else if tp == 3 {
 		return "https://www.themoviedb.org/movie/" + id1
 	} else if tp == 4 {
+		return "https://www.themoviedb.org/collection/" + id1
+	} else if tp == 5 {
 		return "https://www.themoviedb.org/person/" + id1
 	}
 	return ""

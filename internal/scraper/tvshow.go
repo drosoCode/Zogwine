@@ -49,7 +49,6 @@ func Test(logger *log.Logger) {
 	}
 
 	pl.Setup(conf, logger)
-	pl.Configure("31910", "")
+	pl.Configure("1429", "")
 
-	fmt.Println(pl.GetTVS())
 }

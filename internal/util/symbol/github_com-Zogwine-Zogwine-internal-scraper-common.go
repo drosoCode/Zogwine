@@ -80,7 +80,7 @@ type _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider struct {
 	WGetMovieUpcoming   func() (common.UpcomingData, error)
 	WListMoviePerson    func() ([]common.PersonData, error)
 	WListMovieTag       func() ([]common.TagData, error)
-	WSearchMovie        func(name string) ([]common.SearchData, error)
+	WSearchMovie        func(name string, year int) ([]common.SearchData, error)
 	WSetup              func(config map[string]string, logger *logrus.Logger) error
 }
 
@@ -102,8 +102,8 @@ func (W _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider) ListM
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider) ListMovieTag() ([]common.TagData, error) {
 	return W.WListMovieTag()
 }
-func (W _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider) SearchMovie(name string) ([]common.SearchData, error) {
-	return W.WSearchMovie(name)
+func (W _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider) SearchMovie(name string, year int) ([]common.SearchData, error) {
+	return W.WSearchMovie(name, year)
 }
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_MovieProvider) Setup(config map[string]string, logger *logrus.Logger) error {
 	return W.WSetup(config, logger)
@@ -147,16 +147,16 @@ func (W _github_com_Zogwine_Zogwine_internal_scraper_common_Provider) Setup(conf
 
 // _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider is an interface wrapper for TVShowProvider type
 type _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider struct {
-	IValue                 interface{}
-	WConfigure             func(ScraperID string, ScraperData string)
-	WGetTVS                func() (common.TVSData, error)
-	WGetTVSEpisode         func(season int, episode int) (common.TVSEpisodeData, error)
-	WGetTVSSeason          func(season int) (common.TVSSeasonData, error)
-	WGetTVSUpcomingEpisode func() (common.UpcomingData, error)
-	WListTVSPerson         func() ([]common.PersonData, error)
-	WListTVSTag            func() ([]common.TagData, error)
-	WSearchTVS             func(name string) ([]common.SearchData, error)
-	WSetup                 func(config map[string]string, logger *logrus.Logger) error
+	IValue          interface{}
+	WConfigure      func(ScraperID string, ScraperData string)
+	WGetTVS         func() (common.TVSData, error)
+	WGetTVSEpisode  func(season int, episode int) (common.TVSEpisodeData, error)
+	WGetTVSSeason   func(season int) (common.TVSSeasonData, error)
+	WGetTVSUpcoming func() (common.UpcomingData, error)
+	WListTVSPerson  func() ([]common.PersonData, error)
+	WListTVSTag     func() ([]common.TagData, error)
+	WSearchTVS      func(name string) ([]common.SearchData, error)
+	WSetup          func(config map[string]string, logger *logrus.Logger) error
 }
 
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider) Configure(ScraperID string, ScraperData string) {
@@ -171,8 +171,8 @@ func (W _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider) GetT
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider) GetTVSSeason(season int) (common.TVSSeasonData, error) {
 	return W.WGetTVSSeason(season)
 }
-func (W _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider) GetTVSUpcomingEpisode() (common.UpcomingData, error) {
-	return W.WGetTVSUpcomingEpisode()
+func (W _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider) GetTVSUpcoming() (common.UpcomingData, error) {
+	return W.WGetTVSUpcoming()
 }
 func (W _github_com_Zogwine_Zogwine_internal_scraper_common_TVShowProvider) ListTVSPerson() ([]common.PersonData, error) {
 	return W.WListTVSPerson()
