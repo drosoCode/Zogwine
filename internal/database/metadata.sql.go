@@ -7,8 +7,130 @@ import (
 	"context"
 )
 
+const addPerson = `-- name: AddPerson :one
+INSERT INTO person (name, gender, birth, death, overview, icon, known_for, rating, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id
+`
+
+type AddPersonParams struct {
+	Name        string `json:"name"`
+	Gender      int64  `json:"gender"`
+	Birth       int64  `json:"birth"`
+	Death       int64  `json:"death"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	KnownFor    string `json:"knownFor"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateDate  int64  `json:"updateDate"`
+	UpdateMode  int64  `json:"updateMode"`
+}
+
+func (q *Queries) AddPerson(ctx context.Context, arg AddPersonParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addPerson,
+		arg.Name,
+		arg.Gender,
+		arg.Birth,
+		arg.Death,
+		arg.Overview,
+		arg.Icon,
+		arg.KnownFor,
+		arg.Rating,
+		arg.ScraperName,
+		arg.ScraperID,
+		arg.ScraperData,
+		arg.ScraperLink,
+		arg.AddDate,
+		arg.UpdateDate,
+		arg.UpdateMode,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const addPersonLink = `-- name: AddPersonLink :exec
+INSERT INTO person_link (id_person, media_type, media_data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING
+`
+
+type AddPersonLinkParams struct {
+	IDPerson  int64     `json:"idPerson"`
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) AddPersonLink(ctx context.Context, arg AddPersonLinkParams) error {
+	_, err := q.db.ExecContext(ctx, addPersonLink, arg.IDPerson, arg.MediaType, arg.MediaData)
+	return err
+}
+
+const addTag = `-- name: AddTag :one
+INSERT INTO tag (name, value, icon) VALUES ($1, $2, $3) RETURNING id
+`
+
+type AddTagParams struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+	Icon  string `json:"icon"`
+}
+
+func (q *Queries) AddTag(ctx context.Context, arg AddTagParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addTag, arg.Name, arg.Value, arg.Icon)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const addTagLink = `-- name: AddTagLink :exec
+INSERT INTO tag_link (id_tag, media_type, media_data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING
+`
+
+type AddTagLinkParams struct {
+	IDTag     int64     `json:"idTag"`
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) AddTagLink(ctx context.Context, arg AddTagLinkParams) error {
+	_, err := q.db.ExecContext(ctx, addTagLink, arg.IDTag, arg.MediaType, arg.MediaData)
+	return err
+}
+
+const deletePersonLink = `-- name: DeletePersonLink :exec
+DELETE FROM person_link WHERE id_person = $1 AND media_type = $2 AND media_data = $3
+`
+
+type DeletePersonLinkParams struct {
+	IDPerson  int64     `json:"idPerson"`
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) DeletePersonLink(ctx context.Context, arg DeletePersonLinkParams) error {
+	_, err := q.db.ExecContext(ctx, deletePersonLink, arg.IDPerson, arg.MediaType, arg.MediaData)
+	return err
+}
+
+const deleteTagLink = `-- name: DeleteTagLink :exec
+DELETE FROM tag_link WHERE id_tag = $1 AND media_type = $2 AND media_data = $3
+`
+
+type DeleteTagLinkParams struct {
+	IDTag     int64     `json:"idTag"`
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) DeleteTagLink(ctx context.Context, arg DeleteTagLinkParams) error {
+	_, err := q.db.ExecContext(ctx, deleteTagLink, arg.IDTag, arg.MediaType, arg.MediaData)
+	return err
+}
+
 const getPerson = `-- name: GetPerson :one
-SELECT id, name, gender, birth, death, overview, icon, knownFor, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode FROM person WHERE id = $1
+SELECT id, name, gender, birth, death, overview, icon, known_for, rating, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode FROM person WHERE id = $1
 `
 
 func (q *Queries) GetPerson(ctx context.Context, id int64) (Person, error) {
@@ -23,6 +145,35 @@ func (q *Queries) GetPerson(ctx context.Context, id int64) (Person, error) {
 		&i.Overview,
 		&i.Icon,
 		&i.KnownFor,
+		&i.Rating,
+		&i.ScraperName,
+		&i.ScraperID,
+		&i.ScraperData,
+		&i.ScraperLink,
+		&i.AddDate,
+		&i.UpdateDate,
+		&i.UpdateMode,
+	)
+	return i, err
+}
+
+const getPersonByName = `-- name: GetPersonByName :one
+SELECT id, name, gender, birth, death, overview, icon, known_for, rating, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode FROM person WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) GetPersonByName(ctx context.Context, name string) (Person, error) {
+	row := q.db.QueryRowContext(ctx, getPersonByName, name)
+	var i Person
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Gender,
+		&i.Birth,
+		&i.Death,
+		&i.Overview,
+		&i.Icon,
+		&i.KnownFor,
+		&i.Rating,
 		&i.ScraperName,
 		&i.ScraperID,
 		&i.ScraperData,
@@ -73,8 +224,29 @@ func (q *Queries) GetTag(ctx context.Context, id int64) (Tag, error) {
 	return i, err
 }
 
+const getTagByValue = `-- name: GetTagByValue :one
+SELECT id, name, value, icon FROM tag WHERE name = $1 AND value = $2 LIMIT 1
+`
+
+type GetTagByValueParams struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+func (q *Queries) GetTagByValue(ctx context.Context, arg GetTagByValueParams) (Tag, error) {
+	row := q.db.QueryRowContext(ctx, getTagByValue, arg.Name, arg.Value)
+	var i Tag
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Value,
+		&i.Icon,
+	)
+	return i, err
+}
+
 const listPersonByMedia = `-- name: ListPersonByMedia :many
-SELECT id, name, gender, birth, death, overview, icon, knownFor, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_person, media_type, media_data, id_role FROM person p INNER JOIN person_link l ON (p.id = l.id_person) WHERE l.media_type = $1 AND l.media_data = $2
+SELECT id, name, gender, birth, death, overview, icon, known_for, rating, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_person, media_type, media_data, id_role FROM person p INNER JOIN person_link l ON (p.id = l.id_person) WHERE l.media_type = $1 AND l.media_data = $2
 `
 
 type ListPersonByMediaParams struct {
@@ -91,6 +263,7 @@ type ListPersonByMediaRow struct {
 	Overview    string    `json:"overview"`
 	Icon        string    `json:"icon"`
 	KnownFor    string    `json:"knownFor"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	ScraperData string    `json:"scraperData"`
@@ -122,6 +295,7 @@ func (q *Queries) ListPersonByMedia(ctx context.Context, arg ListPersonByMediaPa
 			&i.Overview,
 			&i.Icon,
 			&i.KnownFor,
+			&i.Rating,
 			&i.ScraperName,
 			&i.ScraperID,
 			&i.ScraperData,
@@ -148,7 +322,7 @@ func (q *Queries) ListPersonByMedia(ctx context.Context, arg ListPersonByMediaPa
 }
 
 const listPersonByName = `-- name: ListPersonByName :many
-SELECT id, name, gender, birth, death, overview, icon, knownFor, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode FROM person WHERE name LIKE $1
+SELECT id, name, gender, birth, death, overview, icon, known_for, rating, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode FROM person WHERE name LIKE $1
 `
 
 func (q *Queries) ListPersonByName(ctx context.Context, name string) ([]Person, error) {
@@ -169,6 +343,7 @@ func (q *Queries) ListPersonByName(ctx context.Context, name string) ([]Person, 
 			&i.Overview,
 			&i.Icon,
 			&i.KnownFor,
+			&i.Rating,
 			&i.ScraperName,
 			&i.ScraperID,
 			&i.ScraperData,
@@ -191,7 +366,7 @@ func (q *Queries) ListPersonByName(ctx context.Context, name string) ([]Person, 
 }
 
 const listPersonByRole = `-- name: ListPersonByRole :many
-SELECT id, name, gender, birth, death, overview, icon, knownFor, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_person, media_type, media_data, id_role FROM person p INNER JOIN person_link l ON (p.id = l.id_person) WHERE l.id_role = $1
+SELECT id, name, gender, birth, death, overview, icon, known_for, rating, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode, id_person, media_type, media_data, id_role FROM person p INNER JOIN person_link l ON (p.id = l.id_person) WHERE l.id_role = $1
 `
 
 type ListPersonByRoleRow struct {
@@ -203,6 +378,7 @@ type ListPersonByRoleRow struct {
 	Overview    string    `json:"overview"`
 	Icon        string    `json:"icon"`
 	KnownFor    string    `json:"knownFor"`
+	Rating      int64     `json:"rating"`
 	ScraperName string    `json:"scraperName"`
 	ScraperID   string    `json:"scraperID"`
 	ScraperData string    `json:"scraperData"`
@@ -234,6 +410,7 @@ func (q *Queries) ListPersonByRole(ctx context.Context, idRole int64) ([]ListPer
 			&i.Overview,
 			&i.Icon,
 			&i.KnownFor,
+			&i.Rating,
 			&i.ScraperName,
 			&i.ScraperID,
 			&i.ScraperData,
@@ -466,4 +643,62 @@ func (q *Queries) ListTagCatg(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePerson = `-- name: UpdatePerson :exec
+UPDATE person t
+SET name = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.name END,
+    overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
+    icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
+    rating = CASE WHEN $6::BIGINT > 0 THEN $6::BIGINT ELSE t.rating END,
+    birth = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.birth END,
+    death = CASE WHEN $8::BIGINT > 0 THEN $8::BIGINT ELSE t.death END,
+    gender = CASE WHEN $9::BIGINT > 0 THEN $9::BIGINT ELSE t.gender END,
+    known_for = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.known_for END,
+    scraper_id = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_id END,
+    scraper_name = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_name END,
+    scraper_data = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_data END,
+    scraper_link = CASE WHEN $14::TEXT != '' THEN $14::TEXT ELSE t.scraper_link END,
+    update_mode = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.update_mode END,
+    update_date = $2
+WHERE id = $1
+`
+
+type UpdatePersonParams struct {
+	ID          int64  `json:"id"`
+	UpdateDate  int64  `json:"updateDate"`
+	Name        string `json:"name"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Rating      int64  `json:"rating"`
+	Birth       int64  `json:"birth"`
+	Death       int64  `json:"death"`
+	Gender      int64  `json:"gender"`
+	KnownFor    string `json:"knownFor"`
+	ScraperID   string `json:"scraperID"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	UpdateMode  int64  `json:"updateMode"`
+}
+
+func (q *Queries) UpdatePerson(ctx context.Context, arg UpdatePersonParams) error {
+	_, err := q.db.ExecContext(ctx, updatePerson,
+		arg.ID,
+		arg.UpdateDate,
+		arg.Name,
+		arg.Overview,
+		arg.Icon,
+		arg.Rating,
+		arg.Birth,
+		arg.Death,
+		arg.Gender,
+		arg.KnownFor,
+		arg.ScraperID,
+		arg.ScraperName,
+		arg.ScraperData,
+		arg.ScraperLink,
+		arg.UpdateMode,
+	)
+	return err
 }

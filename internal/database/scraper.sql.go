@@ -5,9 +5,55 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/lib/pq"
 )
+
+const addMultipleResults = `-- name: AddMultipleResults :exec
+INSERT INTO selection (media_type, media_data, data) VALUES ($1, $2, $3)
+`
+
+type AddMultipleResultsParams struct {
+	MediaType MediaType       `json:"mediaType"`
+	MediaData int64           `json:"mediaData"`
+	Data      json.RawMessage `json:"data"`
+}
+
+func (q *Queries) AddMultipleResults(ctx context.Context, arg AddMultipleResultsParams) error {
+	_, err := q.db.ExecContext(ctx, addMultipleResults, arg.MediaType, arg.MediaData, arg.Data)
+	return err
+}
+
+const deleteMultipleResultsByMedia = `-- name: DeleteMultipleResultsByMedia :exec
+DELETE FROM selection WHERE media_type = $1 AND media_data = $2
+`
+
+type DeleteMultipleResultsByMediaParams struct {
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) DeleteMultipleResultsByMedia(ctx context.Context, arg DeleteMultipleResultsByMediaParams) error {
+	_, err := q.db.ExecContext(ctx, deleteMultipleResultsByMedia, arg.MediaType, arg.MediaData)
+	return err
+}
+
+const getMultipleResultsByMedia = `-- name: GetMultipleResultsByMedia :one
+SELECT media_type, media_data, data FROM selection WHERE media_type = $1 AND media_data = $2 LIMIT 1
+`
+
+type GetMultipleResultsByMediaParams struct {
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) GetMultipleResultsByMedia(ctx context.Context, arg GetMultipleResultsByMediaParams) (Selection, error) {
+	row := q.db.QueryRowContext(ctx, getMultipleResultsByMedia, arg.MediaType, arg.MediaData)
+	var i Selection
+	err := row.Scan(&i.MediaType, &i.MediaData, &i.Data)
+	return i, err
+}
 
 const listScraperForType = `-- name: ListScraperForType :many
 SELECT provider, priority, media_type, settings, enabled FROM scraper WHERE media_type @> $1 ORDER BY priority

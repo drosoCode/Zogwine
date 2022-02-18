@@ -51,13 +51,13 @@ class BaseScraper:
             f"provider {scraperName} cannot be found for scraper {self.__class__.__name__}"
         )
 
+    """
     def _listFiles(self, basePath, addPath=""):
-        """
         list all absolute paths to the files located in the basePath or in a subdirectory
         Args:
             basePath: absolute path to the directory
             addPath: optionnal additionnal path after the dir (used for recursion)
-        """
+        
         files = []
         searchDir = os.path.join(basePath, addPath)
         for i in os.listdir(searchDir):
@@ -66,6 +66,7 @@ class BaseScraper:
             else:
                 files.append(os.path.join(addPath, i))
         return files
+    """
 
     def _addScraperResults(self, mediaData, data):
         """
@@ -84,6 +85,7 @@ class BaseScraper:
         )
         sqlConnection.close()
 
+    """
     def _selectBestItem(self, items, title, year=None):
         searchItems = []
         if year is not None:
@@ -101,6 +103,7 @@ class BaseScraper:
             return searchItems[titles.index(result[0])]
 
         return False
+    
 
     def _addMultipleResults(self, mediaData, searchResults):
         serializedResults = json.dumps([asdict(i) for i in searchResults])
@@ -225,3 +228,4 @@ class BaseScraper:
         sqlConnection.close()
 
     # endregion
+    """

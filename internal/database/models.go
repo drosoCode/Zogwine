@@ -162,6 +162,7 @@ type Person struct {
 	Overview    string `json:"overview"`
 	Icon        string `json:"icon"`
 	KnownFor    string `json:"knownFor"`
+	Rating      int64  `json:"rating"`
 	ScraperName string `json:"scraperName"`
 	ScraperID   string `json:"scraperID"`
 	ScraperData string `json:"scraperData"`
