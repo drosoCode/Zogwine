@@ -270,7 +270,7 @@ func getFileInfos(videoFilePath string, supportedVideo []string, supportedSubtit
 // You need to provide the library id (idlib) and the path to the file in this library (videoFilePath) to analyse the video
 // mediaType, mediaData must be provided to link the video file to the correct media entity
 // tmp describes if the video file is temporary or not
-func AddFile(s *status.Status, idlib int64, videoFilePath string, mediaType database.MediaType, mediaData int64, tmp bool) (int64, error) {
+func AddVideoFile(s *status.Status, idlib int64, videoFilePath string, mediaType database.MediaType, mediaData int64, tmp bool) (int64, error) {
 	ctx := context.Background()
 	lib, err := s.DB.GetLibrary(ctx, idlib)
 	if err != nil {
@@ -306,7 +306,7 @@ func AddFile(s *status.Status, idlib int64, videoFilePath string, mediaType data
 	return id, nil
 }
 
-func UpdateFile(s *status.Status, idlib int64, videoFilePath string) error {
+func UpdateVideoFile(s *status.Status, idlib int64, videoFilePath string) error {
 	ctx := context.Background()
 	lib, err := s.DB.GetLibrary(ctx, idlib)
 	if err != nil {

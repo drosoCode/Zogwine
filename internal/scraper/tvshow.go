@@ -269,7 +269,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 		if err == nil {
 			episodeData, err := t.App.DB.GetShowEpisode(ctx, database.GetShowEpisodeParams{IDUser: 0, ID: videoData.MediaData})
 			if err == nil && episodeData.UpdateMode > 0 {
-				err = file.UpdateFile(t.App, t.IDLib, p)
+				err = file.UpdateVideoFile(t.App, t.IDLib, p)
 				epData, err := provider.GetTVSEpisode(int(episodeData.Season), int(episodeData.Episode))
 				if err == nil {
 					t.App.DB.UpdateShowEpisode(ctx, database.UpdateShowEpisodeParams{
@@ -342,7 +342,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 							UpdateMode:  0,
 						})
 						if err == nil {
-							file.AddFile(t.App, t.IDLib, p, database.MediaTypeTvsEpisode, idEp, false)
+							file.AddVideoFile(t.App, t.IDLib, p, database.MediaTypeTvsEpisode, idEp, false)
 						}
 					} else if t.AddUnknown {
 						// if no data is found but addUnknown is enabled
@@ -352,7 +352,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 							UpdateMode: 0,
 						})
 						if err == nil {
-							file.AddFile(t.App, t.IDLib, p, database.MediaTypeTvsEpisode, idEp, false)
+							file.AddVideoFile(t.App, t.IDLib, p, database.MediaTypeTvsEpisode, idEp, false)
 						}
 					}
 				}
