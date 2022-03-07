@@ -99,6 +99,34 @@ func (q *Queries) AddTagLink(ctx context.Context, arg AddTagLinkParams) error {
 	return err
 }
 
+const deleteAllPersonLinks = `-- name: DeleteAllPersonLinks :exec
+DELETE FROM person_link WHERE media_type = $1 AND media_data = $2
+`
+
+type DeleteAllPersonLinksParams struct {
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) DeleteAllPersonLinks(ctx context.Context, arg DeleteAllPersonLinksParams) error {
+	_, err := q.db.ExecContext(ctx, deleteAllPersonLinks, arg.MediaType, arg.MediaData)
+	return err
+}
+
+const deleteAllTagLinks = `-- name: DeleteAllTagLinks :exec
+DELETE FROM tag_link WHERE media_type = $1 AND media_data = $2
+`
+
+type DeleteAllTagLinksParams struct {
+	MediaType MediaType `json:"mediaType"`
+	MediaData int64     `json:"mediaData"`
+}
+
+func (q *Queries) DeleteAllTagLinks(ctx context.Context, arg DeleteAllTagLinksParams) error {
+	_, err := q.db.ExecContext(ctx, deleteAllTagLinks, arg.MediaType, arg.MediaData)
+	return err
+}
+
 const deletePersonLink = `-- name: DeletePersonLink :exec
 DELETE FROM person_link WHERE id_person = $1 AND media_type = $2 AND media_data = $3
 `

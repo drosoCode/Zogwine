@@ -15,6 +15,18 @@ import (
 	fuzzy "github.com/paul-mannino/go-fuzzywuzzy"
 )
 
+// scraper definition
+type Scraper interface {
+	Scan(idlib int64, AutoAdd bool, AddUnknown bool)
+	UpdateWithSelectionResult(mediaData int64, selection SelectionResult)
+}
+
+type SelectionResult struct {
+	ScraperName string
+	ScraperID   string
+	ScraperData string
+}
+
 // Select the best SearchData from an array based on a provided title and an optionnal year
 // if no matching item is found or that the score is too low, an error is returned
 func SelectBestItem(items []common.SearchData, title string, year int) (common.SearchData, error) {
@@ -42,6 +54,32 @@ func SelectBestItem(items []common.SearchData, title string, year int) (common.S
 	}
 
 	return common.SearchData{}, errors.New("no data")
+}
+
+// Returns a list of the enabled scrapers and map of scraper name to config for a specific mediaType sorted by priority
+func ListScraperConfiguration(s *status.Status, mediaType database.MediaType) ([]string, map[string](map[string]string), error) {
+	ctx := context.Background()
+	names := []string{}
+	config := map[string](map[string]string){}
+
+	data, err := s.DB.ListScraperForType(ctx, mediaType)
+	if err != nil {
+		return names, config, err
+	}
+
+	for _, i := range data {
+		if i.Enabled {
+			names = append(names, i.Provider)
+			x := make(map[string]string)
+			err = json.Unmarshal(i.Settings, &x)
+			if err != nil {
+				return names, config, err
+			}
+			config[i.Provider] = x
+		}
+	}
+
+	return names, config, nil
 }
 
 // List all files recursively for a given directory
@@ -84,7 +122,7 @@ func SelectScraperResult(s *status.Status, mediaType database.MediaType, mediaDa
 	}
 
 	searchData := []common.SearchData{}
-	err = json.Unmarshal(data.Data, searchData)
+	err = json.Unmarshal(data.Data, &searchData)
 	if err != nil {
 		return common.SearchData{}, err
 	}

@@ -7,6 +7,115 @@ import (
 	"context"
 )
 
+const addShow = `-- name: AddShow :one
+
+INSERT INTO tv_show (title, path, add_date, update_date, id_lib) VALUES ($1, $1, $2, $2, $3) RETURNING id
+`
+
+type AddShowParams struct {
+	Title   string `json:"title"`
+	AddDate int64  `json:"addDate"`
+	IDLib   int64  `json:"idLib"`
+}
+
+//  =============================================== TV SHOWS ===============================================
+func (q *Queries) AddShow(ctx context.Context, arg AddShowParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addShow, arg.Title, arg.AddDate, arg.IDLib)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const addShowEpisode = `-- name: AddShowEpisode :one
+
+INSERT INTO episode (title, overview, icon, premiered, season, episode, rating, scraper_name, scraper_id, scraper_data, scraper_link, id_show, add_date, update_date, update_mode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $14) RETURNING id
+`
+
+type AddShowEpisodeParams struct {
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Premiered   int64  `json:"premiered"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	Rating      int64  `json:"rating"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	IDShow      int64  `json:"idShow"`
+	AddDate     int64  `json:"addDate"`
+	UpdateMode  int64  `json:"updateMode"`
+}
+
+//  =============================================== EPISODES ===============================================
+func (q *Queries) AddShowEpisode(ctx context.Context, arg AddShowEpisodeParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addShowEpisode,
+		arg.Title,
+		arg.Overview,
+		arg.Icon,
+		arg.Premiered,
+		arg.Season,
+		arg.Episode,
+		arg.Rating,
+		arg.ScraperName,
+		arg.ScraperID,
+		arg.ScraperData,
+		arg.ScraperLink,
+		arg.IDShow,
+		arg.AddDate,
+		arg.UpdateMode,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const addShowSeason = `-- name: AddShowSeason :exec
+
+INSERT INTO season (id_show, title, season, overview, icon, fanart, premiered, rating, trailer, scraper_name, scraper_id, scraper_data, scraper_link, add_date, update_date, update_mode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, $15)
+`
+
+type AddShowSeasonParams struct {
+	IDShow      int64  `json:"idShow"`
+	Title       string `json:"title"`
+	Season      int64  `json:"season"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Premiered   int64  `json:"premiered"`
+	Rating      int64  `json:"rating"`
+	Trailer     string `json:"trailer"`
+	ScraperName string `json:"scraperName"`
+	ScraperID   string `json:"scraperID"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	AddDate     int64  `json:"addDate"`
+	UpdateMode  int64  `json:"updateMode"`
+}
+
+//  =============================================== SEASONS ===============================================
+func (q *Queries) AddShowSeason(ctx context.Context, arg AddShowSeasonParams) error {
+	_, err := q.db.ExecContext(ctx, addShowSeason,
+		arg.IDShow,
+		arg.Title,
+		arg.Season,
+		arg.Overview,
+		arg.Icon,
+		arg.Fanart,
+		arg.Premiered,
+		arg.Rating,
+		arg.Trailer,
+		arg.ScraperName,
+		arg.ScraperID,
+		arg.ScraperData,
+		arg.ScraperLink,
+		arg.AddDate,
+		arg.UpdateMode,
+	)
+	return err
+}
+
 const deleteShow = `-- name: DeleteShow :exec
 DELETE FROM tv_show WHERE id = $1
 `
@@ -209,9 +318,8 @@ func (q *Queries) GetShow(ctx context.Context, arg GetShowParams) (GetShowRow, e
 }
 
 const getShowEpisode = `-- name: GetShowEpisode :one
-
 SELECT e.id, title, overview, id_show, premiered, FROMCACHE(icon) AS icon, 
-season, episode, rating, scraper_name, scraper_id, add_date, update_date,
+season, episode, rating, scraper_name, scraper_id, add_date, update_date, update_mode, 
 COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
 COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
 FROM episode e
@@ -238,11 +346,11 @@ type GetShowEpisodeRow struct {
 	ScraperID   string      `json:"scraperID"`
 	AddDate     int64       `json:"addDate"`
 	UpdateDate  int64       `json:"updateDate"`
+	UpdateMode  int64       `json:"updateMode"`
 	Filler      interface{} `json:"filler"`
 	WatchCount  int64       `json:"watchCount"`
 }
 
-//  =============================================== EPISODES ===============================================
 func (q *Queries) GetShowEpisode(ctx context.Context, arg GetShowEpisodeParams) (GetShowEpisodeRow, error) {
 	row := q.db.QueryRowContext(ctx, getShowEpisode, arg.IDUser, arg.ID)
 	var i GetShowEpisodeRow
@@ -260,6 +368,7 @@ func (q *Queries) GetShowEpisode(ctx context.Context, arg GetShowEpisodeParams) 
 		&i.ScraperID,
 		&i.AddDate,
 		&i.UpdateDate,
+		&i.UpdateMode,
 		&i.Filler,
 		&i.WatchCount,
 	)
@@ -268,7 +377,7 @@ func (q *Queries) GetShowEpisode(ctx context.Context, arg GetShowEpisodeParams) 
 
 const getShowSeason = `-- name: GetShowSeason :one
 SELECT s.id_show, title, overview, FROMCACHE(icon) AS icon, 
-s.season, premiered, scraper_link, add_date, update_date,
+s.season, premiered, rating, trailer, scraper_link, add_date, update_date, update_mode, 
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season) AS episode,
 (SELECT COUNT(watch_count) FROM status WHERE media_data IN  (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
 FROM season s
@@ -289,9 +398,12 @@ type GetShowSeasonRow struct {
 	Icon           string `json:"icon"`
 	Season         int64  `json:"season"`
 	Premiered      int64  `json:"premiered"`
+	Rating         int64  `json:"rating"`
+	Trailer        string `json:"trailer"`
 	ScraperLink    string `json:"scraperLink"`
 	AddDate        int64  `json:"addDate"`
 	UpdateDate     int64  `json:"updateDate"`
+	UpdateMode     int64  `json:"updateMode"`
 	Episode        int64  `json:"episode"`
 	WatchedEpisode int64  `json:"watchedEpisode"`
 }
@@ -306,9 +418,12 @@ func (q *Queries) GetShowSeason(ctx context.Context, arg GetShowSeasonParams) (G
 		&i.Icon,
 		&i.Season,
 		&i.Premiered,
+		&i.Rating,
+		&i.Trailer,
 		&i.ScraperLink,
 		&i.AddDate,
 		&i.UpdateDate,
+		&i.UpdateMode,
 		&i.Episode,
 		&i.WatchedEpisode,
 	)
@@ -316,7 +431,6 @@ func (q *Queries) GetShowSeason(ctx context.Context, arg GetShowSeasonParams) (G
 }
 
 const listShow = `-- name: ListShow :many
-
 SELECT id, title, overview, 
 FROMCACHE(icon) AS icon, 
 FROMCACHE(fanart) AS fanart, 
@@ -354,7 +468,6 @@ type ListShowRow struct {
 	WatchedEpisode int64  `json:"watchedEpisode"`
 }
 
-//  =============================================== TV SHOWS ===============================================
 func (q *Queries) ListShow(ctx context.Context, idUser int64) ([]ListShowRow, error) {
 	rows, err := q.db.QueryContext(ctx, listShow, idUser)
 	if err != nil {
@@ -402,7 +515,7 @@ func (q *Queries) ListShow(ctx context.Context, idUser int64) ([]ListShowRow, er
 
 const listShowEpisode = `-- name: ListShowEpisode :many
 SELECT e.id, title, overview, id_show, premiered, FROMCACHE(icon) AS icon, 
-season, episode, rating, scraper_name, scraper_id, add_date, update_date,
+season, episode, rating, scraper_name, scraper_id, add_date, update_date, update_mode, 
 COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
 COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
 FROM episode e
@@ -429,6 +542,7 @@ type ListShowEpisodeRow struct {
 	ScraperID   string      `json:"scraperID"`
 	AddDate     int64       `json:"addDate"`
 	UpdateDate  int64       `json:"updateDate"`
+	UpdateMode  int64       `json:"updateMode"`
 	Filler      interface{} `json:"filler"`
 	WatchCount  int64       `json:"watchCount"`
 }
@@ -456,6 +570,7 @@ func (q *Queries) ListShowEpisode(ctx context.Context, arg ListShowEpisodeParams
 			&i.ScraperID,
 			&i.AddDate,
 			&i.UpdateDate,
+			&i.UpdateMode,
 			&i.Filler,
 			&i.WatchCount,
 		); err != nil {
@@ -474,7 +589,7 @@ func (q *Queries) ListShowEpisode(ctx context.Context, arg ListShowEpisodeParams
 
 const listShowEpisodeBySeason = `-- name: ListShowEpisodeBySeason :many
 SELECT e.id, title, overview, id_show, premiered, FROMCACHE(icon) AS icon, 
-season, episode, rating, scraper_name, scraper_id, add_date, update_date,
+season, episode, rating, scraper_name, scraper_id, add_date, update_date, update_mode, 
 COALESCE((SELECT value FROM filler_link WHERE media_type = 'tvs_episode' AND media_data = id), 0) AS filler,
 COALESCE((SELECT watch_count FROM status WHERE media_data = e.id AND media_type = 'tvs_episode' AND id_user = $1),0)::BIGINT AS watch_count
 FROM episode e
@@ -502,6 +617,7 @@ type ListShowEpisodeBySeasonRow struct {
 	ScraperID   string      `json:"scraperID"`
 	AddDate     int64       `json:"addDate"`
 	UpdateDate  int64       `json:"updateDate"`
+	UpdateMode  int64       `json:"updateMode"`
 	Filler      interface{} `json:"filler"`
 	WatchCount  int64       `json:"watchCount"`
 }
@@ -529,6 +645,7 @@ func (q *Queries) ListShowEpisodeBySeason(ctx context.Context, arg ListShowEpiso
 			&i.ScraperID,
 			&i.AddDate,
 			&i.UpdateDate,
+			&i.UpdateMode,
 			&i.Filler,
 			&i.WatchCount,
 		); err != nil {
@@ -546,9 +663,8 @@ func (q *Queries) ListShowEpisodeBySeason(ctx context.Context, arg ListShowEpiso
 }
 
 const listShowSeason = `-- name: ListShowSeason :many
-
 SELECT id_show, title, overview, FROMCACHE(icon) AS icon, 
-season, premiered, scraper_link, add_date, update_date,
+season, premiered, rating, trailer, scraper_link, add_date, update_date, update_mode, 
 (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = s.season)::BIGINT AS episode,
 (SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = s.season) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
 FROM season s
@@ -568,14 +684,16 @@ type ListShowSeasonRow struct {
 	Icon           string `json:"icon"`
 	Season         int64  `json:"season"`
 	Premiered      int64  `json:"premiered"`
+	Rating         int64  `json:"rating"`
+	Trailer        string `json:"trailer"`
 	ScraperLink    string `json:"scraperLink"`
 	AddDate        int64  `json:"addDate"`
 	UpdateDate     int64  `json:"updateDate"`
+	UpdateMode     int64  `json:"updateMode"`
 	Episode        int64  `json:"episode"`
 	WatchedEpisode int64  `json:"watchedEpisode"`
 }
 
-//  =============================================== SEASONS ===============================================
 func (q *Queries) ListShowSeason(ctx context.Context, arg ListShowSeasonParams) ([]ListShowSeasonRow, error) {
 	rows, err := q.db.QueryContext(ctx, listShowSeason, arg.IDUser, arg.IDShow)
 	if err != nil {
@@ -592,9 +710,12 @@ func (q *Queries) ListShowSeason(ctx context.Context, arg ListShowSeasonParams) 
 			&i.Icon,
 			&i.Season,
 			&i.Premiered,
+			&i.Rating,
+			&i.Trailer,
 			&i.ScraperLink,
 			&i.AddDate,
 			&i.UpdateDate,
+			&i.UpdateMode,
 			&i.Episode,
 			&i.WatchedEpisode,
 		); err != nil {
@@ -669,6 +790,119 @@ func (q *Queries) UpdateShow(ctx context.Context, arg UpdateShowParams) error {
 		arg.ScraperLink,
 		arg.Path,
 		arg.IDLib,
+		arg.UpdateMode,
+		arg.Premiered,
+	)
+	return err
+}
+
+const updateShowAllEpisodes = `-- name: UpdateShowAllEpisodes :exec
+UPDATE episode t
+SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
+    overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
+    icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
+    rating = CASE WHEN $6::BIGINT > 0 THEN $6::BIGINT ELSE t.rating END,
+    season = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.season END,
+    episode = CASE WHEN $8::BIGINT > 0 THEN $8::BIGINT ELSE t.episode END,
+    scraper_id = CASE WHEN $9::TEXT != '' THEN $9::TEXT ELSE t.scraper_id END,
+    scraper_name = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_name END,
+    scraper_data = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_data END,
+    scraper_link = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_link END,
+    update_mode = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.premiered END,
+    update_date = $2
+WHERE id_show = $1
+`
+
+type UpdateShowAllEpisodesParams struct {
+	IDShow      int64  `json:"idShow"`
+	UpdateDate  int64  `json:"updateDate"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Rating      int64  `json:"rating"`
+	Season      int64  `json:"season"`
+	Episode     int64  `json:"episode"`
+	ScraperID   string `json:"scraperID"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	UpdateMode  int64  `json:"updateMode"`
+	Premiered   int64  `json:"premiered"`
+}
+
+func (q *Queries) UpdateShowAllEpisodes(ctx context.Context, arg UpdateShowAllEpisodesParams) error {
+	_, err := q.db.ExecContext(ctx, updateShowAllEpisodes,
+		arg.IDShow,
+		arg.UpdateDate,
+		arg.Title,
+		arg.Overview,
+		arg.Icon,
+		arg.Rating,
+		arg.Season,
+		arg.Episode,
+		arg.ScraperID,
+		arg.ScraperName,
+		arg.ScraperData,
+		arg.ScraperLink,
+		arg.UpdateMode,
+		arg.Premiered,
+	)
+	return err
+}
+
+const updateShowAllSeasons = `-- name: UpdateShowAllSeasons :exec
+UPDATE season t
+SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
+    overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
+    icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
+    fanart = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.fanart END,
+    rating = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.rating END,
+    trailer = CASE WHEN $8::TEXT != '' THEN $8::TEXT ELSE t.trailer END,
+    season = CASE WHEN $9::BIGINT > 0 THEN $9::BIGINT ELSE t.season END,
+    scraper_id = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_id END,
+    scraper_name = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_name END,
+    scraper_data = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_data END,
+    scraper_link = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_link END,
+    update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.premiered END,
+    update_date = $2
+WHERE id_show = $1
+`
+
+type UpdateShowAllSeasonsParams struct {
+	IDShow      int64  `json:"idShow"`
+	UpdateDate  int64  `json:"updateDate"`
+	Title       string `json:"title"`
+	Overview    string `json:"overview"`
+	Icon        string `json:"icon"`
+	Fanart      string `json:"fanart"`
+	Rating      int64  `json:"rating"`
+	Trailer     string `json:"trailer"`
+	Season      int64  `json:"season"`
+	ScraperID   string `json:"scraperID"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
+	UpdateMode  int64  `json:"updateMode"`
+	Premiered   int64  `json:"premiered"`
+}
+
+func (q *Queries) UpdateShowAllSeasons(ctx context.Context, arg UpdateShowAllSeasonsParams) error {
+	_, err := q.db.ExecContext(ctx, updateShowAllSeasons,
+		arg.IDShow,
+		arg.UpdateDate,
+		arg.Title,
+		arg.Overview,
+		arg.Icon,
+		arg.Fanart,
+		arg.Rating,
+		arg.Trailer,
+		arg.Season,
+		arg.ScraperID,
+		arg.ScraperName,
+		arg.ScraperData,
+		arg.ScraperLink,
 		arg.UpdateMode,
 		arg.Premiered,
 	)
@@ -760,29 +994,36 @@ func (q *Queries) UpdateShowPath(ctx context.Context, arg UpdateShowPathParams) 
 
 const updateShowSeason = `-- name: UpdateShowSeason :exec
 UPDATE season t
-SET title = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.title END,
-    overview = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.overview END,
-    icon = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.icon END,
-    fanart = CASE WHEN $7::TEXT != '' THEN $7::TEXT ELSE t.fanart END,
-    rating = CASE WHEN $8::BIGINT > 0 THEN $8::BIGINT ELSE t.rating END,
-    season = CASE WHEN $9::BIGINT > 0 THEN $9::BIGINT ELSE t.season END,
-    scraper_link = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN $11::BIGINT > 0 THEN $11::BIGINT ELSE t.update_mode END,
-    premiered = CASE WHEN $12::BIGINT > 0 THEN $12::BIGINT ELSE t.premiered END,
-    update_date = $3
-WHERE id_show = $1 AND season = $2
+SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
+    overview = CASE WHEN $4::TEXT != '' THEN $4::TEXT ELSE t.overview END,
+    icon = CASE WHEN $5::TEXT != '' THEN $5::TEXT ELSE t.icon END,
+    fanart = CASE WHEN $6::TEXT != '' THEN $6::TEXT ELSE t.fanart END,
+    rating = CASE WHEN $7::BIGINT > 0 THEN $7::BIGINT ELSE t.rating END,
+    season = CASE WHEN $8::BIGINT > 0 THEN $8::BIGINT ELSE t.season END,
+    scraper_id = CASE WHEN $9::TEXT != '' THEN $9::TEXT ELSE t.scraper_id END,
+    trailer = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.trailer END,
+    scraper_name = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_name END,
+    scraper_data = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_data END,
+    scraper_link = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_link END,
+    update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
+    premiered = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.premiered END,
+    update_date = $2
+WHERE id_show = $1 AND season = $8::BIGINT
 `
 
 type UpdateShowSeasonParams struct {
 	IDShow      int64  `json:"idShow"`
-	Season      int64  `json:"season"`
 	UpdateDate  int64  `json:"updateDate"`
 	Title       string `json:"title"`
 	Overview    string `json:"overview"`
 	Icon        string `json:"icon"`
 	Fanart      string `json:"fanart"`
 	Rating      int64  `json:"rating"`
-	Season_2    int64  `json:"season2"`
+	Season      int64  `json:"season"`
+	ScraperID   string `json:"scraperID"`
+	Trailer     string `json:"trailer"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
 	ScraperLink string `json:"scraperLink"`
 	UpdateMode  int64  `json:"updateMode"`
 	Premiered   int64  `json:"premiered"`
@@ -791,14 +1032,17 @@ type UpdateShowSeasonParams struct {
 func (q *Queries) UpdateShowSeason(ctx context.Context, arg UpdateShowSeasonParams) error {
 	_, err := q.db.ExecContext(ctx, updateShowSeason,
 		arg.IDShow,
-		arg.Season,
 		arg.UpdateDate,
 		arg.Title,
 		arg.Overview,
 		arg.Icon,
 		arg.Fanart,
 		arg.Rating,
-		arg.Season_2,
+		arg.Season,
+		arg.ScraperID,
+		arg.Trailer,
+		arg.ScraperName,
+		arg.ScraperData,
 		arg.ScraperLink,
 		arg.UpdateMode,
 		arg.Premiered,

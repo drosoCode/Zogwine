@@ -22,6 +22,8 @@ INSERT INTO tag_link (id_tag, media_type, media_data) VALUES ($1, $2, $3) ON CON
 -- name: DeleteTagLink :exec
 DELETE FROM tag_link WHERE id_tag = $1 AND media_type = $2 AND media_data = $3;
 
+-- name: DeleteAllTagLinks :exec
+DELETE FROM tag_link WHERE media_type = $1 AND media_data = $2;
 
 
 
@@ -48,6 +50,9 @@ INSERT INTO person_link (id_person, media_type, media_data) VALUES ($1, $2, $3) 
 
 -- name: DeletePersonLink :exec
 DELETE FROM person_link WHERE id_person = $1 AND media_type = $2 AND media_data = $3;
+
+-- name: DeleteAllPersonLinks :exec
+DELETE FROM person_link WHERE media_type = $1 AND media_data = $2;
 
 -- name: UpdatePerson :exec
 UPDATE person t

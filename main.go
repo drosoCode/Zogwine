@@ -16,7 +16,6 @@ import (
 
 	database "github.com/Zogwine/Zogwine/internal/database"
 	"github.com/Zogwine/Zogwine/internal/handler"
-	scraper "github.com/Zogwine/Zogwine/internal/scraper"
 	"github.com/Zogwine/Zogwine/internal/status"
 )
 
@@ -85,8 +84,6 @@ func main() {
 		Addr:    "127.0.0.1:3001",
 		Handler: h2c.NewHandler(r, h2s),
 	}
-
-	scraper.Test(status.Log)
 
 	// start !
 	log.Fatal(server.ListenAndServe())

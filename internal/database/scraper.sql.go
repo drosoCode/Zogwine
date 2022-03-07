@@ -56,11 +56,11 @@ func (q *Queries) GetMultipleResultsByMedia(ctx context.Context, arg GetMultiple
 }
 
 const listScraperForType = `-- name: ListScraperForType :many
-SELECT provider, priority, media_type, settings, enabled FROM scraper WHERE media_type @> $1 ORDER BY priority
+SELECT provider, priority, media_type, settings, enabled FROM scraper WHERE $1::media_type = ANY(media_type) ORDER BY priority
 `
 
-func (q *Queries) ListScraperForType(ctx context.Context, mediaType []MediaType) ([]Scraper, error) {
-	rows, err := q.db.QueryContext(ctx, listScraperForType, pq.Array(mediaType))
+func (q *Queries) ListScraperForType(ctx context.Context, mediaType MediaType) ([]Scraper, error) {
+	rows, err := q.db.QueryContext(ctx, listScraperForType, mediaType)
 	if err != nil {
 		return nil, err
 	}

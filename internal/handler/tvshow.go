@@ -9,6 +9,7 @@ import (
 
 	"github.com/Zogwine/Zogwine/internal/auth"
 	database "github.com/Zogwine/Zogwine/internal/database"
+	"github.com/Zogwine/Zogwine/internal/scraper"
 	"github.com/Zogwine/Zogwine/internal/status"
 	"github.com/Zogwine/Zogwine/internal/util/srv"
 	"github.com/go-chi/chi/v5"
@@ -146,7 +147,11 @@ func UpdateTVS(s *status.Status) http.HandlerFunc {
 			}
 
 			// TODO: update scraper
-			// updateWithSelectionResult(1, id, updateData.ScraperName, updateData.ScraperID, updateData.ScraperData)
+			sc := scraper.NewTVSScraper(s)
+			err = sc.UpdateWithSelectionResult(id, scraper.SelectionResult{ScraperName: updateData.ScraperName, ScraperID: updateData.ScraperID, ScraperData: updateData.ScraperData})
+			if srv.IfError(w, r, err) {
+				return
+			}
 		}
 
 		srv.JSON(w, r, 200, "ok")

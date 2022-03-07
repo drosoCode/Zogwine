@@ -1,5 +1,5 @@
 -- name: ListScraperForType :many
-SELECT * FROM scraper WHERE media_type @> $1 ORDER BY priority;
+SELECT * FROM scraper WHERE sqlc.arg(media_type)::media_type = ANY(media_type) ORDER BY priority;
 
 -- name: AddMultipleResults :exec
 INSERT INTO selection (media_type, media_data, data) VALUES ($1, $2, $3);
