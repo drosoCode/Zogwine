@@ -9,7 +9,8 @@ import (
 
 const addShow = `-- name: AddShow :one
 
-INSERT INTO tv_show (title, path, add_date, update_date, id_lib) VALUES ($1, $1, $2, $2, $3) RETURNING id
+INSERT INTO tv_show (title, path, add_date, update_date, id_lib, overview, icon, fanart, rating, premiered, trailer, website, scraper_name, scraper_id, scraper_data, scraper_link, update_mode) 
+VALUES ($1, $1, $2, $2, $3, '', '', '', 0, 0, '', '', '', '', '', '', 0) RETURNING id
 `
 
 type AddShowParams struct {

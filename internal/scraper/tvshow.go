@@ -73,7 +73,9 @@ func NewTVSScraper(s *status.Status) TVSScraper {
 	epReg, _ := regexp.Compile("(?i)(?:s\\d+e)(\\d+)")
 	t := TVSScraper{MediaType: database.MediaTypeTvs, IDLib: 0, AutoAdd: false, AddUnknown: true, App: s, Providers: map[string]common.TVShowProvider{}, ProviderNames: []string{}, RegexSeason: seasonReg, RegexEpisode: epReg}
 	err := t.loadTVSPlugins()
-	t.App.Log.WithFields(log.Fields{"entity": "scraper", "file": "tvshow", "function": "NewTVSScraper"}).Warn(err)
+	if err != nil {
+		t.App.Log.WithFields(log.Fields{"entity": "scraper", "file": "tvshow", "function": "NewTVSScraper"}).Warn(err)
+	}
 	return t
 }
 
@@ -111,7 +113,7 @@ func (t *TVSScraper) Scan(idlib int64, AutoAdd bool, AddUnknown bool) error {
 		if i.IsDir() {
 			// keep only the folders
 			currentShow := util.Index(tvsPaths, i.Name())
-			logF := log.Fields{"entity": "scraper", "file": "tvshow", "function": "Scan", "tvs": currentShow}
+			logF := log.Fields{"entity": "scraper", "file": "tvshow", "function": "Scan", "tvs": i.Name()}
 			t.App.Log.WithFields(logF).Debugf("processing tvs: %s", currentShow)
 
 			var data database.ListShowRow
@@ -176,7 +178,7 @@ func (t *TVSScraper) addTVS(data database.ListShowRow) (database.ListShowRow, er
 		// create a new entry in the database
 		data.ID, err = t.App.DB.AddShow(context.Background(), database.AddShowParams{
 			Title:   data.Title,
-			IDLib:   data.IDLib,
+			IDLib:   t.IDLib,
 			AddDate: time.Now().Unix(),
 		})
 		if err != nil {
@@ -195,7 +197,11 @@ func (t *TVSScraper) addTVS(data database.ListShowRow) (database.ListShowRow, er
 			data.ScraperData = selected.ScraperData
 			// force tvs update
 			return t.updateTVS(data)
+		} else {
+			AddMultipleResults(t.App, database.MediaTypeTvs, data.ID, searchResults)
 		}
+	} else {
+		AddMultipleResults(t.App, database.MediaTypeTvs, data.ID, searchResults)
 	}
 
 	return data, nil
@@ -227,6 +233,7 @@ func (t *TVSScraper) updateTVS(data database.ListShowRow) (database.ListShowRow,
 		ScraperLink: tvsData.ScraperInfo.ScraperLink,
 		ScraperData: tvsData.ScraperInfo.ScraperData,
 		UpdateDate:  time.Now().Unix(),
+		ID:          data.ID,
 	})
 	if err != nil {
 		return data, err
@@ -412,6 +419,8 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						} else {
 							t.App.Log.WithFields(logF).Error(err)
 						}
+					} else {
+						t.App.Log.WithFields(logF).Warn("no data found for s" + strconv.Itoa(season) + "e" + strconv.Itoa(episode))
 					}
 				}
 			} else {

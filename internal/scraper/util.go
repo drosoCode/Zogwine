@@ -96,7 +96,7 @@ func ListFiles(basePath string) []string {
 
 // Add multiple results for a given mediaType/mediaData to the database
 // also deletes the previous entries for the given mediaType/mediaData
-func AddMultipleResults(s *status.Status, mediaType database.MediaType, mediaData int64, searchResults common.SearchData) error {
+func AddMultipleResults(s *status.Status, mediaType database.MediaType, mediaData int64, searchResults []common.SearchData) error {
 	ctx := context.Background()
 	err := s.DB.DeleteMultipleResultsByMedia(ctx, database.DeleteMultipleResultsByMediaParams{MediaType: mediaType, MediaData: mediaData})
 	if err != nil {

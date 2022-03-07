@@ -39,7 +39,7 @@ type TMDBMovie struct {
 	OriginLanguage      string  `json:"origin_language"`
 	OriginalTitle       string  `json:"original_title"`
 	Overview            string  `json:"overview"`
-	Popularity          float64 `json:"popularity`
+	Popularity          float64 `json:"popularity"`
 	PosterPath          string  `json:"poster_path"`
 	ProductionCompanies []struct {
 		Name          string `json:"name"`

@@ -127,6 +127,9 @@ func (t *TMDB) getTrailerFromVideo(data TMDBVideo) string {
 
 	type kv map[string]string
 	trailers := make([]kv, 4)
+	for i := range trailers {
+		trailers[i] = map[string]string{}
+	}
 
 	// sort videos in 4 categories, Official Trailers, Official Videos, Unofficial Trailer, Unofficial Videos
 	for _, item := range data.Results {
@@ -176,7 +179,7 @@ type TMDBVideo struct {
 		ISO6391     string `json:"iso_639_1"`
 		ISO31661    string `json:"iso_3166_1"`
 		Name        string `json:"name"`
-		Key         string `json:"string"`
+		Key         string `json:"key"`
 		Site        string `json:"site"`
 		Size        int    `json:"size"`
 		Type        string `json:"type"`
