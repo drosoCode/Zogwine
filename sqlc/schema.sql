@@ -314,6 +314,7 @@ CREATE TABLE "public"."season" (
     "fanart" text NOT NULL,
     "premiered" bigint NOT NULL,
     "rating" bigint NOT NULL,
+    "trailer" text NOT NULL,
     "scraper_name" text NOT NULL,
     "scraper_id" text NOT NULL,
     "scraper_data" text NOT NULL,

@@ -210,6 +210,7 @@ type Season struct {
 	Fanart      string `json:"fanart"`
 	Premiered   int64  `json:"premiered"`
 	Rating      int64  `json:"rating"`
+	Trailer     string `json:"trailer"`
 	ScraperName string `json:"scraperName"`
 	ScraperID   string `json:"scraperID"`
 	ScraperData string `json:"scraperData"`
