@@ -34,10 +34,11 @@ func main() {
 	status.SetDB(querier)
 
 	// setup logger
-	log.SetReportCaller(true)
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.TraceLevel)
-	status.SetLogger(log.New())
+	l := log.New()
+	//l.SetReportCaller(true)
+	l.SetOutput(os.Stdout)
+	l.SetLevel(log.TraceLevel)
+	status.SetLogger(l)
 
 	// setup chi
 	r := chi.NewRouter()
