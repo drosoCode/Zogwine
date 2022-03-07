@@ -35,6 +35,7 @@ func (t *TVSScraper) getProviderFromName(pname string) (common.TVShowProvider, e
 			return prov, nil
 		}
 	}
+	//t.App.Log.WithFields({"entity": "scraper", "file": "tvshow", "function": ""}).Error("empty url")
 	return nil, errors.New("provider " + pname + " not found")
 }
 
@@ -244,6 +245,13 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 	// get path to the root tvs folder
 	tvsPath := path.Join(t.LibPath, data.Path)
 
+	// get provider
+	provider, err := t.getProviderFromName(data.ScraperName)
+	if err != nil {
+		return err
+	}
+	provider.Configure(data.ScraperID, data.ScraperData)
+
 	// list existing seasons
 	seasonData, err := t.App.DB.ListShowSeason(ctx, database.ListShowSeasonParams{IDUser: 0, IDShow: data.ID})
 	if err != nil {
@@ -251,15 +259,31 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 	}
 	seasons := []int64{}
 	for _, i := range seasonData {
+		if i.UpdateMode > 0 {
+			// update the seasons if needed
+			seasonData, err := provider.GetTVSSeason(int(i.Season))
+			if err == nil {
+				t.App.DB.UpdateShowSeason(ctx, database.UpdateShowSeasonParams{
+					Title:       seasonData.Title,
+					Overview:    seasonData.Overview,
+					Icon:        seasonData.Icon,
+					Season:      i.Season,
+					Fanart:      seasonData.Fanart,
+					Premiered:   seasonData.Premiered,
+					Rating:      seasonData.Rating,
+					Trailer:     seasonData.Trailer,
+					ScraperName: seasonData.ScraperInfo.ScraperName,
+					ScraperData: seasonData.ScraperInfo.ScraperData,
+					ScraperID:   seasonData.ScraperInfo.ScraperID,
+					ScraperLink: seasonData.ScraperInfo.ScraperLink,
+					UpdateDate:  time.Now().Unix(),
+					UpdateMode:  0,
+				})
+			}
+		}
+
 		seasons = append(seasons, i.Season)
 	}
-
-	// get provider
-	provider, err := t.getProviderFromName(data.ScraperName)
-	if err != nil {
-		return err
-	}
-	provider.Configure(data.ScraperID, data.ScraperData)
 
 	// for each file in the tvs folder
 	for _, i := range ListFiles(tvsPath) {
@@ -283,6 +307,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						ScraperData: epData.ScraperInfo.ScraperData,
 						ScraperLink: epData.ScraperInfo.ScraperLink,
 						UpdateDate:  time.Now().Unix(),
+						UpdateMode:  0,
 					})
 				}
 			}
@@ -318,6 +343,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 								ScraperID:   seasonData.ScraperInfo.ScraperID,
 								ScraperLink: seasonData.ScraperInfo.ScraperLink,
 								AddDate:     time.Now().Unix(),
+								UpdateMode:  0,
 							})
 						}
 						seasons = append(seasons, int64(season))
