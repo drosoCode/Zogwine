@@ -83,11 +83,16 @@ func ListScraperConfiguration(s *status.Status, mediaType database.MediaType) ([
 }
 
 // List all files recursively for a given directory
-func ListFiles(basePath string) []string {
+func ListFiles(basePath string, relative bool) []string {
+	basePathLen := len(basePath) + 1
 	ret := []string{}
 	fastwalk.Walk(basePath, func(path string, typ os.FileMode) error {
 		if !typ.IsDir() {
-			ret = append(ret, path)
+			if relative {
+				ret = append(ret, path[basePathLen:])
+			} else {
+				ret = append(ret, path)
+			}
 		}
 		return nil
 	})
