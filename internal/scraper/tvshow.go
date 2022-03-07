@@ -7,6 +7,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Zogwine/Zogwine/internal/database"
@@ -14,6 +15,7 @@ import (
 	"github.com/Zogwine/Zogwine/internal/scraper/common"
 	"github.com/Zogwine/Zogwine/internal/status"
 	"github.com/Zogwine/Zogwine/internal/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type TVSScraper struct {
@@ -35,7 +37,6 @@ func (t *TVSScraper) getProviderFromName(pname string) (common.TVShowProvider, e
 			return prov, nil
 		}
 	}
-	//t.App.Log.WithFields({"entity": "scraper", "file": "tvshow", "function": ""}).Error("empty url")
 	return nil, errors.New("provider " + pname + " not found")
 }
 
@@ -58,6 +59,8 @@ func (t *TVSScraper) loadTVSPlugins() error {
 		}
 	}
 
+	t.App.Log.WithFields(log.Fields{"entity": "scraper", "file": "tvshow", "function": "loadTVSPlugins"}).Info("loaded providers: " + strings.Join(t.ProviderNames, ","))
+
 	if len(t.Providers) == 0 {
 		return errors.New("no provider loaded")
 	}
@@ -69,7 +72,8 @@ func NewTVSScraper(s *status.Status) TVSScraper {
 	seasonReg, _ := regexp.Compile("(?i)(?:s)(\\d+)(?:e)")
 	epReg, _ := regexp.Compile("(?i)(?:s\\d+e)(\\d+)")
 	t := TVSScraper{MediaType: database.MediaTypeTvs, IDLib: 0, AutoAdd: false, AddUnknown: true, App: s, Providers: map[string]common.TVShowProvider{}, ProviderNames: []string{}, RegexSeason: seasonReg, RegexEpisode: epReg}
-	t.loadTVSPlugins()
+	err := t.loadTVSPlugins()
+	t.App.Log.WithFields(log.Fields{"entity": "scraper", "file": "tvshow", "function": "NewTVSScraper"}).Warn(err)
 	return t
 }
 
@@ -82,7 +86,7 @@ func (t *TVSScraper) Scan(idlib int64, AutoAdd bool, AddUnknown bool) error {
 	// get library base path
 	lib, err := t.App.DB.GetLibrary(ctx, t.IDLib)
 	if err != nil {
-		return err
+		return errors.New("unable to retreive library path: " + err.Error())
 	}
 	t.LibPath = lib.Path
 
@@ -107,29 +111,43 @@ func (t *TVSScraper) Scan(idlib int64, AutoAdd bool, AddUnknown bool) error {
 		if i.IsDir() {
 			// keep only the folders
 			currentShow := util.Index(tvsPaths, i.Name())
+			logF := log.Fields{"entity": "scraper", "file": "tvshow", "function": "Scan", "tvs": currentShow}
+			t.App.Log.WithFields(logF).Debugf("processing tvs: %s", currentShow)
+
 			var data database.ListShowRow
 			if currentShow > -1 {
 				// if there is already an entry for this tvs
+				t.App.Log.WithFields(logF).Trace("tvs already in database")
 				data = tvsData[currentShow]
 				if data.UpdateMode > 0 {
 					// if updates are allowed
-					if data.ScraperID == "" || data.ScraperName == "" {
+					if data.ScraperID == "" || data.ScraperName == "" || data.ScraperName == " " {
 						// if no scraper is associated to this tvs, just re-run a search
+						t.App.Log.WithFields(logF).Trace("add tvs")
 						data, err = t.addTVS(data)
 					} else {
 						// else, update tvs metadata
+						t.App.Log.WithFields(logF).Trace("update tvs")
 						data, err = t.updateTVS(data)
 					}
+				} else {
+					t.App.Log.WithFields(logF).Trace("no update needed")
 				}
 			} else {
 				// if this is a newly discovered tvs
+				t.App.Log.WithFields(logF).Trace("new tvs: " + i.Name())
 				data.Title = i.Name()
 				data, err = t.addTVS(data)
 			}
 
 			if err != nil && data.ScraperID != "" {
 				// if a scraper is associated, update episodes
+				t.App.Log.WithFields(logF).Trace("update episodes")
 				t.updateTVSEpisodes(data)
+			}
+
+			if err != nil {
+				t.App.Log.WithFields(logF).Error(err)
 			}
 		}
 	}
@@ -169,7 +187,7 @@ func (t *TVSScraper) addTVS(data database.ListShowRow) (database.ListShowRow, er
 	if t.AutoAdd {
 		// if we want to try to automatically select the best result
 		selected, err := SelectBestItem(searchResults, data.Title, 0)
-		if err != nil {
+		if err == nil {
 			// if a result was selected
 			t.UpdateWithSelectionResult(data.ID, SelectionResult{ScraperName: selected.ScraperName, ScraperID: selected.ScraperID, ScraperData: selected.ScraperData})
 			data.ScraperID = selected.ScraperID
@@ -241,6 +259,7 @@ func (t *TVSScraper) updateTVS(data database.ListShowRow) (database.ListShowRow,
 // update tvs seasons and episodes metadata
 func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 	ctx := context.Background()
+	logF := log.Fields{"entity": "scraper", "file": "tvshow", "function": "updateTVSEpisodes", "tvs": data.Title}
 
 	// get path to the root tvs folder
 	tvsPath := path.Join(t.LibPath, data.Path)
@@ -279,6 +298,8 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 					UpdateDate:  time.Now().Unix(),
 					UpdateMode:  0,
 				})
+			} else {
+				t.App.Log.WithFields(logF).Error(err)
 			}
 		}
 
@@ -309,7 +330,11 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						UpdateDate:  time.Now().Unix(),
 						UpdateMode:  0,
 					})
+				} else {
+					t.App.Log.WithFields(logF).Error(err)
 				}
+			} else {
+				t.App.Log.WithFields(logF).Error(err)
 			}
 
 		} else {
@@ -345,6 +370,8 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 								AddDate:     time.Now().Unix(),
 								UpdateMode:  0,
 							})
+						} else {
+							t.App.Log.WithFields(logF).Error(err)
 						}
 						seasons = append(seasons, int64(season))
 					}
@@ -369,8 +396,11 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						})
 						if err == nil {
 							file.AddVideoFile(t.App, t.IDLib, p, database.MediaTypeTvsEpisode, idEp, false)
+						} else {
+							t.App.Log.WithFields(logF).Error(err)
 						}
 					} else if t.AddUnknown {
+						t.App.Log.WithFields(logF).Warn("no data found for s" + strconv.Itoa(season) + "e" + strconv.Itoa(episode) + ", adding empty val")
 						// if no data is found but addUnknown is enabled
 						idEp, err := t.App.DB.AddShowEpisode(ctx, database.AddShowEpisodeParams{
 							Title:      i,
@@ -379,9 +409,13 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						})
 						if err == nil {
 							file.AddVideoFile(t.App, t.IDLib, p, database.MediaTypeTvsEpisode, idEp, false)
+						} else {
+							t.App.Log.WithFields(logF).Error(err)
 						}
 					}
 				}
+			} else {
+				t.App.Log.WithFields(logF).Warn("unable to extract season/episode info for: " + string(searchStr))
 			}
 		}
 	}
