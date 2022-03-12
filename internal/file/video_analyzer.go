@@ -200,29 +200,27 @@ func getFileInfos(videoFilePath string, supportedVideo []string, supportedSubtit
 	}
 
 	videoStreams := make([]VideoStream, 0)
-	for _, stream := range data.StreamType(ffprobe.StreamVideo) {
-		if stream.Tags.MIMEType == "" || stream.Tags.MIMEType[0:5] == "video" {
-			fr := strings.Split(stream.AvgFrameRate, "/")
-			framerate := 0.0
-			if len(fr) >= 2 {
-				fr1, _ := strconv.ParseFloat(fr[0], 64)
-				fr2, _ := strconv.ParseFloat(fr[1], 64)
-				framerate = fr1 / fr2
-			}
-			stereo3d := "NONE"
-			if !skip3d {
-				stereo3d = detect3DMode(videoFilePath, stream.Index, data.Format.DurationSeconds)
-			}
-			videoStreams = append(videoStreams, VideoStream{
-				Ratio:     stream.DisplayAspectRatio,
-				Dimension: strconv.Itoa(stream.Width) + "x" + strconv.Itoa(stream.Height),
-				PixFmt:    stream.PixFmt,
-				Codec:     stream.CodecName,
-				Stereo3d:  stereo3d,
-				Framerate: framerate,
-				Index:     int64(stream.Index),
-			})
+	for i, stream := range data.StreamType(ffprobe.StreamVideo) {
+		fr := strings.Split(stream.AvgFrameRate, "/")
+		framerate := 0.0
+		if len(fr) >= 2 {
+			fr1, _ := strconv.ParseFloat(fr[0], 64)
+			fr2, _ := strconv.ParseFloat(fr[1], 64)
+			framerate = fr1 / fr2
 		}
+		stereo3d := "NONE"
+		if !skip3d {
+			stereo3d = detect3DMode(videoFilePath, i, data.Format.DurationSeconds)
+		}
+		videoStreams = append(videoStreams, VideoStream{
+			Ratio:     stream.DisplayAspectRatio,
+			Dimension: strconv.Itoa(stream.Width) + "x" + strconv.Itoa(stream.Height),
+			PixFmt:    stream.PixFmt,
+			Codec:     stream.CodecName,
+			Stereo3d:  stereo3d,
+			Framerate: framerate,
+			Index:     int64(stream.Index),
+		})
 	}
 	videoStreamsJson, _ := json.Marshal(videoStreams)
 
