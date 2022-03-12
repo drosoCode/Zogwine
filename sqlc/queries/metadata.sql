@@ -68,7 +68,7 @@ SET name = CASE WHEN sqlc.arg(name)::TEXT != '' THEN sqlc.arg(name)::TEXT ELSE t
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN sqlc.arg(scraper_data)::TEXT != '' THEN sqlc.arg(scraper_data)::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT != 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
     update_date = $2
 WHERE id = $1;
 

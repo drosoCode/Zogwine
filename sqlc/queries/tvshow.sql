@@ -46,7 +46,7 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
     path = CASE WHEN sqlc.arg(path)::TEXT != '' THEN sqlc.arg(path)::TEXT ELSE t.path END,
     id_lib = CASE WHEN sqlc.arg(id_lib)::BIGINT > 0 THEN sqlc.arg(id_lib)::BIGINT ELSE t.id_lib END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT != 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN sqlc.arg(premiered)::BIGINT > 0 THEN sqlc.arg(premiered)::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1;
@@ -104,7 +104,7 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN sqlc.arg(scraper_data)::TEXT != '' THEN sqlc.arg(scraper_data)::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT != 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN sqlc.arg(premiered)::BIGINT > 0 THEN sqlc.arg(premiered)::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id_show = $1 AND season = sqlc.arg(season)::BIGINT;
@@ -123,7 +123,7 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN sqlc.arg(scraper_data)::TEXT != '' THEN sqlc.arg(scraper_data)::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT != 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN sqlc.arg(premiered)::BIGINT > 0 THEN sqlc.arg(premiered)::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id_show = $1;
@@ -181,7 +181,7 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN sqlc.arg(scraper_data)::TEXT != '' THEN sqlc.arg(scraper_data)::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT != 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN sqlc.arg(premiered)::BIGINT > 0 THEN sqlc.arg(premiered)::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1;
@@ -198,7 +198,7 @@ SET title = CASE WHEN sqlc.arg(title)::TEXT != '' THEN sqlc.arg(title)::TEXT ELS
     scraper_name = CASE WHEN sqlc.arg(scraper_name)::TEXT != '' THEN sqlc.arg(scraper_name)::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN sqlc.arg(scraper_data)::TEXT != '' THEN sqlc.arg(scraper_data)::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN sqlc.arg(scraper_link)::TEXT != '' THEN sqlc.arg(scraper_link)::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT > 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN sqlc.arg(update_mode)::BIGINT != 0 THEN sqlc.arg(update_mode)::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN sqlc.arg(premiered)::BIGINT > 0 THEN sqlc.arg(premiered)::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id_show = $1;

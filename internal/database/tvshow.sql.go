@@ -748,7 +748,7 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     scraper_link = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_link END,
     path = CASE WHEN $14::TEXT != '' THEN $14::TEXT ELSE t.path END,
     id_lib = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.id_lib END,
-    update_mode = CASE WHEN $16::BIGINT > 0 THEN $16::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN $16::BIGINT != 0 THEN $16::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN $17::BIGINT > 0 THEN $17::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1
@@ -809,7 +809,7 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     scraper_name = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN $13::BIGINT != 0 THEN $13::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id_show = $1
@@ -865,7 +865,7 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     scraper_name = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN $14::BIGINT != 0 THEN $14::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id_show = $1
@@ -922,7 +922,7 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     scraper_name = CASE WHEN $10::TEXT != '' THEN $10::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN $13::BIGINT > 0 THEN $13::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN $13::BIGINT != 0 THEN $13::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id = $1
@@ -1006,7 +1006,7 @@ SET title = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.title END,
     scraper_name = CASE WHEN $11::TEXT != '' THEN $11::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN $14::BIGINT > 0 THEN $14::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN $14::BIGINT != 0 THEN $14::BIGINT ELSE t.update_mode END,
     premiered = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.premiered END,
     update_date = $2
 WHERE id_show = $1 AND season = $8::BIGINT

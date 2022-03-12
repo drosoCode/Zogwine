@@ -687,7 +687,7 @@ SET name = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE t.name END,
     scraper_name = CASE WHEN $12::TEXT != '' THEN $12::TEXT ELSE t.scraper_name END,
     scraper_data = CASE WHEN $13::TEXT != '' THEN $13::TEXT ELSE t.scraper_data END,
     scraper_link = CASE WHEN $14::TEXT != '' THEN $14::TEXT ELSE t.scraper_link END,
-    update_mode = CASE WHEN $15::BIGINT > 0 THEN $15::BIGINT ELSE t.update_mode END,
+    update_mode = CASE WHEN $15::BIGINT != 0 THEN $15::BIGINT ELSE t.update_mode END,
     update_date = $2
 WHERE id = $1
 `

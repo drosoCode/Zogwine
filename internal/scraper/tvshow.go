@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -143,7 +144,7 @@ func (t *TVSScraper) processItemScan(i fs.DirEntry, tvsPaths []string, tvsData [
 		logF := log.Fields{"entity": "scraper", "file": "tvshow", "function": "Scan", "tvs": i.Name()}
 		t.App.Log.WithFields(logF).Debugf("processing tvs: %q", i.Name())
 
-		var data database.ListShowRow
+		data := database.ListShowRow{}
 		if currentShow > -1 {
 			// if there is already an entry for this tvs
 			t.App.Log.WithFields(logF).Trace("tvs already in database")
@@ -221,6 +222,7 @@ func (t *TVSScraper) addTVS(data database.ListShowRow) (database.ListShowRow, er
 			data.ScraperID = selected.ScraperID
 			data.ScraperName = selected.ScraperName
 			data.ScraperData = selected.ScraperData
+			data.Path = data.Title
 			// force tvs update
 			return t.updateTVS(data)
 		} else {
@@ -297,7 +299,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 	logF := log.Fields{"entity": "scraper", "file": "tvshow", "function": "updateTVSEpisodes", "tvs": data.Title}
 
 	// get path to the root tvs folder
-	tvsPath := path.Join(t.LibPath, data.Path)
+	tvsPath := filepath.Join(t.LibPath, data.Path)
 	t.App.Log.WithFields(logF).Tracef("processing episodes in: %s", tvsPath)
 
 	// get provider
@@ -332,7 +334,8 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 					ScraperID:   seasonData.ScraperInfo.ScraperID,
 					ScraperLink: seasonData.ScraperInfo.ScraperLink,
 					UpdateDate:  time.Now().Unix(),
-					UpdateMode:  0,
+					UpdateMode:  -1,
+					IDShow:      data.ID,
 				})
 			} else {
 				t.App.Log.WithFields(logF).Error(err)
@@ -345,9 +348,9 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 	// for each file in the tvs folder
 	for _, i := range ListFiles(tvsPath, true) {
 		t.App.Log.WithFields(logF).Tracef("processing episode: %s", i)
-		p := path.Join(data.Path, i)
+		p := filepath.Join(data.Path, i)
 
-		videoData, err := t.App.DB.GetVideoFileFromPath(ctx, database.GetVideoFileFromPathParams{IDLib: t.IDLib, Path: i})
+		videoData, err := t.App.DB.GetVideoFileFromPath(ctx, database.GetVideoFileFromPathParams{IDLib: t.IDLib, Path: p})
 		if err == nil {
 			t.App.Log.WithFields(logF).Trace("update episode")
 
@@ -367,14 +370,14 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						ScraperData: epData.ScraperInfo.ScraperData,
 						ScraperLink: epData.ScraperInfo.ScraperLink,
 						UpdateDate:  time.Now().Unix(),
-						UpdateMode:  0,
+						UpdateMode:  -1,
 						ID:          episodeData.ID,
 					})
 				} else {
 					t.App.Log.WithFields(logF).Error(err)
 				}
 			} else {
-				t.App.Log.WithFields(logF).Tracef("no update requested or error: %s", err.Error())
+				t.App.Log.WithFields(logF).Tracef("no update requested or error: %s", err)
 			}
 
 		} else {
@@ -409,7 +412,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 							ScraperID:   seasonData.ScraperInfo.ScraperID,
 							ScraperLink: seasonData.ScraperInfo.ScraperLink,
 							AddDate:     time.Now().Unix(),
-							UpdateMode:  0,
+							UpdateMode:  -1,
 							IDShow:      data.ID,
 						})
 					} else {
@@ -428,14 +431,14 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						Icon:        epData.Icon,
 						Premiered:   epData.Premiered,
 						Rating:      epData.Rating,
-						Season:      epData.Season,
-						Episode:     epData.Episode,
+						Season:      int64(season),
+						Episode:     int64(episode),
 						ScraperName: epData.ScraperInfo.ScraperName,
 						ScraperID:   epData.ScraperInfo.ScraperID,
 						ScraperData: epData.ScraperInfo.ScraperData,
 						ScraperLink: epData.ScraperInfo.ScraperLink,
 						AddDate:     time.Now().Unix(),
-						UpdateMode:  0,
+						UpdateMode:  -1,
 						IDShow:      data.ID,
 					})
 					if err == nil {
