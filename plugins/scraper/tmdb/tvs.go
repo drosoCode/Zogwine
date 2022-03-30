@@ -133,13 +133,16 @@ func (t *TMDB) GetTVSSeason(season int) (common.TVSSeasonData, error) {
 		return common.TVSSeasonData{}, err
 	}
 
-	prem, _ := time.Parse("2006-01-02", decode.Episodes[0].AirDate)
-
+	prem := time.Now()
 	vote := 0.0
 	for _, i := range decode.Episodes {
 		vote += i.VoteAverage
 	}
-	vote /= float64(len(decode.Episodes))
+
+	if len(decode.Episodes) > 0 {
+		prem, _ = time.Parse("2006-01-02", decode.Episodes[0].AirDate)
+		vote /= float64(len(decode.Episodes))
+	}
 
 	return common.TVSSeasonData{
 		Title:     decode.Name,

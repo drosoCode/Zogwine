@@ -264,6 +264,7 @@ func (t *TVSScraper) updateTVS(data database.ListShowRow) (database.ListShowRow,
 		ScraperData: tvsData.ScraperInfo.ScraperData,
 		UpdateDate:  time.Now().Unix(),
 		ID:          data.ID,
+		UpdateMode:  -1,
 	})
 	if err != nil {
 		return data, err
