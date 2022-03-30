@@ -81,10 +81,10 @@ func NewTVSScraper(s *status.Status) TVSScraper {
 	return t
 }
 
-func (t *TVSScraper) Scan(idlib int64, AutoAdd bool, AddUnknown bool) error {
+func (t *TVSScraper) Scan(idlib int64, conf ScraperScanConfig) error {
 	t.IDLib = idlib
-	t.AutoAdd = AutoAdd
-	t.AddUnknown = AddUnknown
+	t.AutoAdd = conf.AutoAdd
+	t.AddUnknown = conf.AddUnknown
 	ctx := context.Background()
 
 	// get library base path
@@ -227,11 +227,11 @@ func (t *TVSScraper) addTVS(data database.ListShowRow) (database.ListShowRow, er
 			return t.updateTVS(data)
 		} else {
 			t.App.Log.WithFields(logF).Trace("auto select failed, add multiple results")
-			AddMultipleResults(t.App, database.MediaTypeTvs, data.ID, searchResults)
+			AddMultipleResults(t.App, database.MediaTypeTvs, data.ID, searchResults, data.Title)
 		}
 	} else {
 		t.App.Log.WithFields(logF).Trace("add multiple results")
-		AddMultipleResults(t.App, database.MediaTypeTvs, data.ID, searchResults)
+		AddMultipleResults(t.App, database.MediaTypeTvs, data.ID, searchResults, data.Title)
 	}
 
 	return data, nil

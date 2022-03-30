@@ -11,17 +11,23 @@ import (
 )
 
 const addMultipleResults = `-- name: AddMultipleResults :exec
-INSERT INTO selection (media_type, media_data, data) VALUES ($1, $2, $3)
+INSERT INTO selection (media_type, media_data, data, name) VALUES ($1, $2, $3, $4)
 `
 
 type AddMultipleResultsParams struct {
 	MediaType MediaType       `json:"mediaType"`
 	MediaData int64           `json:"mediaData"`
 	Data      json.RawMessage `json:"data"`
+	Name      string          `json:"name"`
 }
 
 func (q *Queries) AddMultipleResults(ctx context.Context, arg AddMultipleResultsParams) error {
-	_, err := q.db.ExecContext(ctx, addMultipleResults, arg.MediaType, arg.MediaData, arg.Data)
+	_, err := q.db.ExecContext(ctx, addMultipleResults,
+		arg.MediaType,
+		arg.MediaData,
+		arg.Data,
+		arg.Name,
+	)
 	return err
 }
 
@@ -40,7 +46,7 @@ func (q *Queries) DeleteMultipleResultsByMedia(ctx context.Context, arg DeleteMu
 }
 
 const getMultipleResultsByMedia = `-- name: GetMultipleResultsByMedia :one
-SELECT media_type, media_data, data FROM selection WHERE media_type = $1 AND media_data = $2 LIMIT 1
+SELECT media_type, media_data, data, name FROM selection WHERE media_type = $1 AND media_data = $2 LIMIT 1
 `
 
 type GetMultipleResultsByMediaParams struct {
@@ -51,8 +57,77 @@ type GetMultipleResultsByMediaParams struct {
 func (q *Queries) GetMultipleResultsByMedia(ctx context.Context, arg GetMultipleResultsByMediaParams) (Selection, error) {
 	row := q.db.QueryRowContext(ctx, getMultipleResultsByMedia, arg.MediaType, arg.MediaData)
 	var i Selection
-	err := row.Scan(&i.MediaType, &i.MediaData, &i.Data)
+	err := row.Scan(
+		&i.MediaType,
+		&i.MediaData,
+		&i.Data,
+		&i.Name,
+	)
 	return i, err
+}
+
+const listMultipleResults = `-- name: ListMultipleResults :many
+SELECT media_type, media_data, data, name FROM selection
+`
+
+func (q *Queries) ListMultipleResults(ctx context.Context) ([]Selection, error) {
+	rows, err := q.db.QueryContext(ctx, listMultipleResults)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Selection
+	for rows.Next() {
+		var i Selection
+		if err := rows.Scan(
+			&i.MediaType,
+			&i.MediaData,
+			&i.Data,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMultipleResultsByMediaType = `-- name: ListMultipleResultsByMediaType :many
+SELECT media_type, media_data, data, name FROM selection WHERE media_type = $1
+`
+
+func (q *Queries) ListMultipleResultsByMediaType(ctx context.Context, mediaType MediaType) ([]Selection, error) {
+	rows, err := q.db.QueryContext(ctx, listMultipleResultsByMediaType, mediaType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Selection
+	for rows.Next() {
+		var i Selection
+		if err := rows.Scan(
+			&i.MediaType,
+			&i.MediaData,
+			&i.Data,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listScraperForType = `-- name: ListScraperForType :many
