@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -30,12 +31,12 @@ func ListLibrary(s *status.Status) http.HandlerFunc {
 
 		if mt := r.URL.Query().Get("mediatype"); mt != "" {
 			mediaType, _ := strconv.ParseInt(mt, 10, 64)
-			libs, err = s.DB.ListLibraryWithType(r.Context(), database.MediaType(database.MediaTypeInt[mediaType]))
+			libs, err = s.DB.ListLibraryWithType(context.Background(), database.MediaType(database.MediaTypeInt[mediaType]))
 			if srv.IfError(w, r, err) {
 				return
 			}
 		} else {
-			libs, err = s.DB.ListLibrary(r.Context())
+			libs, err = s.DB.ListLibrary(context.Background())
 			if srv.IfError(w, r, err) {
 				return
 			}
@@ -52,7 +53,7 @@ func GetLibrary(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		lib, err := s.DB.GetLibrary(r.Context(), id)
+		lib, err := s.DB.GetLibrary(context.Background(), id)
 		if srv.IfError(w, r, err) {
 			return
 		}
