@@ -224,6 +224,7 @@ type Selection struct {
 	MediaType MediaType       `json:"mediaType"`
 	MediaData int64           `json:"mediaData"`
 	Data      json.RawMessage `json:"data"`
+	Name      string          `json:"name"`
 }
 
 type Status struct {

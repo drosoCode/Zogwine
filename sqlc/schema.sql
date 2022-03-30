@@ -193,6 +193,7 @@ CREATE TABLE "public"."selection" (
     "media_type" media_type NOT NULL,
     "media_data" BIGINT NOT NULL,
     "data" json NOT NULL,
+    "name" text NOT NULL,
     PRIMARY KEY ("media_type", "media_data")
 ) WITH (oids = false);
 
