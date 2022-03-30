@@ -204,9 +204,11 @@ func getFileInfos(videoFilePath string, supportedVideo []string, supportedSubtit
 		fr := strings.Split(stream.AvgFrameRate, "/")
 		framerate := 0.0
 		if len(fr) >= 2 {
-			fr1, _ := strconv.ParseFloat(fr[0], 64)
-			fr2, _ := strconv.ParseFloat(fr[1], 64)
-			framerate = fr1 / fr2
+			fr1, e1 := strconv.ParseFloat(fr[0], 64)
+			fr2, e2 := strconv.ParseFloat(fr[1], 64)
+			if e1 == nil && e2 == nil && fr2 > 0 {
+				framerate = fr1 / fr2
+			}
 		}
 		stereo3d := "NONE"
 		if !skip3d {
