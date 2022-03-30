@@ -1444,12 +1444,42 @@ paths:
       - user: []
       - admin: []
 
+  /player/property/{videoFileID}:
+    get:
+      tags:
+      - player
+      summary: Get the properties for a specific video_file
+      operationId: player_props
+      parameters:
+      - name: videoFileID
+        in: path
+        description: id of the video_file
+        required: true
+        schema:
+          type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                  data:
+                    $ref: '#/components/schemas/video_file_props'
+      security:
+      - user: []
+
+
   /player/property/{mediaType}/{mediaData}:
     get:
       tags:
       - player
-      summary: Get the media file properties
-      operationId: player_props
+      summary: List the properties for all the associated video_files
+      operationId: player_props_list
       parameters:
       - name: mediaType
         in: path
@@ -1475,33 +1505,11 @@ paths:
                     type: string
                     default: ok
                   data:
-                    type: object
-                    properties:
-                      format:
-                        type: string
-                      duration:
-                        type: number
-                      extension:
-                        type: string
-                      audio:
-                        type: string
-                      subtitles:
-                        type: string
-                      stereo3d:
-                        type: string
-                      ratio:
-                        type: string
-                      dimension:
-                        type: string
-                      pix_fmt:
-                        type: string
-                      video_codec:
-                        type: string
-                      size:
-                        type: string
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/video_file_props'
       security:
       - user: []
-      - admin: []
       
     put:
       tags:
@@ -2589,6 +2597,31 @@ paths:
       
 components:
   schemas:
+    video_file_props:
+      type: object
+      properties:
+        format:
+          type: string
+        duration:
+          type: number
+        extension:
+          type: string
+        audio:
+          type: string
+        subtitles:
+          type: string
+        stereo3d:
+          type: string
+        ratio:
+          type: string
+        dimension:
+          type: string
+        pix_fmt:
+          type: string
+        video_codec:
+          type: string
+        size:
+          type: string
     tvshow:
       type: object
       properties:
