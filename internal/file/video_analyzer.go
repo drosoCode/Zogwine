@@ -3,8 +3,10 @@ package file
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"log"
 	"os"
@@ -25,6 +27,10 @@ import (
 )
 
 // package to analyze metadata (streams, aspect ratio, codecs, format, additional files) of a video file
+
+const (
+	HashChunkSize = 65536 // 64k
+)
 
 type FileInfo struct {
 	Format    string          `json:"format"`
@@ -186,6 +192,61 @@ func detect3DMode(videoFilePath string, stream int, duration float64) string {
 	}
 }
 
+// https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes#GO
+// Generate a OSDB hash for a file.
+func HashVideoFile(path string) (uint64, error) {
+	hash := uint64(0)
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	fi, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	if fi.Size() < HashChunkSize {
+		return 0, fmt.Errorf("File is too small")
+	}
+
+	// Read head and tail blocks.
+	buf := make([]byte, HashChunkSize*2)
+	err = readChunk(file, 0, buf[:HashChunkSize])
+	if err != nil {
+		return 0, err
+	}
+	err = readChunk(file, fi.Size()-HashChunkSize, buf[HashChunkSize:])
+	if err != nil {
+		return 0, err
+	}
+
+	// Convert to uint64, and sum.
+	var nums [(HashChunkSize * 2) / 8]uint64
+	reader := bytes.NewReader(buf)
+	err = binary.Read(reader, binary.LittleEndian, &nums)
+	if err != nil {
+		return 0, err
+	}
+	for _, num := range nums {
+		hash += num
+	}
+
+	return hash + uint64(fi.Size()), nil
+}
+
+// Read a chunk of a file at `offset` so as to fill `buf`.
+func readChunk(file *os.File, offset int64, buf []byte) (err error) {
+	n, err := file.ReadAt(buf, offset)
+	if err != nil {
+		return
+	}
+	if n != HashChunkSize {
+		return fmt.Errorf("Invalid read %v", n)
+	}
+	return
+}
+
 // gather info on a video file
 func getFileInfos(videoFilePath string, supportedVideo []string, supportedSubtitles []string, skip3d bool) (FileInfo, error) {
 	extension := filepath.Ext(videoFilePath)[1:]
@@ -283,6 +344,11 @@ func AddVideoFile(s *status.Status, idlib int64, videoFilePath string, mediaType
 		return 0, err
 	}
 
+	hash, err := HashVideoFile(path)
+	if err != nil {
+		return 0, err
+	}
+
 	id, err := s.DB.AddVideoFile(ctx, database.AddVideoFileParams{
 		IDLib:      idlib,
 		MediaType:  mediaType,
@@ -296,6 +362,7 @@ func AddVideoFile(s *status.Status, idlib int64, videoFilePath string, mediaType
 		Size:       info.Size,
 		Path:       videoFilePath,
 		Tmp:        tmp,
+		Hash:       fmt.Sprint(hash),
 		AddDate:    time.Now().Unix(),
 		UpdateDate: time.Now().Unix(),
 	})
@@ -324,6 +391,11 @@ func UpdateVideoFile(s *status.Status, idlib int64, videoFilePath string) error 
 		return err
 	}
 
+	hash, err := HashVideoFile(path)
+	if err != nil {
+		return err
+	}
+
 	s.DB.UpdateVideoFile(ctx, database.UpdateVideoFileParams{
 		Format:     info.Format,
 		Duration:   info.Duration,
@@ -332,6 +404,7 @@ func UpdateVideoFile(s *status.Status, idlib int64, videoFilePath string) error 
 		Audio:      info.Audio,
 		Subtitle:   info.Subtitle,
 		Size:       info.Size,
+		Hash:       fmt.Sprint(hash),
 		UpdateDate: time.Now().Unix(),
 		ID:         data.ID,
 	})

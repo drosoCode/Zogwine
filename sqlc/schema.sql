@@ -222,6 +222,7 @@ CREATE TABLE "public"."video_file" (
     "subtitle" json NOT NULL,
     "size" double precision NOT NULL,
     "tmp" boolean NOT NULL,
+    "hash" text NOT NULL,
     "add_date" bigint NOT NULL,
     "update_date" bigint NOT NULL
 ) WITH (oids = false);
