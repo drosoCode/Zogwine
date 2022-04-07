@@ -63,6 +63,8 @@ func main() {
 	handler.SetupTag(api, &status)
 	handler.SetupPerson(api, &status)
 	handler.SetupRole(api, &status)
+	handler.SetupPlayer(api, &status)
+	handler.SetupScraper(api, &status)
 
 	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
