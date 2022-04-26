@@ -29,3 +29,6 @@ SELECT * FROM video_file WHERE id_lib = $1 AND path = $2 LIMIT 1;
 
 -- name: GetVideoFileFromMedia :one
 SELECT * FROM video_file WHERE media_type = $1 AND media_data = $2 ORDER BY id OFFSET $3 LIMIT 1;
+
+-- name: CheckVideoHash :one
+SELECT COUNT(*) > 0 AS present FROM video_file WHERE hash = $1;

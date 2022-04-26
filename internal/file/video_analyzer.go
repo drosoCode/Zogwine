@@ -339,12 +339,21 @@ func AddVideoFile(s *status.Status, idlib int64, videoFilePath string, mediaType
 	}
 	path := filepath.Join(lib.Path, videoFilePath)
 
-	info, err := getFileInfos(path, s.Config.Files.Video, s.Config.Files.Subtitle, s.Config.Analyzer.Video.Skip3D)
+	hash, err := HashVideoFile(path)
 	if err != nil {
 		return 0, err
 	}
+	hashStr := fmt.Sprint(hash)
 
-	hash, err := HashVideoFile(path)
+	exists, err := s.DB.CheckVideoHash(ctx, hashStr)
+	if err != nil {
+		return 0, err
+	}
+	if exists {
+		return 0, errors.New("duplicate detected, hash " + hashStr + " already exists")
+	}
+
+	info, err := getFileInfos(path, s.Config.Files.Video, s.Config.Files.Subtitle, s.Config.Analyzer.Video.Skip3D)
 	if err != nil {
 		return 0, err
 	}
@@ -362,7 +371,7 @@ func AddVideoFile(s *status.Status, idlib int64, videoFilePath string, mediaType
 		Size:       info.Size,
 		Path:       videoFilePath,
 		Tmp:        tmp,
-		Hash:       fmt.Sprint(hash),
+		Hash:       hashStr,
 		AddDate:    time.Now().Unix(),
 		UpdateDate: time.Now().Unix(),
 	})
@@ -386,12 +395,21 @@ func UpdateVideoFile(s *status.Status, idlib int64, videoFilePath string) error 
 		return err
 	}
 
-	data, err := s.DB.GetVideoFileFromPath(ctx, database.GetVideoFileFromPathParams{IDLib: idlib, Path: videoFilePath})
+	hash, err := HashVideoFile(path)
 	if err != nil {
 		return err
 	}
+	hashStr := fmt.Sprint(hash)
 
-	hash, err := HashVideoFile(path)
+	exists, err := s.DB.CheckVideoHash(ctx, hashStr)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("duplicate detected, hash " + hashStr + " already exists")
+	}
+
+	data, err := s.DB.GetVideoFileFromPath(ctx, database.GetVideoFileFromPathParams{IDLib: idlib, Path: videoFilePath})
 	if err != nil {
 		return err
 	}
@@ -404,7 +422,7 @@ func UpdateVideoFile(s *status.Status, idlib int64, videoFilePath string) error 
 		Audio:      info.Audio,
 		Subtitle:   info.Subtitle,
 		Size:       info.Size,
-		Hash:       fmt.Sprint(hash),
+		Hash:       hashStr,
 		UpdateDate: time.Now().Unix(),
 		ID:         data.ID,
 	})

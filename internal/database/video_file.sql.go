@@ -55,6 +55,17 @@ func (q *Queries) AddVideoFile(ctx context.Context, arg AddVideoFileParams) (int
 	return id, err
 }
 
+const checkVideoHash = `-- name: CheckVideoHash :one
+SELECT COUNT(*) > 0 AS present FROM video_file WHERE hash = $1
+`
+
+func (q *Queries) CheckVideoHash(ctx context.Context, hash string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkVideoHash, hash)
+	var present bool
+	err := row.Scan(&present)
+	return present, err
+}
+
 const getVideoFile = `-- name: GetVideoFile :one
 SELECT id, id_lib, media_type, media_data, path, format, duration, extension, video, audio, subtitle, size, tmp, hash, add_date, update_date FROM video_file WHERE id = $1
 `
