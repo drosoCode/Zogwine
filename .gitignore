@@ -10,3 +10,6 @@ static/*
 *.pyc
 config.yml
 status.json
+_dev
+cache
+logs

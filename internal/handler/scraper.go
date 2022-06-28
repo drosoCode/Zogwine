@@ -39,8 +39,7 @@ func ListScraperResults(s *status.Status) http.HandlerFunc {
 // GET scraper/result/{mediatype}
 func ListScraperResultsForType(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mediaType, _ := strconv.ParseInt(chi.URLParam(r, "mediatype"), 10, 64)
-		selec, err := s.DB.ListMultipleResultsByMediaType(context.Background(), database.MediaType(database.MediaTypeInt[mediaType]))
+		selec, err := s.DB.ListMultipleResultsByMediaType(context.Background(), database.MediaType(chi.URLParam(r, "mediatype")))
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -51,10 +50,9 @@ func ListScraperResultsForType(s *status.Status) http.HandlerFunc {
 // GET scraper/result/{mediatype}/{mediadata}
 func GetScraperResultsForMedia(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mediaType, _ := strconv.ParseInt(chi.URLParam(r, "mediatype"), 10, 64)
 		mediaData, _ := strconv.ParseInt(chi.URLParam(r, "mediadata"), 10, 64)
 		selec, err := s.DB.GetMultipleResultsByMedia(context.Background(), database.GetMultipleResultsByMediaParams{
-			MediaType: database.MediaType(database.MediaTypeInt[mediaType]),
+			MediaType: database.MediaType(chi.URLParam(r, "mediatype")),
 			MediaData: mediaData,
 		})
 		if srv.IfError(w, r, err) {
@@ -67,10 +65,9 @@ func GetScraperResultsForMedia(s *status.Status) http.HandlerFunc {
 // POST scraper/result/{mediatype}/{mediadata}/{id}
 func SelectScraperResult(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mediaType, _ := strconv.ParseInt(chi.URLParam(r, "mediatype"), 10, 64)
 		mediaData, _ := strconv.ParseInt(chi.URLParam(r, "mediadata"), 10, 64)
 		id, _ := strconv.Atoi(chi.URLParam(r, "id"))
-		_, err := scraper.SelectScraperResult(s, database.MediaType(database.MediaTypeInt[mediaType]), mediaData, id)
+		_, err := scraper.SelectScraperResult(s, database.MediaType(chi.URLParam(r, "mediatype")), mediaData, id)
 		if srv.IfError(w, r, err) {
 			return
 		}
@@ -82,7 +79,6 @@ func SelectScraperResult(s *status.Status) http.HandlerFunc {
 // POST scraper/scan/{mediatype}/{idlib}
 func StartScraperScan(s *status.Status) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mediaType, _ := strconv.ParseInt(chi.URLParam(r, "mediatype"), 10, 64)
 		id := int64(0)
 		i := chi.URLParam(r, "id")
 		if i != "" {
@@ -101,7 +97,7 @@ func StartScraperScan(s *status.Status) http.HandlerFunc {
 			conf.AddUnknown = true
 		}
 
-		err := scraper.StartScan(s, database.MediaType(database.MediaTypeInt[mediaType]), id, conf)
+		err := scraper.StartScan(s, database.MediaType(chi.URLParam(r, "mediatype")), id, conf)
 
 		if srv.IfError(w, r, err) {
 			return
