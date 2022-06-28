@@ -7,13 +7,13 @@ type PersonProvider interface {
 }
 
 type PersonDetails struct {
-	Birthdate   int64
-	Deathdate   int64
-	Gender      int64
-	Name        string
-	Description string
-	Icon        string
-	KnownFor    string
-	Rating      int64
+	Birthdate   int64  `json:"birthdate"`
+	Deathdate   int64  `json:"deathdate"`
+	Gender      int64  `json:"gender"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`
+	KnownFor    string `json:"knownFor"`
+	Rating      int64  `json:"rating"`
 	ScraperInfo
 }

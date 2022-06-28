@@ -8,38 +8,38 @@ type Provider interface {
 }
 
 type ScraperInfo struct {
-	ScraperID   string
-	ScraperName string
-	ScraperData string
-	ScraperLink string
+	ScraperID   string `json:"scraperID"`
+	ScraperName string `json:"scraperName"`
+	ScraperData string `json:"scraperData"`
+	ScraperLink string `json:"scraperLink"`
 }
 
 type TagData struct {
-	Name  string
-	Value string
-	Icon  string
+	Name  string `json:"name"`
+	Value string `json:"value"`
+	Icon  string `json:"icon"`
 }
 
 type PersonData struct {
-	Name        string
-	Role        string
-	IsCharacter bool
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	IsCharacter bool   `json:"isCharacter"`
 }
 
 type SearchData struct {
-	Title     string
-	Overview  string
-	Icon      string
-	Premiered int64
+	Title     string `json:"title"`
+	Overview  string `json:"overview"`
+	Icon      string `json:"icon"`
+	Premiered int64  `json:"premiered"`
 	ScraperInfo
 }
 
 type UpcomingData struct {
-	Title     string
-	Overview  string
-	Icon      string
-	Premiered int64
-	ID1       int64 // season for tvs
-	ID2       int64 // episode for tvs
+	Title     string `json:"title"`
+	Overview  string `json:"overview"`
+	Icon      string `json:"icon"`
+	Premiered int64  `json:"premiered"`
+	ID1       int64  `json:"id1"` // season for tvs
+	ID2       int64  `json:"id2"` // episode for tvs
 	ScraperInfo
 }
