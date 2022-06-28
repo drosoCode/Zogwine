@@ -1,11 +1,12 @@
 package util
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 
-	"github.com/BrianAllred/goydl"
+	"github.com/Zogwine/Zogwine/pkg/goydl"
 )
 
 func DownloadFile(url string, filepath string) error {
@@ -35,6 +36,7 @@ func DownloadVideo(url string, path string) error {
 	youtubeDl.Options.EmbedSubs.Value = true
 
 	cmd, err := youtubeDl.Download(url)
+	fmt.Println(err)
 
 	go io.Copy(os.Stdout, youtubeDl.Stdout)
 	go io.Copy(os.Stderr, youtubeDl.Stderr)

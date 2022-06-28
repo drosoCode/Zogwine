@@ -3,7 +3,6 @@ module github.com/Zogwine/Zogwine
 go 1.18
 
 require (
-	github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8
 	github.com/corona10/goimagehash v1.0.3
 	github.com/disintegration/gift v1.2.1
 	github.com/go-chi/chi/v5 v5.0.7
