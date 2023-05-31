@@ -71,7 +71,7 @@ func CacheItem(s *status.Status, item database.Cache, path string) error {
 	if err == nil {
 		s.DB.UpdateCache(context.Background(), database.UpdateCacheParams{Extension: ext, ID: item.ID})
 	} else {
-		s.Log.Debug("error while caching link %s", item.Link)
+		s.Log.Debugf("error while caching link %s", item.Link)
 	}
 	return err
 }

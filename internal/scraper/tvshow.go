@@ -216,7 +216,7 @@ func (t *TVSScraper) addTVS(data database.ListShowRow) (database.ListShowRow, er
 		// if we want to try to automatically select the best result
 		selected, err := SelectBestItem(searchResults, data.Title, 0)
 		if err == nil {
-			t.App.Log.WithFields(logF).Trace("auto select: %s: %s", selected.ScraperName, selected.ScraperID)
+			t.App.Log.WithFields(logF).Tracef("auto select: %s: %s", selected.ScraperName, selected.ScraperID)
 			// if a result was selected
 			t.UpdateWithSelectionResult(data.ID, SelectionResult{ScraperName: selected.ScraperName, ScraperID: selected.ScraperID, ScraperData: selected.ScraperData})
 			data.ScraperID = selected.ScraperID
@@ -457,6 +457,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						Title:      i,
 						AddDate:    time.Now().Unix(),
 						UpdateMode: 0,
+						Season:     -1,
 						IDShow:     data.ID,
 					})
 					if err == nil {
