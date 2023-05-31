@@ -189,9 +189,12 @@ func (t *TMDB) GetTVSEpisode(season int, episode int) (common.TVSEpisodeData, er
 		if len(dec.Groups) == 0 {
 			return common.TVSEpisodeData{}, errors.New("no data")
 		}
-		for _, i := range dec.Groups[0].Episodes {
-			if i.SeasonNumber == season && i.EpisodeNumber == episode {
-				decode = i
+		for _, i := range dec.Groups {
+			if i.Order == season {
+				if len(i.Episodes) >= episode {
+					decode = i.Episodes[episode-1]
+				}
+				break
 			}
 		}
 	}
