@@ -433,31 +433,6 @@ func (q *Queries) GetShowSeason(ctx context.Context, arg GetShowSeasonParams) (G
 	return i, err
 }
 
-const getUnknownSeason = `-- name: GetUnknownSeason :one
-SELECT (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = -1)::BIGINT AS episode,
-(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = -1) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
-FROM season s
-WHERE s.id_show = $2
-ORDER BY season
-`
-
-type GetUnknownSeasonParams struct {
-	IDUser int64 `json:"idUser"`
-	IDShow int64 `json:"idShow"`
-}
-
-type GetUnknownSeasonRow struct {
-	Episode        int64 `json:"episode"`
-	WatchedEpisode int64 `json:"watchedEpisode"`
-}
-
-func (q *Queries) GetUnknownSeason(ctx context.Context, arg GetUnknownSeasonParams) (GetUnknownSeasonRow, error) {
-	row := q.db.QueryRowContext(ctx, getUnknownSeason, arg.IDUser, arg.IDShow)
-	var i GetUnknownSeasonRow
-	err := row.Scan(&i.Episode, &i.WatchedEpisode)
-	return i, err
-}
-
 const listShow = `-- name: ListShow :many
 SELECT id, title, overview, 
 FROMCACHE(icon) AS icon, 

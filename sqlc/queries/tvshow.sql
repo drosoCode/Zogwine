@@ -82,13 +82,6 @@ FROM season s
 WHERE s.id_show = $2
 ORDER BY season;
 
--- name: GetUnknownSeason :one
-SELECT (SELECT COUNT(*) FROM episode WHERE id_show = s.id_show AND season = -1)::BIGINT AS episode,
-(SELECT COUNT(watch_count) FROM status WHERE media_data IN (SELECT id FROM episode e WHERE e.id_show = s.id_show AND season = -1) AND media_type = 'tvs_episode'  AND watch_count > 0 AND id_user = $1)::BIGINT AS watched_episode
-FROM season s
-WHERE s.id_show = $2
-ORDER BY season;
-
 -- name: GetShowSeason :one
 SELECT s.id_show, title, overview, FROMCACHE(icon) AS icon, 
 s.season, premiered, rating, trailer, scraper_link, add_date, update_date, update_mode, 

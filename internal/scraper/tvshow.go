@@ -418,6 +418,17 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						})
 					} else {
 						t.App.Log.WithFields(logF).Error(err)
+						t.App.DB.AddShowSeason(ctx, database.AddShowSeasonParams{
+							Title:       "Season " + strconv.Itoa(season),
+							Season:      int64(season),
+							ScraperName: seasonData.ScraperInfo.ScraperName,
+							ScraperData: seasonData.ScraperInfo.ScraperData,
+							ScraperID:   seasonData.ScraperInfo.ScraperID,
+							ScraperLink: seasonData.ScraperInfo.ScraperLink,
+							AddDate:     time.Now().Unix(),
+							UpdateMode:  -1,
+							IDShow:      data.ID,
+						})
 					}
 					seasons = append(seasons, int64(season))
 				}
@@ -457,7 +468,8 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 						Title:      i,
 						AddDate:    time.Now().Unix(),
 						UpdateMode: 0,
-						Season:     -1,
+						Season:     int64(season),
+						Episode:    int64(episode),
 						IDShow:     data.ID,
 					})
 					if err == nil {

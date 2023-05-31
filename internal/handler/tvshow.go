@@ -207,24 +207,6 @@ func ListTVSSeason(s *status.Status) http.HandlerFunc {
 		if srv.IfError(w, r, err) {
 			return
 		}
-
-		// add a "virtual" season with id -1 if there are episodes that are not already scraped (to make them available on the ui)
-		if r.URL.Query().Get("includeunk") == "1" {
-			unk, err := s.DB.GetUnknownSeason(ctx, database.GetUnknownSeasonParams{IDUser: userInfo.ID, IDShow: id})
-			if srv.IfError(w, r, err) {
-				return
-			}
-			if unk.Episode > 0 {
-				shows = append(shows, database.ListShowSeasonRow{
-					IDShow:         id,
-					Title:          "unknown",
-					Season:         -1,
-					Episode:        unk.Episode,
-					WatchedEpisode: unk.WatchedEpisode,
-				})
-			}
-		}
-
 		srv.JSON(w, r, 200, shows)
 	}
 }
@@ -243,26 +225,10 @@ func GetTVSSeason(s *status.Status) http.HandlerFunc {
 			return
 		}
 
-		var seasonData database.GetShowSeasonRow
-
 		ctx := context.Background()
-		if season == -1 {
-			unk, err := s.DB.GetUnknownSeason(ctx, database.GetUnknownSeasonParams{IDUser: userInfo.ID, IDShow: id})
-			if srv.IfError(w, r, err) {
-				return
-			}
-			seasonData = database.GetShowSeasonRow{
-				IDShow:         id,
-				Title:          "unknown",
-				Season:         -1,
-				Episode:        unk.Episode,
-				WatchedEpisode: unk.WatchedEpisode,
-			}
-		} else {
-			seasonData, err = s.DB.GetShowSeason(ctx, database.GetShowSeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
-			if srv.IfError(w, r, err) {
-				return
-			}
+		seasonData, err := s.DB.GetShowSeason(ctx, database.GetShowSeasonParams{IDUser: userInfo.ID, IDShow: id, Season: season})
+		if srv.IfError(w, r, err) {
+			return
 		}
 
 		srv.JSON(w, r, 200, seasonData)
