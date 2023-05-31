@@ -1,5 +1,3 @@
-github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8 h1:jSnpkKA8r7Ow7YuLiHsXc0fPQzdHktFGnLUmGAl+owM=
-github.com/BrianAllred/goydl v0.0.0-20200922193158-6eeb623d0fe8/go.mod h1:hpSBK67Uduw/SGy6bObP8YrAZjcw0WR+gV/KTl9o2Lc=
 github.com/corona10/goimagehash v1.0.3 h1:NZM518aKLmoNluluhfHGxT3LGOnrojrxhGn63DR/CZA=
 github.com/corona10/goimagehash v1.0.3/go.mod h1:VkvE0mLn84L4aF8vCb6mafVajEb6QYMHl2ZJLn0mOGI=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

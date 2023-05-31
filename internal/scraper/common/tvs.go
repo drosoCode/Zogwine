@@ -12,35 +12,35 @@ type TVShowProvider interface {
 }
 
 type TVSData struct {
-	Title     string
-	Overview  string
-	Icon      string
-	Fanart    string
-	Website   string
-	Trailer   string
-	Premiered int64
-	Rating    int64
+	Title     string `json:"title"`
+	Overview  string `json:"overview"`
+	Icon      string `json:"icon"`
+	Fanart    string `json:"fanart"`
+	Website   string `json:"website"`
+	Trailer   string `json:"trailer"`
+	Premiered int64  `json:"premiered"`
+	Rating    int64  `json:"rating"`
 	ScraperInfo
 }
 
 type TVSSeasonData struct {
-	Title     string
-	Overview  string
-	Icon      string
-	Fanart    string
-	Trailer   string
-	Premiered int64
-	Rating    int64
+	Title     string `json:"title"`
+	Overview  string `json:"overview"`
+	Icon      string `json:"icon"`
+	Fanart    string `json:"fanart"`
+	Trailer   string `json:"trailer"`
+	Premiered int64  `json:"premiered"`
+	Rating    int64  `json:"rating"`
 	ScraperInfo
 }
 
 type TVSEpisodeData struct {
-	Title     string
-	Overview  string
-	Icon      string
-	Premiered int64
-	Rating    int64
-	Season    int64
-	Episode   int64
+	Title     string `json:"title"`
+	Overview  string `json:"overview"`
+	Icon      string `json:"icon"`
+	Premiered int64  `json:"premiered"`
+	Rating    int64  `json:"rating"`
+	Season    int64  `json:"season"`
+	Episode   int64  `json:"episode"`
 	ScraperInfo
 }

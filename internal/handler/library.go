@@ -30,8 +30,7 @@ func ListLibrary(s *status.Status) http.HandlerFunc {
 		var err error
 
 		if mt := r.URL.Query().Get("mediatype"); mt != "" {
-			mediaType, _ := strconv.ParseInt(mt, 10, 64)
-			libs, err = s.DB.ListLibraryWithType(context.Background(), database.MediaType(database.MediaTypeInt[mediaType]))
+			libs, err = s.DB.ListLibraryWithType(context.Background(), database.MediaType(mt))
 			if srv.IfError(w, r, err) {
 				return
 			}

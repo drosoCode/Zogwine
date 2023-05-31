@@ -17,8 +17,8 @@ import (
 
 // scraper definition
 type Scraper interface {
-	Scan(idlib int64, AutoAdd bool, AddUnknown bool)
-	UpdateWithSelectionResult(mediaData int64, selection SelectionResult)
+	Scan(idlib int64, conf ScraperScanConfig) error
+	UpdateWithSelectionResult(mediaData int64, selection SelectionResult) error
 }
 
 type SelectionResult struct {
@@ -132,6 +132,15 @@ func SelectScraperResult(s *status.Status, mediaType database.MediaType, mediaDa
 		return common.SearchData{}, err
 	}
 
+	sc, err := getScraperFromMediaType(s, mediaType)
+	if err != nil {
+		return common.SearchData{}, err
+	}
+	err = sc.UpdateWithSelectionResult(mediaData, SelectionResult{ScraperName: searchData[id].ScraperName, ScraperID: searchData[id].ScraperID, ScraperData: searchData[id].ScraperData})
+	if err != nil {
+		return common.SearchData{}, err
+	}
+
 	if len(searchData) < id {
 		return common.SearchData{}, errors.New("invalid id")
 	}
@@ -184,4 +193,13 @@ func AddPerson(s *status.Status, mediaType database.MediaType, mediaData int64, 
 
 	// create link between person and mediaType/mediaData
 	return s.DB.AddPersonLink(ctx, database.AddPersonLinkParams{IDPerson: personID, MediaType: mediaType, MediaData: mediaData})
+}
+
+func getScraperFromMediaType(s *status.Status, mediaType database.MediaType) (Scraper, error) {
+	if mediaType == database.MediaTypeTvs {
+		t := NewTVSScraper(s)
+		return &t, nil
+	} else {
+		return nil, errors.New("no registered scraper for this mediatype")
+	}
 }
