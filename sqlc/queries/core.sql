@@ -49,7 +49,7 @@ SELECT (
 
 -- name: GetMovieStat :one
 SELECT COUNT(*) AS watched_movie,
-    SUM(watch_count) AS watched_movie_count,
+    COALESCE(SUM(watch_count),0)::BIGINT AS watched_movie_count,
     (
         SELECT COUNT(*)
         FROM movie
