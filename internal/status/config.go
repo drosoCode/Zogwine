@@ -35,7 +35,8 @@ type Configuration struct {
 	Analyzer struct {
 		// video settings for the analysis step
 		Video struct {
-			Skip3D bool `yaml:"skip_3d"` // if the 3D detection must be skipped
+			Skip3D             bool  `yaml:"skip_3d"`              // if the 3D detection must be skipped
+			MaxConcurrentScans int64 `yaml:"max_concurrent_scans"` // maximum number of concurrent goroutines to process the scan (one tvshow/movie per goroutine)
 		} `yaml:"video,flow"`
 	} `yaml:"analyzer,flow"`
 	Authentication struct {

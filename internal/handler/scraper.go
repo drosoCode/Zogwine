@@ -86,8 +86,9 @@ func StartScraperScan(s *status.Status) http.HandlerFunc {
 		}
 
 		conf := scraper.ScraperScanConfig{
-			AutoAdd:    false,
-			AddUnknown: false,
+			AutoAdd:            false,
+			AddUnknown:         false,
+			MaxConcurrentScans: s.Config.Analyzer.Video.MaxConcurrentScans,
 		}
 
 		if r.URL.Query().Get("autoadd") == "true" {

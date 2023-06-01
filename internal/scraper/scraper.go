@@ -8,9 +8,10 @@ import (
 )
 
 type ScraperScanConfig struct {
-	AutoAdd      bool
-	AddUnknown   bool
-	Enable3DScan bool
+	AutoAdd            bool
+	AddUnknown         bool
+	Enable3DScan       bool
+	MaxConcurrentScans int64
 }
 
 func StartScan(s *status.Status, mediaType database.MediaType, lib int64, conf ScraperScanConfig) error {
