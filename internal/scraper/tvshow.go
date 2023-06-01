@@ -71,8 +71,8 @@ func (t *TVSScraper) loadTVSPlugins() error {
 }
 
 func NewTVSScraper(s *status.Status) TVSScraper {
-	seasonReg := regexp.MustCompile("(?i)(?:s)(\\d+)(?:e)")
-	epReg := regexp.MustCompile("(?i)(?:s\\d+e)(\\d+)")
+	seasonReg := regexp.MustCompile(`(?i)(?:s)(\d+)(?:e)`)
+	epReg := regexp.MustCompile(`(?i)(?:s\d+e)(\d+)`)
 	t := TVSScraper{MediaType: database.MediaTypeTvs, IDLib: 0, AutoAdd: false, AddUnknown: true, App: s, Providers: map[string]common.TVShowProvider{}, ProviderNames: []string{}, RegexSeason: seasonReg, RegexEpisode: epReg}
 	err := t.loadTVSPlugins()
 	if err != nil {
@@ -350,6 +350,9 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 	for _, i := range ListFiles(tvsPath, true) {
 		t.App.Log.WithFields(logF).Tracef("processing episode: %s", i)
 		p := filepath.Join(data.Path, i)
+		if !file.IsVideo(t.App, p) {
+			continue
+		}
 
 		videoData, err := t.App.DB.GetVideoFileFromPath(ctx, database.GetVideoFileFromPathParams{IDLib: t.IDLib, Path: p})
 		if err == nil {
@@ -467,7 +470,7 @@ func (t *TVSScraper) updateTVSEpisodes(data database.ListShowRow) error {
 					idEp, err := t.App.DB.AddShowEpisode(ctx, database.AddShowEpisodeParams{
 						Title:      i,
 						AddDate:    time.Now().Unix(),
-						UpdateMode: 0,
+						UpdateMode: -1,
 						Season:     int64(season),
 						Episode:    int64(episode),
 						IDShow:     data.ID,

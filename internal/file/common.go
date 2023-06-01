@@ -9,6 +9,7 @@ import (
 
 	"github.com/Zogwine/Zogwine/internal/database"
 	"github.com/Zogwine/Zogwine/internal/status"
+	"github.com/Zogwine/Zogwine/internal/util"
 )
 
 func GetMediaPath(s *status.Status, mediaType database.MediaType, mediaData int64, selector int64) (string, error) {
@@ -50,4 +51,8 @@ func GetMediaFromUrl(s *status.Status, url string) (database.MediaType, int64, e
 	}
 
 	return "", 0, errors.New("not found")
+}
+
+func IsVideo(s *status.Status, path string) bool {
+	return util.Contains(s.Config.Files.Video, filepath.Ext(path)[1:])
 }
